@@ -1,0 +1,3 @@
+YYIMChat = (function(YYIMChat){
+	var YYIMManager = YYIMChat.constructor;
+	

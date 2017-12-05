@@ -1,0 +1,10 @@
+publish/
+node_modules/
+.idea/
+*.dll
+*.exe
+*.pak
+*.dat
+.DS_Store
+.project
+*.bin
