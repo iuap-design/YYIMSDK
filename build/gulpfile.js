@@ -115,7 +115,7 @@ gulp.task('group', function() {
     gulp.src(groupModuleFileList)
         .pipe(concat('YYIMGroup.js'))
         .pipe(gulp.dest('../publish/module/group'))
-        .pipe(rename('YYIMRoster.min.js'))
+        .pipe(rename('YYIMGroup.min.js'))
         .pipe(uglify())
         .pipe(gulp.dest('../publish/module/group'));
 })
@@ -153,7 +153,7 @@ gulp.task('extend', function() {
         .pipe(gulp.dest('../publish/module/extend'))
         .pipe(rename('YYIMExtend.min.js'))
         .pipe(uglify())
-        .pipe(gulp.dest('../publish/module/pubaccount'));
+        .pipe(gulp.dest('../publish/module/extend'));
 })
 
 gulp.task('extendWatcher', function() {
