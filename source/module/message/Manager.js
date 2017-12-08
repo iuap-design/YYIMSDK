@@ -478,7 +478,8 @@ var Manager = (function(){
 		}
 		
 		arg.success && arg.success({
-			count: Number(data.count),
+			contactReadVersion: data.contactReadVersion,
+			total: data.total,
 			result: hisMsgArr
 		});
 	};

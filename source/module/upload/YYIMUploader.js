@@ -69,7 +69,11 @@ YYIMManager.getInstance().uploader = function(obj, arg){
 						mediaType = 1;
 					}
 					
-					if(!info.uploadUrl){
+					if(info['file_data_name']){
+						uploader.setOption('file_data_name',info['file_data_name']);
+					}
+					
+					if(mediaType === 1 || !info.uploadUrl){
 						var to = YYIMChat.getJIDUtil().buildUserJID(YYIMChat.getJIDUtil().getNode(info.to));
 						if(info.type 
 						&& info.type == YYIMChat.getConstants().CHAT_TYPE.GROUP_CHAT){

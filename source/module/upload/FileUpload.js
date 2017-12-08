@@ -13,7 +13,7 @@ FileUpload.getInstance = function(){
 FileUpload.prototype.init = function(options,events){
 	var settings = {
 		browse_button: 'fileUpload',
-		file_data_name: 'fileData',
+		file_data_name: 'file',
 		url: this.getBaseUrl(),
 		filters : {
 			max_file_size : '100mb',   //文件限制大小
