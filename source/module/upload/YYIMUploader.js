@@ -149,39 +149,67 @@ YYIMManager.getInstance().uploader = function(obj, arg){
 				fileName: file.name
 			});
 			if(info && info.to){
-				var chatInfo = uploader.getOption('chatInfo') || {};
-				chatInfo[file.id] = info;
-				uploader.setOption('chatInfo', chatInfo);
-				
-				arg && arg.fileFiltered && arg.fileFiltered({
-					file: file,
-					chatInfo: info
-				});
+				if((!YYIMUtil['isWhateType'](info.checkType,'Function') || info.checkType(file.getSource().type))){
+					var chatInfo = uploader.getOption('chatInfo') || {};
+					chatInfo[file.id] = info;
+					uploader.setOption('chatInfo', chatInfo);
+					
+					arg && arg.fileFiltered && arg.fileFiltered({
+						file: file,
+						chatInfo: info
+					});
+				}else{
+					uploader.removeFile(file);
+					arg && arg.error && arg.error({
+						file: file,
+						chatInfo: info,
+						error: '格式不支持'
+					});
+				}
 			}else{
 				uploader.removeFile(file); //拿不到上传的必要信息，任务此次上传失败
-				arg && arg.error && arg.error('chatInfo can`t get \'to\' field.');
+				arg && arg.error && arg.error({
+					file: file,
+					chatInfo: info,
+					error: '请指定接收方'
+				});
 			}
 	    },
 	    
 	    //当队列中的某一个文件上传完成后触发
 		'FileUploaded': function(uploader,file,responseObject){
 			if(responseObject.status === 200){
+				var chatInfo = uploader.getOption('chatInfo');
+				if(file && file.getNative()){
+					file.path = file.getNative().path;
+				}
+				var info = chatInfo[file.id];
 				try{
-					var chatInfo = uploader.getOption('chatInfo');
-					var response = {
-						data: JSON.parse(responseObject.response),
-						file: file,
-						chatInfo: chatInfo[file.id]
-					};
-					if(file && file.getNative()){
-						response.file.path = file.getNative().path;
+					var response = JSON.parse(responseObject.response);
+					if(YYIMUtil['isWhateType'](response.code,'Object') 
+					&& ((typeof response.code == 'number' && response.code != 0) || !response.attachId)){
+						arg && arg.error && arg.error({
+							data: response,
+							file: file,
+							chatInfo: info
+						});
+					}else{
+						delete chatInfo[file.id];
+						uploader.setOption('chatInfo',chatInfo);
+						uploader.removeFile(file);
+						FileUpload.getInstance().remove(file.id);
+						arg && arg.success && arg.success({
+							data: response,
+							file: file,
+							chatInfo: info
+						});
 					}
-					delete chatInfo[file.id];
-					uploader.setOption('chatInfo',chatInfo);
-					uploader.removeFile(file);
-					arg && arg.success && arg.success(response);
 				}catch(e){
-					arg && arg.error && arg.error('response analysis error.');
+					arg && arg.error && arg.error({
+						data: e.message,
+						file: file,
+						chatInfo: info
+					});
 				}
 			}
 	    },

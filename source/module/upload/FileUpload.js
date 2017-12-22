@@ -176,7 +176,6 @@ FileUpload.prototype.bindEvents = function(uploader,arg){
     
     //当队列中的某一个文件上传完成后触发
 	uploader.bind('FileUploaded',function(uploader,file,responseObject){
-		that.remove(file.id);
 		arg && arg.FileUploaded && arg.FileUploaded(uploader,file,responseObject);
     });
     
