@@ -186,7 +186,7 @@ YYIMManager.getInstance().uploader = function(obj, arg){
 				var info = chatInfo[file.id];
 				try{
 					var response = JSON.parse(responseObject.response);
-					if(YYIMUtil['isWhateType'](response.code,'Object') 
+					if(YYIMUtil['isWhateType'](response,'Object') 
 					&& ((typeof response.code == 'number' && response.code != 0) || !response.attachId)){
 						arg && arg.error && arg.error({
 							data: response,
