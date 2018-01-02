@@ -73,6 +73,10 @@ YYIMManager.getInstance().uploader = function(obj, arg){
 						uploader.setOption('file_data_name',info['file_data_name']);
 					}
 					
+					if(info['required_features']){
+						uploader.setOption('required_features',info['required_features']);
+					}
+					
 					if(mediaType === 1 || !info.uploadUrl){
 						var to = YYIMChat.getJIDUtil().buildUserJID(YYIMChat.getJIDUtil().getNode(info.to));
 						if(info.type 
@@ -186,19 +190,18 @@ YYIMManager.getInstance().uploader = function(obj, arg){
 				var info = chatInfo[file.id];
 				try{
 					var response = JSON.parse(responseObject.response);
-					if(YYIMUtil['isWhateType'](response,'Object') 
-					&& ((typeof response.code == 'number' && response.code != 0) || !response.attachId)){
-						arg && arg.error && arg.error({
-							data: response,
-							file: file,
-							chatInfo: info
-						});
-					}else{
+					if(response.code === 0 || response.attachId || response[0]){
 						delete chatInfo[file.id];
 						uploader.setOption('chatInfo',chatInfo);
 						uploader.removeFile(file);
 						FileUpload.getInstance().remove(file.id);
 						arg && arg.success && arg.success({
+							data: response,
+							file: file,
+							chatInfo: info
+						});
+					}else{
+						arg && arg.error && arg.error({
 							data: response,
 							file: file,
 							chatInfo: info
