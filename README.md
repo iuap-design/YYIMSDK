@@ -2,10 +2,10 @@
 # 有信 WEB_SDK
 
 
-[![npm version](https://img.shields.io/npm/v/YYIMSDK.svg)](https://www.npmjs.com/package/YYIMSDK)
+[![npm version](https://img.shields.io/npm/v/yyimsdk.svg)](https://www.npmjs.com/package/yyimsdk)
 [![Build Status](https://img.shields.io/travis/iuap-design/YYIMSDK/master.svg)](https://travis-ci.org/iuap-design/YYIMSDK)
 [![Coverage Status](https://coveralls.io/repos/github/iuap-design/YYIMSDK/badge.svg?branch=master)](https://coveralls.io/github/iuap-design/YYIMSDK?branch=master)
-[![NPM downloads](http://img.shields.io/npm/dm/YYIMSDK.svg?style=flat)](https://npmjs.org/package/YYIMSDK)
+[![NPM downloads](http://img.shields.io/npm/dm/YYIMSDK.svg?style=flat)](https://npmjs.org/package/yyimsdk)
 [![Average time to resolve an issue](http://isitmaintained.com/badge/resolution/iuap-design/YYIMSDK.svg)](http://isitmaintained.com/project/iuap-design/YYIMSDK "Average time to resolve an issue")
 [![Percentage of issues still open](http://isitmaintained.com/badge/open/iuap-design/YYIMSDK.svg)](http://isitmaintained.com/project/iuap-design/YYIMSDK "Percentage of issues still open")
 
