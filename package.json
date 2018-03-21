@@ -1,0 +1,36 @@
+{
+  "name": "yyimsdk",
+  "version": "1.0.1",
+  "description": "sdk",
+  "main": "./dist/index.js",
+  "scripts": {
+    "dev": "",
+    "build": "gulp"
+  },
+  "keywords": [
+    "sdk"
+  ],
+  "author": "yonyoufed",
+  "license": "ISC",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "babel-core": "^6.26.0",
+    "babel-loader": "^7.1.4",
+    "babel-preset-env": "^1.6.1",
+    "babel-preset-stage-0": "^6.24.1",
+    "gulp": "^3.9.1",
+    "gulp-concat": "^2.6.0",
+    "gulp-rename": "^1.2.2",
+    "gulp-uglify": "^2.0.0",
+    "webpack": "^4.1.1",
+    "webpack-dev-server": "^3.1.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "ssh://git@outergit.yonyou.com:49622/futureTech/imsdk-web.git"
+  }
+}

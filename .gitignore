@@ -1,4 +1,3 @@
-publish/
 node_modules/
 .idea/
 *.dll
