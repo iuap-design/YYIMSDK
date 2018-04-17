@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Tdoc 群组</title>
+    <link rel="stylesheet" href="source/app.css"/>
+    <link rel="stylesheet" href="source/highlight.min.css">
+</head>
+<body>
+<a id="skippy" class="sr-only sr-only-focusable" href="#content"><div class="container"><span class="skiplink-text">Skip to main content</span></div></a>
+
+
+<!-- Docs master nav -->
+<header class="navbar navbar-static-top docs-nav" id="top" role="banner">
+    <div class="container">
+        <div class="navbar-header">
+            <button class="navbar-toggle collapsed" type="button" data-toggle="collapse" data-target="#bs-navbar" aria-controls="bs-navbar" aria-expanded="false">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            
+            <a href="http://tinper.org/" class="navbar-brand">tinper</a>
+            
+        </div>
+        <nav id="bs-navbar" class="collapse navbar-collapse">
+            <ul class="nav navbar-nav navbar-left">
+                
+                    
+                    <li class="">
+                        
+                        <a href="index.html">集成准备</a>
+                        
+                    </li>
+                    
+                    <li class="">
+                        
+                        <a href="初始化.html">初始化</a>
+                        
+                    </li>
+                    
+                    <li class="">
+                        
+                        <a href="消息.html">消息</a>
+                        
+                    </li>
+                    
+                    <li class="">
+                        
+                        <a href="联系人.html">联系人</a>
+                        
+                    </li>
+                    
+                    <li class="active">
+                        
+                        <a href="群组.html">群组</a>
+                        
+                    </li>
+                    
+                    <li class="">
+                        
+                        <a href="公众号.html">公众号</a>
+                        
+                    </li>
+                    
+                    <li class="">
+                        
+                        <a href="摘要.html">摘要</a>
+                        
+                    </li>
+                    
+                    <li class="">
+                        
+                        <a href="其他.html">其他</a>
+                        
+                    </li>
+                    
+                    <li class="">
+                        
+                        <a href="profile.html">profile</a>
+                        
+                    </li>
+                    
+                    <li class="">
+                        
+                        <a href="登陆退出.html">登陆&退出</a>
+                        
+                    </li>
+                    
+                    <li class="">
+                        
+                        <a href="https://github.com/iuap-design/YYIMSDK/issues" target="_blank">FAQ</a>
+                        
+                    </li>
+                    
+                
+            </ul>
+        </nav>
+    </div>
+</header>
+
+<!-- Docs page layout -->
+
+<div class="docs-header" id="content" style="margin-bottom:0">
+    <div class="container">
+        <h1>群组</h1>
+        <p>群组</p>
+    </div>
+</div>
+
+
+
+<header style="height:20px"></header>
+
+
+<div class="container docs-container">
+    
+    
+    <div class="row">
+        <div class="col-md-9 markdown-body" role="main">
+            
+            <h2 id="5.群组">5.群组</h2><h3 id="5.1.获取群组列表">5.1.获取群组列表</h3><pre><code>/**
+ * 获取群组列表
+ * @param arg {
+ * startDate: timestamp,
+ * membersLimit: Number, //拉取成员数量，默认10
+ * success: function,    //成功回调函数
+ * error: function,       //失败回调函数
+ * complete:function     //无论成功失败都回调的函数
+ * }
+ */
+YYIMChat.getChatGroups(arg);
+</code></pre><h3 id="5.2.创建群组">5.2.创建群组</h3><pre><code>/**
+ * 创建群组
+ * @param arg {
+ * name:, //群名称
+ * members:[], //初始化群成员
+ * success:function,
+ * complete:function
+ * }
+ */
+YYIMChat.createChatGroup(arg);
+</code></pre><h3 id="5.3.修改群名称">5.3.修改群名称</h3><pre><code>/**
+ * 群成员更改配置信息
+ *  @param arg {
+ *     to:String,群组id
+ *     name:string, 
+ *     success: function,
+ *     error:function,
+ *     complete: function
+ * }
+ */
+YYIMChat.modifyChatGroupInfo(arg);
+</code></pre><h3 id="5.5.添加群成员">5.5.添加群成员</h3><pre><code>/**
+ * 房间成员邀请人入群 
+ * @param arg {
+ *     to:String,
+ *     members: Array,
+ *  success:function,
+ *  error:function,
+ *  complete:function
+ * }
+ */
+YYIMChat.inviteGroupMember(arg);
+</code></pre><h3 id="5.5.群组踢人">5.5.群组踢人</h3><pre><code>/**
+ * 群组踢人 
+ *  @param arg {
+ *  to:String, //群组id
+ *  member:string, //被踢人id，一次只能踢一个人
+ *  success: function,
+ *  error:function,
+ *  complete: function
+ *  }
+ */
+YYIMChat.kickGroupMember(arg);
+</code></pre><h3 id="5.6.退出群组">5.6.退出群组</h3><pre><code>/**
+ * 群成员退出群
+ *  @param arg {
+ *     to:String,
+ *     success: function,
+ *  error:function,
+ *  complete: function
+ * }
+ */
+YYIMChat.exitChatGroup(arg);
+</code></pre><h3 id="5.7.获取群共享文件">5.7.获取群共享文件</h3><pre><code>/**
+ * 获取群组共享文件 rongqb 20160715 
+ * arg {
+ *  id:String,
+ *  fileType: String, //&#39;file&#39;,&#39;image&#39;,&#39;microvideo&#39;
+ *  type: String,//&#39;chat&#39;,&#39;groupchat&#39;
+ *  start:number,
+ *  size:number
+ * }
+ */
+YYIMChat.getSharedFiles(arg);
+</code></pre><h3 id="5.8.收藏群组">5.8.收藏群组</h3><pre><code>/**
+ *  收藏群组(收藏) rongqb 20151201
+ *  @param arg {
+ *     to: String,
+ *     success: function, 
+ *  error: function,
+ *  complete: function
+ * }
+ */
+YYIMChat.collectGroup(arg);
+</code></pre><h3 id="5.9.取消收藏群组">5.9.取消收藏群组</h3><pre><code>/**
+ *  取消收藏群组
+ *  @param arg {
+ *     to: String,
+ *  type: String, //add remove
+ *     success: function, 
+ *  error: function,
+ *  complete: function
+ * }
+ */
+YYIMChat.removeCollectGroup(arg);
+</code></pre><h3 id="5.10.群主转让群">5.10.群主转让群</h3><pre><code>/**
+ *  群主转让(群主行为)
+ *  @param arg {
+ *  to:String,
+ *  newOwner:string,
+ *  success:function,
+ *  error:function,
+ *  complete:function
+ *  } 
+ */
+YYIMChat.transferChatGroup(arg);    
+</code></pre><h3 id="5.11.群主解散群">5.11.群主解散群</h3><pre><code>/**
+ *  群主解散群组 
+ *  @param arg {
+ *  to:String,
+ *  success:function,
+ *  error:function,
+ *  complete:function
+ *  }
+ */
+YYIMChat.dismissChatGroup(arg);
+</code></pre>
+        </div>
+        <div class="col-md-3" role="complementary">
+            <nav class="docs-sidebar hidden-print hidden-xs hidden-sm">
+                <ul class="nav docs-sidenav">
+                    
+                    
+                    <li>
+                        
+                        <a href="#5.群组" >5.群组</a>
+                        
+                    </li>
+                    
+                    
+                    
+                    
+                    <ul class="nav" style="display:block">
+                    
+                        <li>
+                            <a href="#5.1.获取群组列表" >5.1.获取群组列表</a>
+                        </li>
+                    
+                    
+                    
+                    
+                    
+                        <li>
+                            <a href="#5.2.创建群组" >5.2.创建群组</a>
+                        </li>
+                    
+                    
+                    
+                    
+                    
+                        <li>
+                            <a href="#5.3.修改群名称" >5.3.修改群名称</a>
+                        </li>
+                    
+                    
+                    
+                    
+                    
+                        <li>
+                            <a href="#5.5.添加群成员" >5.5.添加群成员</a>
+                        </li>
+                    
+                    
+                    
+                    
+                    
+                        <li>
+                            <a href="#5.5.群组踢人" >5.5.群组踢人</a>
+                        </li>
+                    
+                    
+                    
+                    
+                    
+                        <li>
+                            <a href="#5.6.退出群组" >5.6.退出群组</a>
+                        </li>
+                    
+                    
+                    
+                    
+                    
+                        <li>
+                            <a href="#5.7.获取群共享文件" >5.7.获取群共享文件</a>
+                        </li>
+                    
+                    
+                    
+                    
+                    
+                        <li>
+                            <a href="#5.8.收藏群组" >5.8.收藏群组</a>
+                        </li>
+                    
+                    
+                    
+                    
+                    
+                        <li>
+                            <a href="#5.9.取消收藏群组" >5.9.取消收藏群组</a>
+                        </li>
+                    
+                    
+                    
+                    
+                    
+                        <li>
+                            <a href="#5.10.群主转让群" >5.10.群主转让群</a>
+                        </li>
+                    
+                    
+                    
+                    
+                    
+                        <li>
+                            <a href="#5.11.群主解散群" >5.11.群主解散群</a>
+                        </li>
+                    
+                    
+                    
+                </ul>
+            </nav>
+        </div>
+    </div>
+    
+    
+</div>
+
+<!-- Footer
+================================================== -->
+<footer class="docs-footer" role="contentinfo">
+    <div class="container">
+        <p>Made By YonYouFED. © 2014 - 2016</p>
+    </div>
+</footer>
+
+<script src="source/jquery.min.js"></script>
+<script src="source/bootstrap.min.js"></script>
+<script src="source/docs.min.js"></script>
+<script src="source/highlight.min.js"></script>
+<script>
+    $(document).ready(function() {
+        $('code').each(function(i, block) {
+            if (block.innerHTML.indexOf('\n') != -1) {
+                var pn = block.parentNode;
+                if (pn.tagName.toUpperCase() == 'PRE') {
+                    try {
+                        hljs.highlightBlock(block);
+                    } catch(e) {}
+                } else {
+                    pn.innerHTML = '<pre><code>' + block.innerHTML + '</code></pre>';
+                    try {
+                        hljs.highlightBlock(pn.childNodes[0].childNodes[0]);
+                    } catch(e) {}
+                }
+            }
+        });
+
+        var winHeight = $(window).height() - 40,
+            sidebar = $('.docs-sidebar');
+
+        if (sidebar.height() > winHeight) {
+
+            sidebar.css('max-height', winHeight + 'px');
+            sidebar.css('overflow', 'scroll');
+
+            var activeMenu,
+                barScroll = false;
+
+            sidebar.on('mouseover', function() {
+                barScroll = true;
+            });
+
+            sidebar.on('mouseout', function() {
+                barScroll = false;
+            });
+            if (!barScroll) {
+                var activeItem = $('.docs-sidebar li.active a');
+                if (activeItem.length) {
+                    if (!activeMenu || (activeMenu.attr('href') != activeItem.attr('href'))) {
+                        activeMenu = activeItem;
+                        var top = activeMenu.offset().top - sidebar.offset().top;
+                        if (top < 0) {
+                            sidebar.scrollTop(sidebar.scrollTop() + top);
+                        } else if (top > winHeight - 30) {
+                            sidebar.scrollTop(sidebar.scrollTop() + top - winHeight + 30);
+                        }
+                    }
+                }
+            }
+            $(window).on('scroll', function(e) {
+                if (!barScroll) {
+                    var activeItem = $('.docs-sidebar li.active a');
+                    if (activeItem.length) {
+                        if (!activeMenu || (activeMenu.attr('href') != activeItem.attr('href'))) {
+                            activeMenu = activeItem;
+                            var top = activeMenu.offset().top - sidebar.offset().top;
+                            if (top < 0) {
+                                sidebar.scrollTop(sidebar.scrollTop() + top);
+                            } else if (top > winHeight - 30) {
+                                sidebar.scrollTop(sidebar.scrollTop() + top - winHeight + 30);
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    });
+</script>
+</body>
+</html>

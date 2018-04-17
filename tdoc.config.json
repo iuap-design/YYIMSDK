@@ -1,0 +1,113 @@
+{
+    "name": "Tdoc",
+    "common": {
+        "title": "Tdoc",
+        "footer": "Made By YonYouFED. © 2014 - 2016",
+        "home": "tinper",
+        "homeUrl": "http://tinper.org/",
+        "navbars": []
+    },
+    "options": {
+        "markdown": {
+            "menuLevel": 2
+        }
+    },
+    "pages": [
+        {
+            "name": "index",
+            "title": "集成准备",
+            "banner": {
+                "title": "集成准备",
+                "description": "集成准备"
+            },
+            "content": "./docs/IM_web集成指南_01集成准备.md"
+        },
+        {
+            "name": "初始化",
+            "title": "初始化",
+            "banner": {
+                "title": "初始化",
+                "description": "初始化"
+            },
+            "content": "./docs/IM_web集成指南_02初始化.md"
+        },
+        {
+            "name": "消息",
+            "title": "消息",
+            "banner": {
+                "title": "消息",
+                "description": "消息"
+            },
+            "content": "./docs/IM_web集成指南_03消息.md"
+        },
+        {
+            "name": "联系人",
+            "title": "联系人",
+            "banner": {
+                "title": "联系人",
+                "description": "联系人"
+            },
+            "content": "./docs/IM_web集成指南_04联系人.md"
+        },
+        {
+            "name": "群组",
+            "title": "群组",
+            "banner": {
+                "title": "群组",
+                "description": "群组"
+            },
+            "content": "./docs/IM_web集成指南_05群组.md"
+        },
+        {
+            "name": "公众号",
+            "title": "公众号",
+            "banner": {
+                "title": "公众号",
+                "description": "公众号"
+            },
+            "content": "./docs/IM_web集成指南_06公众号.md"
+        },
+        {
+            "name": "摘要",
+            "title": "摘要",
+            "banner": {
+                "title": "摘要",
+                "description": "摘要"
+            },
+            "content": "./docs/IM_web集成指南_07摘要.md"
+        },
+        {
+            "name": "其他",
+            "title": "其他",
+            "banner": {
+                "title": "其他",
+                "description": "其他"
+            },
+            "content": "./docs/IM_web集成指南_08其他.md"
+        },
+        {
+            "name": "profile",
+            "title": "profile",
+            "banner": {
+                "title": "profile",
+                "description": "profile"
+            },
+            "content": "./docs/IM_web集成指南_09profile.md"
+        },
+        {
+            "name": "登陆退出",
+            "title": "登陆&退出",
+            "banner": {
+                "title": "登陆&退出",
+                "description": "登陆&退出"
+            },
+            "content": "./docs/IM_web集成指南_10登陆&退出.md"
+        },
+        {
+            "name": "FAQ",
+            "title": "FAQ",
+            "url": "https://github.com/iuap-design/YYIMSDK/issues"
+        }
+    ],
+    "rootDir": "docs"
+}
