@@ -8285,6 +8285,244 @@ Number.min = function(A, B) {
   return (A < B)? A : B;
 };
 
+var YYAIAbility = (function () {
+    function YYAIAbility() {
+        this.dicts = [];
+        this.stopKeyword = {"的": 1};
+
+        // 是否启用过滤
+        this.isOpenFilter = false;
+
+        // AI分析开关是否启用
+        this.isAIAbility = true;
+
+        // 服务器获取最新热词
+        // 开关、时间戳
+        // 行业
+    }
+
+    /**
+    * 设置AI分析开关是否启用
+    * @param isAIAbility
+    */
+    YYAIAbility.prototype.openAIAbility = function openAIAbility(isAIAbility) {
+        this.isAIAbility = isAIAbility;
+    };
+
+    /**
+     * 设置是否启用热词过滤
+     * @param isOpenFilter
+     */
+    YYAIAbility.prototype.openFilterWords = function openFilterWords(isOpenFilter) {
+        this.isOpenFilter = isOpenFilter;
+    };
+
+    /**
+     * 设置热词字典
+     * @param dicts
+     */
+    YYAIAbility.prototype.setDictionaries = function setDictionaries(dictArray) {
+        if (dictArray) {
+            for (var i=0; i < dictArray.length; i++){
+                this.dicts.push(dictArray[i]);
+            }
+        }
+    };
+
+    /**
+     * 判断消息是否传递给AI分析
+     * @returns {boolean}
+     */
+    YYAIAbility.prototype.intelligentAnalysis = function intelligentAnalysis(keyword) {
+        if(!this.isOpenFilter){
+            return true;
+        }
+        if (keyword && this.isAIAbility) {
+            var trie = new YYIMAITrie();
+            trie.init(this.dicts);
+            var result = trie.splitWords(keyword);
+            return result.length > 0;
+        }
+        return false;
+    };
+
+    return new YYAIAbility();
+})();
+
+var YYIMAITrie = function () {
+    function YYIMAITrie() {
+        this.root = new YYIMAINode(null);
+    }
+
+    /**
+     * 将Unicode转成UTF8的三字节
+     */
+    YYIMAITrie.prototype.toBytes = function toBytes(word) {
+        var result = [];
+        for (var i = 0; i < word.length; i++) {
+            var code = word.charCodeAt(i);
+            // 单字节
+            if (code < 0x80) {
+                result.push(code);
+            } else {
+                // 三字节
+                result = result.concat(this.toUTF8(code));
+            }
+        }
+
+        return result;
+    };
+
+    YYIMAITrie.prototype.toUTF8 = function toUTF8(c) {
+        // 1110xxxx 10xxxxxx 10xxxxxx
+        // 1110xxxx
+        var byte1 = 0xE0 | c >> 12 & 0x0F;
+        // 10xxxxxx
+        var byte2 = 0x80 | c >> 6 & 0x3F;
+        // 10xxxxxx
+        var byte3 = 0x80 | c & 0x3F;
+
+        return [byte1, byte2, byte3];
+    };
+
+    YYIMAITrie.prototype.toUTF16 = function toUTF16(b1, b2, b3) {
+        // 1110xxxx 10xxxxxx 10xxxxxx
+        var byte1 = b1 << 4 | b2 >> 2 & 0x0F;
+        var byte2 = (b2 & 0x03) << 6 | b3 & 0x3F;
+        var utf16 = (byte1 & 0x00FF) << 8 | byte2;
+
+        return utf16;
+    };
+
+    /**
+     * 添加每个词到YYIMAITrie树
+     */
+    YYIMAITrie.prototype.add = function add(word) {
+        var node = this.root,
+            bytes = this.toBytes(word),
+            len = bytes.length;
+        for (var i = 0; i < len; i++) {
+            var c = bytes[i];
+            // 如果不存在则添加，否则不需要再保存了，因为共用前缀
+            if (!(c in node.childs)) {
+                node.childs[c] = new YYIMAINode(c);
+            }
+            node = node.childs[c];
+        }
+        node.asWord(); // 成词边界
+    };
+
+    /**
+     * 按字节在YYIMAITrie树中搜索
+     */
+    YYIMAITrie.prototype.search = function search(bytes) {
+        var node = this.root,
+            len = bytes.length,
+            result = [];
+        var word = [],
+            j = 0;
+        for (var i = 0; i < len; i++) {
+            var c = bytes[i],
+                childs = node.childs;
+            if (!(c in childs)) {
+                return result;
+            }
+
+            if (c < 0x80) {
+                word.push(String.fromCharCode(c));
+            } else {
+                j++;
+                if (j % 3 == 0) {
+                    var b1 = bytes[i - 2];
+                    var b2 = bytes[i - 1];
+                    var b3 = c;
+                    word.push(String.fromCharCode(this.toUTF16(b1, b2, b3)));
+                }
+            }
+            // 如果是停止词，则退出
+            if (word.join('') in stop) {
+                return result;
+            }
+
+            // 成词
+            var cnode = childs[c];
+            if (cnode.isWord()) {
+                cnode.addCount(); // 用于计数判断
+                result.push(word.join(''));
+            }
+            node = cnode;
+        }
+
+        return result;
+    };
+
+    /**
+     * 分词
+     */
+    YYIMAITrie.prototype.splitWords = function splitWords(words) {
+        // 转换成单字节进行搜索
+        var bytes = this.toBytes(words);
+        var start = 0,
+            end = bytes.length - 1,
+            result = [];
+
+        while (start != end) {
+            var word = [];
+            for (var i = start; i <= end; i++) {
+                var b = bytes[i]; // 逐个取出字节
+                word.push(b);
+
+                var finds = this.search(word);
+                if (finds !== false && finds.length > 0) {
+                    // 如果在字典中，则添加到分词结果集
+                    result = result.concat(finds);
+                }
+            }
+            start++;
+        }
+
+        return result;
+    };
+
+    /**
+     * 初始化整棵YYIMAITrie树
+     */
+    YYIMAITrie.prototype.init = function init(dict) {
+        for (var i = 0; i < dict.length; i++) {
+            this.add(dict[i]);
+        }
+    };
+
+    return YYIMAITrie;
+}();
+
+var YYIMAINode = function () {
+    function YYIMAINode(_byte) {
+        this.childs = {}; // 子节点集合
+        this._byte = _byte || null; // 此节点上存储的字节
+        this._isWord = false; // 边界保存，表示是否可以组成一个词
+        this._count = 0;
+    }
+
+    YYIMAINode.prototype.isWord = function isWord() {
+        return this._isWord && this._count == 0;
+    };
+
+    YYIMAINode.prototype.asWord = function asWord() {
+        this._isWord = true;
+    };
+
+    YYIMAINode.prototype.addCount = function addCount() {
+        this._count++;
+    };
+
+    YYIMAINode.prototype.getCount = function getCount() {
+        return this._count;
+    };
+
+    return YYIMAINode;
+}();
+
 var YYIMChat = (function(){
 /**
  * jid相关的工具类，包含处理jid的相关静态方法
@@ -8545,17 +8783,17 @@ jQuery.support.cors = true; //ie浏览器跨域支持
 var YYIMConfiguration;
 
 var ConfigSetting = (function(){
-	
+
 	var YY_IM_DOMAIN = 'im.yyuap.com';
 	var YY_IM_ADDRESS = 'stellar.yyuap.com'; //websocket url
 	var YY_IM_WSPORT = 5227; 				 //websocket port
 	var YY_IM_HTTPBIND_PORT = 7075;          //httpbind port
 	var YY_IM_SERVLET_ADDRESS = 'http://im.yyuap.com/';
 	var YY_IM_CLIENT_MARK = 'web';
-	
-	//for esn todo 20170831 
+
+	//for esn todo 20170831
 	var TODO_SERVLET_ADDRESS = 'https://pubaccount.yonyoucloud.com/';
-	
+
 	/**
 	 * @param {Object} options {
 	 *  app: String,
@@ -8569,49 +8807,50 @@ var ConfigSetting = (function(){
 	 */
 	function init(options){
 		options = options || {};
-		
+
 		YY_IM_CLIENT_MARK = options.clientMark || YY_IM_CLIENT_MARK;
 		YY_IM_ADDRESS = options.wsurl || YY_IM_ADDRESS;
 		YY_IM_WSPORT = options.wsport || YY_IM_WSPORT;
 		YY_IM_HTTPBIND_PORT = options.hbport || YY_IM_HTTPBIND_PORT;
 		YY_IM_SERVLET_ADDRESS = options.servlet || YY_IM_SERVLET_ADDRESS;
-		
+
 		TODO_SERVLET_ADDRESS = options.todoServlet || TODO_SERVLET_ADDRESS;
-		
+
 		if(isMsielt10()){ // add for ie < 10 rongqb 20170412
 			YY_IM_SERVLET_ADDRESS = YY_IM_SERVLET_ADDRESS.replace(/^https?:\/\//,location.protocol + '//');
 		}
-		
+
 		if(/https/.test(location.protocol) || (options.useHttps === true)){//add for https location rongqb 20170412
 			YY_IM_WSPORT = 5225;
 		}
-		
+
 		YYIMConfiguration = {
 			YY_IM_DOMAIN: YY_IM_DOMAIN, //固定
-			
+
 			RESOURCE: YY_IM_CLIENT_MARK + '-v2.6',
-		
+
 			MULTI_TENANCY: {
 				ENABLE: true,
 				ETP_KEY: options.etp || 'etp',
 				APP_KEY: options.app || 'app',
 				SEPARATOR: '.'
 			},
-		
+
 			SENDINTERVAL: 30, //两次发送报文的时间间隔 rongqb 20151124
-		
+
 			GROUP: {
 				MEMBERSLIMIT: 5 //默认最多拉取5个群成员
 			},
-			
-			ROSTER: {
-				BATCHVCRADMAXLIMIT: 50 //批量vcard 最大个数
-			},
-		
+
+            BETCH_MAXLIMIT: {
+                ROSTER: 50, //批量vcard 最大个数
+                PUBACCOUNT: 50
+            },
+
 			INPUT_STATE: {
 				INTERVAL: 2 * 1000
 			},
-		
+
 			UPLOAD: {
 				AUTO_SEND: true, //是否自动上传
 				MULTI_SELECTION: false, //是否可以在文件浏览对话框中选择多个文件
@@ -8629,7 +8868,7 @@ var ConfigSetting = (function(){
 				},
 				IMAGE_TYPES: /\.(png|jpe?g|gif)$/i
 			},
-		
+
 			TIMECORRECTION: {
 				AUTOCORRECTION: true, //自动时间校正
 				TIMES: 3, //超出误差 校正次数
@@ -8637,14 +8876,14 @@ var ConfigSetting = (function(){
 				RESULT: 0,
 				LOAD: false //是否加载过此值
 			},
-		
+
 			MULTIPARTYCALL: {
 				ADDRESS: 'http://dudu.yonyoutelecom.cn/httpIntf/createConference.do', //多端通话接口地址 20160104
 				ACCOUNT: '', //账号
 				KEY: '', //密码
 				PHONESMAXLENGTH: 200 //最大被叫字符数
 			},
-		
+
 			SERVLET: {
 				REST_RESOURCE_SERVLET: YY_IM_SERVLET_ADDRESS + 'sysadmin/rest/resource/',
 				REST_VERSION_SERVLET: YY_IM_SERVLET_ADDRESS + 'sysadmin/rest/version/',
@@ -8654,10 +8893,10 @@ var ConfigSetting = (function(){
 				REST_TRANSFORM_SERVLET: YY_IM_SERVLET_ADDRESS + 'im_download/rest/transform/resource/',
 				REST_SYSTEM_SERVLET: YY_IM_SERVLET_ADDRESS + 'sysadmin/rest/system/',
 				REST_SYSTEM_CUSTOMER_USER: YY_IM_SERVLET_ADDRESS + 'sysadmin/rest/customer/user/',
-				
+
 				REST_TODO_USER: TODO_SERVLET_ADDRESS + 'todocenter/user/todo/'
 			},
-		
+
 			SUPPORT: {
 				isWebSocketSupport: (function() {
 					window.WebSocket = window.WebSocket || window.MozWebSocket;
@@ -8667,7 +8906,7 @@ var ConfigSetting = (function(){
 					return false;
 				})()
 			},
-		
+
 			CONNECTION: {
 				TIMERVAL: 2000,
 				WAIT: 300,
@@ -8686,60 +8925,60 @@ var ConfigSetting = (function(){
 				HTTP_BIND_PORT: YY_IM_HTTPBIND_PORT,
 				WS_PORT: YY_IM_WSPORT
 			},
-		
+
 			PING: {
 				/**
 				 * 两个ping之间的间隔毫秒数(快节奏ping)
 				 * @Type {Number}
 				 */
 				INTERVAL: 10 * 1000,
-				
+
 				/**
 				 * 两个ping之间的间隔毫秒数（慢节奏ping）
 				 * @Type {Number}
 				 */
 				SLOW_INTERVAL: 30 * 1000,
-		
+
 				/**
 				 * 当指定的毫秒数内服务器没有回复报文，则认为已断开连接
 				 *  @Type {Number}
 				 */
 				TIMEOUT: 10 * 1000
 			},
-		
+
 			DOMAIN: {
 				CHATROOM: 'conference.' + YY_IM_DOMAIN,
 				SEARCH: 'search.' + YY_IM_DOMAIN,
 				PUBACCOUNT: 'pubaccount.' + YY_IM_DOMAIN
 			},
-		
+
 			EXPIRATION: {
 				INVALID: 6 * 60 * 60 * 1000, //token失效的最小安全期
-				INSPECTION_INTERVAL: 30 * 60 * 1000 //定时检测时长			
+				INSPECTION_INTERVAL: 30 * 60 * 1000 //定时检测时长
 			},
-		
+
 			LOG: {
 				ENABLE: !!options.logEnable,
 				FILTER_LEVEL: 3
 			},
-		
+
 			BROWSER: getBrowser()
 		};
-		
+
 		YYIMConfiguration.getHttpBindUrl = function() {
 			var prefix = this.CONNECTION.USE_HTTPS ? 'https://' : 'http://';
 			return prefix + this.CONNECTION.HTTP_BASE + ':' + this.CONNECTION.HTTP_BIND_PORT + '/http-bind/';
 		};
-		
+
 		YYIMConfiguration.getWebSocketUrl = function() {
 			var prefix = this.CONNECTION.USE_HTTPS ? 'wss://' : 'ws://';
 			return prefix + this.CONNECTION.HTTP_BASE + ':' + this.CONNECTION.WS_PORT;
 		};
-		
+
 		YYIMConfiguration.useWebSocket = function() {
 			return this.SUPPORT.isWebSocketSupport && this.CONNECTION.ENABLE_WEBSOCKET;
 		};
-		
+
 		YYIMConfiguration.getConnectionArgObj = function() {
 			return {
 				domain: this.CONNECTION.SERVER_NAME,
@@ -8749,17 +8988,17 @@ var ConfigSetting = (function(){
 				register: false
 			};
 		};
-		
+
 		YYIMConfiguration.getLocationOrigin = function(){
 			return location.origin? location.origin: (location.protocol + '//'+ location.host);
 		};
-		
+
 		YYIMConfiguration.getClientMark = getClientMark;
 	}
-	
+
 	function getBrowser() {
 		var userAgent = navigator.userAgent.toLowerCase();
-		// Figure out what browser is being used 
+		// Figure out what browser is being used
 		return {
 			version: (userAgent.match(/.+(?:rv|it|ra|ie)[\/: ]([\d.]+)/) || [])[1],
 			webkit: /webkit/.test(userAgent),
@@ -8768,20 +9007,20 @@ var ConfigSetting = (function(){
 			mozilla: /mozilla/.test(userAgent) && !/(compatible|webkit)/.test(userAgent)
 		};
 	}
-	
-	function isMsielt10(){
-		var browser = getBrowser();
-		if(browser.msie 
-		&& parseInt(browser.version) < 10){
-			return true;
-		}
-		return false;
-	}
-	
+
+    function isMsielt10() {
+        var browser = getBrowser();
+        if (browser.msie &&
+            parseInt(browser.version) < 10) {
+            return true;
+        }
+        return false;
+    }
+
 	function getClientMark(){
 		return YY_IM_CLIENT_MARK;
 	}
-	
+
 	return {
 		init: init
 	};
@@ -9409,6 +9648,8 @@ function YYIMManager() {
 						  
 	this.onlineStatus = [CONNECT_STATUS.CONNECTED,
 						 CONNECT_STATUS.PROCESSING];
+	// 定义AI Key变量 yaoleib20171212
+	this.apiKey;
 	this.init();
 };
 
@@ -9567,6 +9808,8 @@ YYIMManager.prototype.initSDK = function(options) {
 	ConfigSetting.init(options);
 	var conf = YYIMConfiguration.MULTI_TENANCY;
 	this.appkey = conf.SEPARATOR + conf.APP_KEY + conf.SEPARATOR + conf.ETP_KEY;
+	// 存储AI Key yaoleib20171212
+	this.apiKey = options.apiKey;
 };
 
 YYIMManager.prototype.logEnable = function(logEnable) {
@@ -9587,6 +9830,14 @@ YYIMManager.prototype.getTenancy = function() {
  */
 YYIMManager.prototype.getAppkey = function() {
 	return this.appkey;
+};
+
+/**
+ * 获取apiKey yaoleib20171212
+ * @returns '85de79b9f7e34c37a99accaddb256990'
+ */
+YYIMManager.prototype.getApiKey = function() {
+    return this.apiKey;
 };
 
 YYIMManager.prototype.isOnline = function() {
