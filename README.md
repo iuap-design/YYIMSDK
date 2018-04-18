@@ -9,7 +9,7 @@
 [![Average time to resolve an issue](http://isitmaintained.com/badge/resolution/iuap-design/YYIMSDK.svg)](http://isitmaintained.com/project/iuap-design/YYIMSDK "Average time to resolve an issue")
 [![Percentage of issues still open](http://isitmaintained.com/badge/open/iuap-design/YYIMSDK.svg)](http://isitmaintained.com/project/iuap-design/YYIMSDK "Percentage of issues still open")
 
-用友有信 `WEB_SDK` 是一款解决 `web` 即时通讯的工具包，它包含基本功能包 YYIMSDK 和各功能模块扩展包（包含：摘要／下载／扩展／群组／消息／个人配置／公共号／联系人／待办／上传） 。
+`IMSDK-WEB` 是一款解决 `web` 即时通讯的工具包，它包含基本功能包 YYIMSDK 和各功能模块扩展包（包含：摘要／下载／扩展／群组／消息／个人配置／公共号／联系人／待办／上传） 。你可以快速通过script将sdk的脚本引入，并将其初始化，即可让你的应用具备IM的能力。
 
 ## 使用文档
 
@@ -23,6 +23,40 @@
 - [扩展功能](https://iuap-design.github.io/YYIMSDK/%E5%85%B6%E4%BB%96.html)
 - [设置置顶](https://iuap-design.github.io/YYIMSDK/profile.html)
 - [登录和退出](https://iuap-design.github.io/YYIMSDK/%E7%99%BB%E9%99%86%E9%80%80%E5%87%BA.html)
+
+## 一分钟快速接入 IMSDK-WEB
+
+```
+<script type="text/javascript" src="./jquery-1.11.1.min.js"></script>
+<script type="text/javascript" src="./YYIMSDK.js"></script>
+```
+
+```
+YYIMChat.initSDK('{appId}', '{etpId}'); 
+
+YYIMChat.init({
+            onOpened :  onOpened, // 登录成功
+            onClosed : onClosed, // 连接关闭
+            onAuthError : onAuthError, // 认证失败
+            onStatusChanged : onStatusChanged, //连接状态改变
+            onConnectError : onConnectError, // 连接错误
+            onPresence : onPresence, // 好友状态改变
+            onSubscribe : onSubscribe, // 订阅处理
+            onRosterUpdateded : onRosterUpdateded, //联系人信息更新
+            onRosterDeleted : onRosterDeleted, //被联系人删除
+            onReceipts : onReceipts, // 接收到消息回执
+            onTextMessage : onTextMessage, // 接收到文本(表情)消息
+            onPictureMessage : onPictureMessage, // 接收到图片
+            onFileMessage : onFileMessage // 接收到文件
+            onShareMessage : onShareMessage, //接收到分享消息
+            onSystemMessage: onSystemMessage, //接收到单图文消息
+            onPublicMessage: onPublicMessage, //接收到多图文消息
+            onLocationMessage: onLocationMessage, //接收到位置共享消息
+            onAudoMessage : onAudoMessage, //接收到语音消息
+            onGroupUpdate :  onGroupUpdate, //群组信息及成员信息更新
+            onKickedOutGroup : onKickedOutGroup //被群组踢出
+        });
+```
 
 ## Contribute 如何参与IMSDK的修改
 
