@@ -1,5 +1,5 @@
 
-# 有信 WEB_SDK
+# IMSDK-WEB 即时通讯JSSDK
 
 
 [![npm version](https://img.shields.io/npm/v/yyimsdk.svg)](https://www.npmjs.com/package/yyimsdk)
@@ -13,9 +13,18 @@
 
 ## 使用文档
 
-[查看所有文档请参考这里。](./docs)
+- [集成准备](https://iuap-design.github.io/YYIMSDK/index.html)
+- [初始化](https://iuap-design.github.io/YYIMSDK/%E5%88%9D%E5%A7%8B%E5%8C%96.html)
+- [消息](https://iuap-design.github.io/YYIMSDK/%E6%B6%88%E6%81%AF.html)
+- [联系人](https://iuap-design.github.io/YYIMSDK/%E8%81%94%E7%B3%BB%E4%BA%BA.html)
+- [群组](https://iuap-design.github.io/YYIMSDK/%E7%BE%A4%E7%BB%84.html)
+- [公众号](https://iuap-design.github.io/YYIMSDK/%E5%85%AC%E4%BC%97%E5%8F%B7.html)
+- [摘要](https://iuap-design.github.io/YYIMSDK/%E6%91%98%E8%A6%81.html)
+- [扩展功能](https://iuap-design.github.io/YYIMSDK/%E5%85%B6%E4%BB%96.html)
+- [设置置顶](https://iuap-design.github.io/YYIMSDK/profile.html)
+- [登录和退出](https://iuap-design.github.io/YYIMSDK/%E7%99%BB%E9%99%86%E9%80%80%E5%87%BA.html)
 
-## Contribute
+## Contribute 如何参与IMSDK的修改
 
 ```
 $ npm i
@@ -34,4 +43,5 @@ $ npm run dev
 - [ ] [将项目中引用到的资源存放到 src/vendors 目录]()
 - [ ] [根据使用方式完善 example 下的示例代码]()
 - [ ] [【重要】实现小友及智能端提出的功能需求]()
+- [x] [新增 github pages 最新文档官网]()
 
