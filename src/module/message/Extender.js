@@ -14,7 +14,7 @@ YYIMChat.setBackhander({
 
 /**
  * 获取历史记录 rongqb 20160815
- * @param 
+ * @param
  * arg {
  * 	id: String,
  *  type: 'chat/groupchat/pubaccount',
@@ -22,19 +22,19 @@ YYIMChat.setBackhander({
  *  size: number,
  *  startVersion: number, //默认为0
  *  endVersion: number
- * } 
+ * }
  */
 YYIMManager.prototype.getHistoryMessage = function(arg){
 	arg = arg || {};
-	
+
 	if(!YYIMUtil['isWhateType'](arg.start,'Number')){
 		arg.start = 0;
 	}
-	
+
 	if(!YYIMUtil['isWhateType'](arg.size,'Number')){
 		arg.size = 100;
 	}
-	
+
 	Manager.getHistoryMessage(arg);
 };
 
@@ -130,8 +130,8 @@ YYIMManager.prototype.sendFormMessage = function(arg) {
 					spaceId: arg.spaceId,
 					type: arg.type, //chat:单聊，groupcgat:群聊,pubaccount:公众号
 					content: new IMFile({
-						name: file.name, 
-						path: result.attachId, 
+						name: file.name,
+						path: result.attachId,
 						size: file.size,
 						original: (param.mediaType === 1)? 1:null
 					}),
@@ -153,7 +153,7 @@ YYIMManager.prototype.sendFormMessage = function(arg) {
  * @param arg {
  * to: id, //对话人id
  * type: "groupchat/chat/pubaccount",  //chat:单聊，groupcgat:群聊,pubaccount:公众号
- * extend: string,  //扩展字段 
+ * extend: string,  //扩展字段
  * content:{
  * 		shareImageUrl:string, //分享中图片的url
  * 		shareUrl:string, //分享的url
@@ -162,7 +162,7 @@ YYIMManager.prototype.sendFormMessage = function(arg) {
  * 	},
  * success:function //成功回调函数
  * }
- */  
+ */
 YYIMManager.prototype.sendShareMessage = function(arg){
 	arg.contentType = YYIMChat.getConstants().MESSAGE_CONTENT_TYPE.SHARE;
 	this.sendMessage(arg);
@@ -174,7 +174,7 @@ YYIMManager.prototype.sendShareMessage = function(arg){
  * to: id,  //对话人id
  * type: "groupchat/chat/pubaccount",  //chat:单聊，groupcgat:群聊,pubaccount:公众号
  * content:text, //消息文本
- * extend: string,  //扩展字段 
+ * extend: string,  //扩展字段
  * success:function //成功回调函数
  * }
  */
@@ -189,7 +189,7 @@ YYIMManager.prototype.sendTextMessage = function(arg){
  * @param arg {
  * to: id,  //对话人id
  * type: "groupchat/chat/pubaccount",  //chat:单聊，groupcgat:群聊,pubaccount:公众号
- * extend: string,  //扩展字段 
+ * extend: string,  //扩展字段
  * atuser: array,  //at 成员
  * data:
  * success:function //成功回调函数
@@ -203,14 +203,15 @@ YYIMManager.prototype.sendMessage = function(arg){
 		dateline: arg.dateline,
 		extend: arg.extend,
 		content: arg.content,
-		contentType: arg.contentType
+		contentType: arg.contentType,
+		sceneParams: arg.sceneParams
 	};
-	
-	if(arg.type === YYIMChat.getConstants().CHAT_TYPE.GROUP_CHAT 
+
+	if(arg.type === YYIMChat.getConstants().CHAT_TYPE.GROUP_CHAT
 	&& YYIMArrayUtil.isArray(arg.atuser)){
 		arg.body.atuser = arg.atuser;
 	}
-	
+
 	Manager.sendMessage(arg);
 };
 
@@ -236,7 +237,7 @@ YYIMManager.prototype.revokeMessage = function(arg){
 /**
  * 发送图片消息
  * @param arg{
- * fileInputId：DomID, //文件域id 
+ * fileInputId：DomID, //文件域id
  * drop_element: [dropID], //拖拽上传元素id，或者数组
  * chatInfo: function(){ //用户发送消息时获取对话人信息
  * 	  return {
@@ -265,13 +266,13 @@ YYIMManager.prototype.sendPic = function(arg){
 			success: function(result){
 				Manager.sendMessage({
 					id : result.chatInfo.messageId || Math.uuid(),
-					spaceId: result.chatInfo.spaceId, 
+					spaceId: result.chatInfo.spaceId,
 					body : {
 						extend: result.chatInfo.extend,
 						content : new IMFile({
 							id: result.file.id,
-							name: result.file.name, 
-							path: result.data && result.data.attachId, 
+							name: result.file.name,
+							path: result.data && result.data.attachId,
 							size: result.file.size,
 							original: 1
 						}),
@@ -296,7 +297,7 @@ YYIMManager.prototype.sendPic = function(arg){
 /**
  * 发送文件消息
  * @param arg{
- * fileInputId：DomID, //文件域id 
+ * fileInputId：DomID, //文件域id
  * drop_element: [dropID], //拖拽上传元素id，或者数组
  * chatInfo: function(){ //用户发送消息时获取对话人信息
  * 	  return {
@@ -325,27 +326,27 @@ YYIMManager.prototype.sendFile = function(arg){
 			mediaType: 3, //1:image ,2: file,3:doc
 			success: function(result){
 				var mediaType = 3;
-				
+
 				if(YYIMChat.getConfig().UPLOAD.IMAGE_TYPES.test(result.file.name)){
 					mediaType = 1;
 				}
-				
+
 				var file = new IMFile({
 					id: result.file.id,
-					name: result.file.name, 
-					path: result.data && result.data.attachId, 
+					name: result.file.name,
+					path: result.data && result.data.attachId,
 					size: result.file.size
 				});
-				
+
 				if(mediaType === 1){
 					file.build({
 						original: 1
 					});
 				}
-				
-				if(result 
-				&& result['data'] 
-				&& result['data']['data'] 
+
+				if(result
+				&& result['data']
+				&& result['data']['data']
 				&& result['data']['data']['fileUrl']){
 					//esn pc 上传
 					file.build({
@@ -353,18 +354,18 @@ YYIMManager.prototype.sendFile = function(arg){
 						fid: result['data']['data']['fid']
 					});
 				}
-				
+
 				if(YYIMUtil['isWhateType'](result['data'],'Array')){
 					//esn web 上传
 					file = new IMFile({
 						id: result.file.id,
-						name: result.file.name, 
-						path: result['data'][4], 
-						size: result.file.size, 
+						name: result.file.name,
+						path: result['data'][4],
+						size: result.file.size,
 						fid: result['data'][0]
 					});
 				}
-				
+
 				Manager.sendMessage({
 					id : result.chatInfo.messageId || Math.uuid(),
 					spaceId: result.chatInfo.spaceId,
@@ -379,7 +380,7 @@ YYIMManager.prototype.sendFile = function(arg){
 						arg.success && arg.success(data);
 					}
 				});
-				
+
 				arg.fileUploaded && arg.fileUploaded(result);
 			},
 			error: arg.error,

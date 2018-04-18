@@ -17,25 +17,79 @@ YYIMChat.setBackhander({
  * complete:function //无论成功失败都回调的函数
  * }
  */
-YYIMManager.prototype.getPubAccount = function(arg){
-	Manager.getPubAccountItems(arg);
+YYIMManager.prototype.getPubAccount = function(arg) {
+    Manager.getPubAccountItems(arg);
 };
 
 /**
  * 获取公共号列表（按需拉取） rongqb 20160912
  * @param arg {
- *  pubIds: Array,
+ *  ids: Array,
  * 	success: function, 
  *  error: function,
  *  complete: function
  * }
  */
-YYIMManager.prototype.getPubAccounts = function(arg){
-	if(YYIMUtil['isWhateType'](arg.pubIds,'Array')){
-		Manager.getPubAccounts(arg);
-	}else{
-		arg && arg.error && arg.error();
-	}
+YYIMManager.prototype.getPubAccounts = function(arg) {
+    if (YYIMUtil['isWhateType'](arg.ids, 'Array')) {
+        Manager.getPubAccounts(arg);
+    } else {
+        arg && arg.error && arg.error();
+    }
+};
+
+
+/**
+ *  批量拉取pubaccount info
+ */
+var batchInfosList = new BaseList();
+var batchInfosTimer;
+var getBatchInfos = function() {
+    var handler = batchInfosList;
+    batchInfosList = new BaseList();
+    Manager.getPubAccounts({
+        ids: handler.keys(),
+        success: function(list, data) {
+            handler.forEach(function(item, index) {
+                try {
+                    item && item.success && item.success(data[item.id]);
+                } catch (e) {
+                    //TODO handle the exception
+                    YYIMChat.log('SuccessHandleBatchPubaccountInfoError.', 0, e);
+                }
+            });
+            handler.clear();
+            handler = null;
+        },
+        error: function(err) {
+            handler.forEach(function(item, index) {
+                try {
+                    item && item.error && item.error(err);
+                } catch (e) {
+                    //TODO handle the exception
+                    YYIMChat.log('ErrorHandleBatchPubaccountInfoError.', 0, e);
+                }
+            });
+            handler.clear();
+            handler = null;
+        }
+    });
+}
+
+YYIMManager.prototype.getBatchPubInfos = function(arg) {
+    if (arg && arg.id && !batchInfosList.get(arg.id)) {
+        batchInfosList.set(arg.id, arg);
+        clearTimeout(batchInfosTimer);
+        if (batchInfosList.length() >= this.getConfig().BETCH_MAXLIMIT.PUBACCOUNT) {
+            getBatchInfos();
+        } else {
+            batchInfosTimer = setTimeout(function() {
+                getBatchInfos();
+            }, 200);
+        }
+    } else {
+        arg.error && arg.error();
+    }
 };
 
 /**

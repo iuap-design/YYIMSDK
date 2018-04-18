@@ -7,7 +7,24 @@
  * }
  */
 YYIMManager.prototype.getProfile = function(arg){
-	Manager.getProfile(arg || {});
+	// 获取存储热词时间戳 yaoleib20171212
+	Manager.getProfile({
+		success: function(data){
+			var intelligentable = data.intelligentable;
+			var intelligentWordsTime = data.intelligentWordsTime;
+			if(intelligentable != 'undefined'){
+				//YYIMChat.openAIAbility(intelligentable);
+			}
+			if(intelligentWordsTime){
+				YYIMChat.setDictionaries(intelligentWordsTime);
+			}
+
+			arg.success && arg.success(data);
+		},
+		error: function(error){
+			arg.error && arg.error(errot);
+		}
+	})
 };
 
 /**
@@ -114,7 +131,7 @@ YYIMManager.prototype.cancelStick = function(arg){
  *  error: function,
  *  complete: function
  * }
- */ 
+ */
 YYIMManager.prototype.createProfile = function(arg){
 	arg = arg || {};
 	if(!!arg.profile){
@@ -132,7 +149,7 @@ YYIMManager.prototype.createProfile = function(arg){
  *  error: function,
  *  complete: function
  * }
- */ 
+ */
 YYIMManager.prototype.removeProfile = function(arg){
 	arg = arg || {};
 	if(YYIMArrayUtil.isArray(arg.profiles)){
@@ -149,7 +166,7 @@ YYIMManager.prototype.removeProfile = function(arg){
  *  error: function,
  *  complete: function
  * }
- */ 
+ */
 YYIMManager.prototype.clearProfile = function(arg){
 	Manager.clearProfile(arg || {});
 };

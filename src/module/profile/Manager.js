@@ -8,8 +8,13 @@ var Manager = (function(){
 	 * }
 	 */
 	function getProfile(arg){
+	    // 传入AI Key yaoleib20171212
+	    var apiKeyParam = YYIMManager.getInstance().getApiKey();
+		if(apiKeyParam){
+            apiKeyParam = '&apiKey=' + apiKeyParam;
+        }
 		jQuery.ajax({
-			url: YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + YYIMManager.getInstance().getUserID() + '/profile?token=' + YYIMManager.getInstance().getToken(),
+			url: YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + YYIMManager.getInstance().getUserID() + '/profile?token=' + YYIMManager.getInstance().getToken() + apiKeyParam,
 			type: 'get',
 			cache: false,
 			datatype: 'json',
@@ -26,7 +31,7 @@ var Manager = (function(){
 					}
 					data.muteItems = temp;
 				}
-				
+
 				if(data.stickItems){
 					var temp = {};
 					for(var x in data.stickItems){
@@ -56,7 +61,7 @@ var Manager = (function(){
 			}
 		});
 	}
-	
+
 	/**
 	 * 静音（免打扰）、置顶  rongqb 20160719
 	 * arg {
@@ -104,7 +109,7 @@ var Manager = (function(){
 			}
 		});
 	}
-	
+
 	/**
 	 * 取消静音（免打扰），置顶  rongqb 20160719
 	 * arg {
@@ -147,7 +152,7 @@ var Manager = (function(){
 			}
 		});
 	}
-	
+
 	/**
 	 *  添加Profile项  rongqb 20160719
 	 * arg {
@@ -156,7 +161,7 @@ var Manager = (function(){
 	 *  error: function,
 	 *  complete: function
 	 * }
-	 */ 
+	 */
 	function createProfile(arg){
 		jQuery.ajax({
 			url: YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + YYIMManager.getInstance().getUserID() + '/profile?token=' + YYIMManager.getInstance().getToken(),
@@ -181,7 +186,7 @@ var Manager = (function(){
 			}
 		});
 	}
-	
+
 	/**
 	 *  批量删除Profile中的项  rongqb 20160719
 	 * arg {
@@ -190,7 +195,7 @@ var Manager = (function(){
 	 *  error: function,
 	 *  complete: function
 	 * }
-	 */ 
+	 */
 	function removeProfile(arg){
 		jQuery.ajax({
 			url: YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + YYIMManager.getInstance().getUserID() + '/profile?token=' + YYIMManager.getInstance().getToken(),
@@ -215,7 +220,7 @@ var Manager = (function(){
 			}
 		});
 	}
-	
+
 	/**
 	 * 清理用户的Profile（彻底删除所有Profile信息）  rongqb 20160719
 	 * arg {
@@ -223,7 +228,7 @@ var Manager = (function(){
 	 *  error: function,
 	 *  complete: function
 	 * }
-	 */ 
+	 */
 	function clearProfile(arg){
 		jQuery.ajax({
 			url: YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + YYIMManager.getInstance().getUserID() + '/profile?token=' + YYIMManager.getInstance().getToken(),
@@ -245,7 +250,7 @@ var Manager = (function(){
 			}
 		});
 	}
-	
+
 	/**
 	 * 移除群助手 rongqb 20170510
 	 * @param {Object} arg {
@@ -275,7 +280,7 @@ var Manager = (function(){
 			}
 		});
 	}
-	
+
 	return {
 		getProfile: getProfile,
 		muteStick: muteStick,

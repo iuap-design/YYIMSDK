@@ -13,6 +13,8 @@ function YYIMManager() {
 						  
 	this.onlineStatus = [CONNECT_STATUS.CONNECTED,
 						 CONNECT_STATUS.PROCESSING];
+	// 定义AI Key变量 yaoleib20171212
+	this.apiKey;
 	this.init();
 };
 
@@ -171,6 +173,8 @@ YYIMManager.prototype.initSDK = function(options) {
 	ConfigSetting.init(options);
 	var conf = YYIMConfiguration.MULTI_TENANCY;
 	this.appkey = conf.SEPARATOR + conf.APP_KEY + conf.SEPARATOR + conf.ETP_KEY;
+	// 存储AI Key yaoleib20171212
+	this.apiKey = options.apiKey;
 };
 
 YYIMManager.prototype.logEnable = function(logEnable) {
@@ -191,6 +195,14 @@ YYIMManager.prototype.getTenancy = function() {
  */
 YYIMManager.prototype.getAppkey = function() {
 	return this.appkey;
+};
+
+/**
+ * 获取apiKey yaoleib20171212
+ * @returns '85de79b9f7e34c37a99accaddb256990'
+ */
+YYIMManager.prototype.getApiKey = function() {
+    return this.apiKey;
 };
 
 YYIMManager.prototype.isOnline = function() {

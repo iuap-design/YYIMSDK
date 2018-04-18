@@ -91,20 +91,20 @@ var getBatchVCards = function(){
 	});
 }
 
-YYIMManager.prototype.getBatchVCards = function(arg){
-	if(arg && arg.id && !batchVcardsList.get(arg.id)){
-		batchVcardsList.set(arg.id, arg);
-		clearTimeout(batchVcardsTimer);
-		if(batchVcardsList.length() >= this.getConfig().ROSTER.BATCHVCRADMAXLIMIT){
-			getBatchVCards();
-		}else{
-			batchVcardsTimer = setTimeout(function(){
-				getBatchVCards();
-			},200);
-		}
-	}else{
-		arg.error && arg.error();
-	}
+YYIMManager.prototype.getBatchVCards = function(arg) {
+    if (arg && arg.id && !batchVcardsList.get(arg.id)) {
+        batchVcardsList.set(arg.id, arg);
+        clearTimeout(batchVcardsTimer);
+        if (batchVcardsList.length() >= this.getConfig().BETCH_MAXLIMIT.ROSTER) {
+            getBatchVCards();
+        } else {
+            batchVcardsTimer = setTimeout(function() {
+                getBatchVCards();
+            }, 200);
+        }
+    } else {
+        arg.error && arg.error();
+    }
 };
 
 /**
