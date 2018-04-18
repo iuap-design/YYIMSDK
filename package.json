@@ -4,8 +4,8 @@
   "description": "sdk",
   "main": "./dist/index.js",
   "scripts": {
-    "dev": "",
-    "build": "gulp"
+    "dev": "gulp",
+    "build": "gulp build"
   },
   "keywords": [
     "sdk"

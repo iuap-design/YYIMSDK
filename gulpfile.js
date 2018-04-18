@@ -316,7 +316,7 @@ gulp.task('aiabilityWatcher', function() {
     gulp.watch(AIAbilityModuleFileList, ['aiability']);
 })
 
-gulp.task('default', [
+gulp.task('dev', [
     'YYIMSDKBASE', 'YYIMSDKBASEWatcher',
     'message', 'messageWatcher',
     'upload', 'uploadWatcher',
@@ -331,4 +331,21 @@ gulp.task('default', [
     'aiability', 'aiabilityWatcher'
 ], function() {
     gulp.run('YYIMSDK', 'YYIMSDKWatcher');
+});
+
+gulp.task('build', [
+    'YYIMSDKBASE',
+    'message',
+    'upload',
+    'download',
+    'digest',
+    'roster',
+    'group',
+    'pubaccount',
+    'extend',
+    'todo',
+    'profile',
+    'aiability'
+], function() {
+    // gulp.run('YYIMSDK', 'YYIMSDKWatcher');
 });
