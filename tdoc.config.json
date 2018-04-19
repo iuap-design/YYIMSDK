@@ -104,6 +104,11 @@
             "content": "./docs/IM_web集成指南_10登陆&退出.md"
         },
         {
+            "name": "示例",
+            "title": "示例",
+            "url": "./getting-started/index.html"
+        },
+        {
             "name": "FAQ",
             "title": "FAQ",
             "url": "https://github.com/iuap-design/YYIMSDK/issues"
