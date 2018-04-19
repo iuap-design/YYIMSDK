@@ -1,6 +1,8 @@
 
 $(function () {
     var $j_bq_box = $('.j_bq_box');//表情盒子
+    var $yyim_editor = $('.yyim-editor'); //聊天输入框
+    var $btn_send = $('.adit-btn-send'); //发送按钮
 
     var expressionList = {
         path: "./imgs/bq/",
@@ -85,6 +87,13 @@ $(function () {
             { actionData: "[蛋糕]", "url": "expression_cake@2x.png" }
         ]
     };
+
+    //全局配置
+    var IM_config = {
+        username: 'demo1',
+        xiaoyouID: 'xiaoyou_ai_bot_pre'
+    };
+
     //放置表情列表
     expressionList.data.forEach(function (t) {
         $j_bq_box.append('<li><img src="'+ (expressionList.path+t.url)+'" title="'+t.actionData+'" alt=""></li>');
@@ -120,26 +129,6 @@ $(function () {
         onOpened: function() {
             // 登录成功
             YYIMChat.setPresence();
-            // 获取当前在线的设备
-            var arg = {
-                success: function (result) {
-                    console.log(result);
-                },
-                error: function (arg) {
-                    console.log(arg);
-                }
-            };
-            YYIMChat.getMultiTerminals(arg);
-
-            // 拉取摘要
-            YYIMChat.getRecentDigset({
-                success: function (result) {
-                    console.log(result);
-                },
-                error:function (err){
-                    console.log(err);
-                }
-            });
         },
         onExpiration: function(callback) {
             //自动更新token
@@ -177,6 +166,19 @@ $(function () {
         },
         onMessage: function(arg) {
             //收到消息
+            if (arg.from === IM_config.xiaoyouID) {
+                console.log(JSON.parse(arg.data.content).response.botResponse.dailogid);
+            }
+            var obj = {
+                from: arg.from,
+                to: IM_config.username,
+                id: arg.id,
+                data: {
+                    content: arg.data.content,
+                    extend:arg.data.extend
+                }
+            };
+            console.log(obj);
         },
         onGroupUpdate: function(arg) {
             //群组更新
@@ -201,6 +203,7 @@ $(function () {
         }
     });
 
+
     // 临时登录IM，正常情况由业务系统完成
     $.ajax({
         url: 'https://im.yonyou.com/sysadmin/rest/moli/moli_pre/token',
@@ -223,7 +226,43 @@ $(function () {
         }
     });
 
+    //请求好友列表
+    YYIMChat.getRosterItems({
+        success: function (msg) {
+            console.log(msg)
+        },
+        error: function (err) {
+            console.log(err)
+        }
+    });
+
+
+
+
     //事件
+    $yyim_editor.on('input', function () {
+        if($(this).val()){
+            $btn_send.removeClass('adit-btn-send-disabled');
+        }else {
+            $btn_send.addClass('adit-btn-send-disabled');
+        }
+    });
+    //发送按钮点击
+    $btn_send.on('click',function () {
+        if($btn_send.val()){
+            YYIMChat.sendTextMessage({
+                to: IM_config.xiaoyouID, //对话人id
+                type: "groupchat/chat/pubaccount",  //chat:单聊，groupcgat:群聊,pubaccount:公众号
+                content:$btn_send.val(), //消息文本
+                extend: '',  //扩展字段
+                success: function (msg) {
+                    console.log(msg)
+                }
+            });
+        }
+    });
+
+
     $('.j_menu_bq').hover(function () {
         $(this).addClass('hover');
         $('.bq_tip').css('display', 'block');
@@ -240,7 +279,7 @@ $(function () {
         $(this).removeClass('hover');
         $('.tp_tip').css('display', 'none');
     }).click(function () {
-
+        $('#uploadfile').click();
     });
     $('.j_menu_wj').hover(function () {
         $(this).addClass('hover');
