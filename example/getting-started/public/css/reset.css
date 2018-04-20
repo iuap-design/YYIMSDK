@@ -1,0 +1,56 @@
+
+/** 清除内外边距 **/
+* { margin: 0; padding: 0; }
+/** 设置默认字体 **/
+body,
+button, input, select, textarea /* for ie */ {
+    font: 14px/1.4 \\51AC\9752\9ED1\4F53\7B80\4F53\4E2D\6587,Tahoma,Hiragino Sans GB,Microsoft YaHei,\\5FAE\8F6F\96C5\9ED1,STHeiti,WenQuanYi Micro Hei,SimSun,sans-serif;
+}
+/** 重置列表元素 **/
+ul, ol { list-style: none; }
+i{ font-style: normal; }
+/** 重置表单元素 **/
+img { border: 0; } /* img 搭车：让链接里的 img 无边框 */
+button, input, select, textarea { font-size: 100%; } /* 使得表单元素在 ie 下能继承字体大小 */
+/** 重置表格元素 **/
+table { border-collapse: collapse; border-spacing: 0; }
+a{
+    text-decoration: none;
+}
+
+html, body {
+    height: 100%;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.container {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    overflow: hidden;
+}
+.page {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    z-index: 1;
+}
+.cuttxt{
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.scrollbar::-webkit-scrollbar{
+    width: 4px;
+}
+.scrollbar::-webkit-scrollbar-thumb{
+    width: 4px;
+    background-color: #ccc;
+    border-radius: 2px;
+}
