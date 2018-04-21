@@ -13784,6 +13784,7 @@ var Manager = (function() {
 	 * @param arg {keyword, start, size, success: function, error: function,complete: function}
 	 */
 	function queryRosterItem(arg) {
+		console.log(arg)
 		var iqBody = {
 			start: YYIMCommonUtil.isNumber(arg.start) ? arg.start : 0,
 			size: YYIMCommonUtil.isNumber(arg.size) ? arg.size : 20,
