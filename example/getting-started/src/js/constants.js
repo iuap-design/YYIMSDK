@@ -1,4 +1,4 @@
-export default {
+export const expressionList = {
     path: "./imgs/bq/",
     data: [
         { actionData: "[龇牙]", "url": "expression_ciya@2x.png" },

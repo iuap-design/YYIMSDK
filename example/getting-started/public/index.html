@@ -3,100 +3,140 @@
 <head>
     <meta charset="UTF-8">
     <title>用友IM</title>
+    <link rel="shortcut icon" href="./imgs/logo.ico">
     <link rel="stylesheet" href="./css/reset.css">
     <link rel="stylesheet" href="./css/ifont/iconfont.css">
     <link rel="stylesheet" href="./css/index.css">
     <script src="http://design.yonyoucloud.com/static/jquery/3.2.1/jquery.min.js"></script>
-    <script src="http://design.yyuap.com/static/imsdk-web/1.0.3/YYIMSDK.js"></script>
+    <!--<script src="http://design.yyuap.com/static/imsdk-web/1.0.3/YYIMSDK.js"></script>-->
+    <script src="./css/YYIMSDK.js"></script>
 </head>
 <body>
-    <div class="yyim-box">
-        <div class="yyim-main">
-            <!--聊天框头部-->
-            <div class="topbar">
-                <!--搜索-->
-
+<!--登陆-->
+<div class="yyim-iogin">
+    <h3 class="login-tit">用户登陆</h3>
+    <p class="login-desc">请输入您的用户名和密码(此demo用户名由字母、数字和下划线组成，密码强制成123456)</p>
+    <label><input class="login-username" type="text" placeholder="输入用户名"></label>
+    <label><input class="login-pass" type="password" placeholder="输入密码"></label>
+    <button class="login-btn">登陆</button>
+</div>
+<div class="yyim-box">
+    <div class="yyim-main">
+        <!--侧边栏-->
+        <div class="sidebar scrollbar">
+            <!--搜索-->
+            <div class="yyim-search-box">
+                <label><input class="yyim-search" type="text"></label>
+                <span class="creat-chat" title="创建聊天">+</span>
             </div>
-            <!--聊天区域-->
-            <div class="chat-con">
-                <div class="history-contacts scrollbar">
+            <!--最近联系人-->
+            <div class="history-contacts-con">
+                <div class="history-contacts ">
+                    <!--联系人-->
                     <ul class="hcontacts">
-                        <li>
-                            <i class="close">×</i>
-                            <div class="avatar">
-                                <img src="./imgs/avatar.jpg" alt="">
-                            </div>
-                            <div class="detail">
-                                <h3 class="name cuttxt">宗腾飞宗腾飞宗腾飞宗腾飞宗腾飞宗腾飞</h3>
-                                <p class="msg cuttxt">好的，我看看好的，我看看好的，我看看</p>
-                            </div>
-                            <i class="newtip cuttxt">99</i>
-                        </li>
-                        <li>
-                            <div class="avatar">
-                                <img src="./imgs/avatar.jpg" alt="">
-                            </div>
-                            <div class="detail dingyue">
-                                <h3 class="name cuttxt">订阅号</h3>
-                            </div>
-                            <i class="newtip cuttxt">99</i>
-                        </li>
-                        <li>
-                            <i class="close">×</i>
-                            <div class="avatar">
-                                <img src="./imgs/avatar.jpg" alt="">
-                            </div>
-                            <div class="detail">
-                                <h3 class="name cuttxt">宗腾飞宗腾飞宗腾飞宗腾飞宗腾飞宗腾飞</h3>
-                                <p class="msg cuttxt">好的，我看看好的，我看看好的，我看看</p>
-                            </div>
-                            <i class="newtip cuttxt">99</i>
-                        </li>
+                        <!--<li>-->
+                            <!--<i class="close">×</i>-->
+                            <!--<div class="avatar">-->
+                                <!--<img src="./imgs/avatar.jpg" alt="">-->
+                            <!--</div>-->
+                            <!--<div class="detail">-->
+                                <!--<h3 class="name cuttxt">宗腾飞宗腾飞宗腾飞宗腾飞宗腾飞宗腾飞</h3>-->
+                                <!--<p class="msg cuttxt">好的，我看看好的，我看看好的，我看看</p>-->
+                            <!--</div>-->
+                            <!--<i class="newtip cuttxt">99</i>-->
+                        <!--</li>-->
+                        <!--<li>-->
+                            <!--<div class="avatar">-->
+                                <!--<img src="./imgs/avatar.jpg" alt="">-->
+                            <!--</div>-->
+                            <!--<div class="detail dingyue">-->
+                                <!--<h3 class="name cuttxt">订阅号</h3>-->
+                            <!--</div>-->
+                            <!--<i class="newtip cuttxt">99</i>-->
+                        <!--</li>-->
                     </ul>
-                    <ul class="hsubscribe" style="display: none">
-                        <li>
-                            <i class="close">×</i>
-                            <div class="avatar">
-                                <img src="./imgs/avatar.jpg" alt="">
-                            </div>
-                            <div class="detail">
-                                <h3 class="name cuttxt">宗腾飞宗腾飞宗腾飞宗腾飞宗腾飞宗腾飞</h3>
-                                <p class="msg cuttxt">好的，我看看好的，我看看好的，我看看</p>
-                            </div>
-                            <i class="newtip cuttxt">99</i>
-                        </li>
-                    </ul>
+                    <!--订阅号-->
+                    <ul class="hsubscribe" style="display: none"></ul>
                 </div>
-                <div class="history-chat">
-                    <div class="chat-con">
-                        <div class="chats scrollbar">
-                            聊天
-                        </div>
-                        <div class="inputarea">
-                            <ul class="edit-menu">
-                                <li>
-                                    <ul class="j_bq_box"></ul>
-                                    <span class="j_menu_bq iconfont icon-biaoqing"></span>
-                                    <i class="typetip bq_tip">表情</i>
-                                </li>
-                                <li>
-                                    <span class="j_menu_tp iconfont icon-icon--"></span>
-                                    <i class="typetip tp_tip">图片</i>
-                                </li>
-                                <li>
-                                    <span class="j_menu_wj iconfont icon-icon--1"></span>
-                                    <i class="typetip wj_tip">文件</i>
-                                </li>
-                            </ul>
-                            <textarea class="yyim-editor" title=""></textarea>
-                            <div class="edit-btns">
-                                <button class="edit-btn-send">发送</button>
-                            </div>
+            </div>
+        </div>
+        <!--聊天信息框-->
+        <div class="chat-con">
+            <div class="history-chat">
+                <!--聊天头部-->
+                <div class="chat-hd">
+                    <div class="j_move chat-name cuttxt">空间助手</div>
+                    <div class="window-control">
+                        <span class="scalechat iconfont icon-quanpingzuidahua" title="点击切换窗口大小"></span>
+                        <span class="closechat iconfont icon-chahao" title="关闭"></span>
+                    </div>
+                </div>
+                <div class="chat-box">
+                    <!--聊天信息容器-->
+                    <div class="chats scrollbar">
+                        <ul class="chats-list">
+                            <!--<li>-->
+                                <!--<div class="chat-tip">周二 15:15</div>-->
+                                <!--<div class="chat-content">-->
+                                    <!--<div class="chat-avatar">-->
+                                        <!--<img src="./imgs/avatar.jpg" alt="">-->
+                                    <!--</div>-->
+                                    <!--<div class="chat-txt">-->
+                                        <!--<div class="chat-user-name">张明</div>-->
+                                        <!--<div class="chat-msg">-->
+                                            <!--git@git.yonyou.com:iuap_mobile/sns-im-web.git-->
+                                            <!--腾飞-->
+                                            <!--develop分支-->
+                                            <!--腾飞-->
+                                            <!--我给你加权限了 这个应该是之前的demo项目-->
+                                        <!--</div>-->
+                                    <!--</div>-->
+                                <!--</div>-->
+                            <!--</li>-->
+                            <!--<li>-->
+                                <!--<div class="chat-tip">周二 15:15</div>-->
+                                <!--<div class="chat-content">-->
+                                    <!--<div class="chat-avatar chat-avatar-send">-->
+                                        <!--<img src="./imgs/avatar.jpg" alt="">-->
+                                    <!--</div>-->
+                                    <!--<div class="chat-txt chat-txt-send">-->
+                                        <!--<div class="chat-user-name">张明</div>-->
+                                        <!--<div class="chat-msg">-->
+                                            <!--git@gi了 这个应该是之前的demo项目[炸弹]-->
+                                        <!--</div>-->
+                                    <!--</div>-->
+                                <!--</div>-->
+                            <!--</li>-->
+                        </ul>
+                    </div>
+                    <!--输入容器-->
+                    <div class="inputarea">
+                        <ul class="edit-menu">
+                            <li>
+                                <ul class="j_bq_box"></ul>
+                                <span class="j_menu_bq iconfont icon-biaoqing"></span>
+                                <i class="typetip bq_tip">表情</i>
+                            </li>
+                            <li>
+                                <span class="j_menu_tp iconfont icon-icon--"></span>
+                                <i class="typetip tp_tip">图片</i>
+                                <form enctype="multipart/form-data" id="oForm" style="display: none">
+                                    <input type="file" name="file" id="uploadfile" />
+                                </form>
+                            </li>
+                            <li>
+                                <span class="j_menu_wj iconfont icon-icon--1"></span>
+                                <i class="typetip wj_tip">文件</i>
+                            </li>
+                        </ul>
+                        <textarea class="yyim-editor" title=""></textarea>
+                        <div class="edit-btns">
+                            <button class="adit-btn-send adit-btn-send-disabled">发送</button>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+</div>
 <script type="text/javascript" src="main.bundle.js"></script></body>
-</html>

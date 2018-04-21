@@ -1,9 +1,75 @@
+body{
+    background-color: #F4F8FB;
+}
+/*登陆*/
+.yyim-iogin{
+    display: block; /*默认显示*/
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    margin: auto;
+    width: 480px;
+    height: 360px;
+    background-color: #fff;
+    border-radius: 4px;
+    border: 1px #e1e1e1 solid;
+}
+.login-tit{
+    height: 60px;
+    padding-top: 18px;
+    line-height: 60px;
+    text-align: center;
+    font-weight: normal;
+    font-size: 18px;
+    color: #262626;
+}
+.login-desc{
+    font-size: 13px;
+    color: #666;
+    padding: 10px 20px;
+}
+.yyim-iogin label{
+    display: block;
+    width: 340px;
+    height: 40px;
+    margin: 10px auto;
+    border: 1px solid #cfcfcf;
+    border-radius: 4px;
+}
+.yyim-iogin input{
+    display: block;
+    border: 0;
+    outline: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 4px;
+    text-indent: 10px;
+    color: #666;
+}
+.yyim-iogin button{
+    display: block;
+    border: 0;
+    outline: 0;
+    width: 340px;
+    height: 40px;
+    margin: 20px auto 0;
+    border-radius: 4px;
+    background-color: #fa4f52;
+    color: white;
+    cursor: pointer;
+}
+
+/*聊天面板*/
 .yyim-box{
+    display: none; /*默认隐藏*/
     position: fixed;
     width: 100%;
     height: 100%;
     background-color: rgba(0,0,0,0.2);
 }
+/*主体框*/
 .yyim-main{
     position: absolute;
     z-index: 100;
@@ -17,28 +83,69 @@
     border-radius: 4px;
     box-shadow: 10px 10px 20px rgba(0,0,0,.3);
     background-color: white;
+    overflow: hidden;
 }
-/*聊天框的头部*/
-.topbar{
-    height: 50px;
-    border-bottom: 1px solid #e4e4e4;
-    background-color: #ececee;
-    border-top-right-radius: 4px;
-    border-top-left-radius: 4px;
+.yyim-main.maxwindow{
+    height: 100%;
+    width: 100%;
 }
-/*聊天框主体*/
-.chat-con{
-    position: relative;
-}
-
-/*左边历史联系人*/
-.history-contacts{
-    box-sizing: border-box;
+/*侧边栏*/
+.sidebar{
     position: absolute;
     top: 0;
     left: 0;
     width: 210px;
-    height: 538px;
+    height: 100%;
+}
+/*搜索*/
+.yyim-search-box{
+    position: absolute;
+    width: 210px;
+    height: 50px;
+    border-bottom: 1px solid #e4e4e4;
+    background-color: #ececee;
+}
+.yyim-search-box label{
+    float: left;
+    width: 156px;
+    height: 26px;
+    padding-right: 5px;
+    margin: 12px 0 0 10px;
+    background: url("../imgs/search.png") no-repeat 10px center white;
+    background-size: 14px;
+    border-radius: 13px;
+}
+.yyim-search-box .yyim-search{
+    float: right;
+    height: 26px;
+    width: 115px;
+    border: 0;
+    outline: 0;
+    margin-right: 10px;
+}
+.yyim-search-box .creat-chat{
+    float: left;
+    margin: 16px 0 0 10px;
+    height: 20px;
+    width: 20px;
+    text-align: center;
+    line-height: 20px;
+    font-size: 18px;
+    color: #999;
+    cursor: pointer;
+}
+.yyim-search-box .creat-chat:hover{
+    color: #ff4e5b;
+}
+
+/*最近联系人*/
+.history-contacts-con{
+    box-sizing: border-box;
+    padding-top: 51px;
+    height: 100%;
+}
+.history-contacts{
+    height: 100%;
     border-right: 1px solid #e4e4e4;
     overflow-y: auto;
     background-color: white;
@@ -119,37 +226,151 @@
     border-radius: 50%;
 }
 
+/*聊天框主体*/
+.chat-con{
+    margin-left: 210px;
+    height: 100%;
+}
 /*右边历史聊天记录*/
 .history-chat{
-    margin-left: 210px;
-    height: 538px;
-    background: url("../imgs/chatbg.png") no-repeat center #f8f8f8;
-    background-size: 80px;
-}
-.chat-con{
-    box-sizing: border-box;
+    position: relative;
     height: 100%;
-    width: 100%;
-    padding-bottom: 150px;
+    background: url("../imgs/chatbg.png") no-repeat center #f8f8f8;
+    background-size: 70px;
 }
-.chat-con-only{
+/*没有输入的聊天框*/
+.history-chat-only{
     padding-bottom: 0;
 }
+/*聊天头*/
+.history-chat .chat-hd{
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 99;
+    width: 100%;
+    height: 50px;
+    border-bottom: 1px solid #e4e4e4;
+    background-color: #ececee;
+}
+.history-chat .chat-hd .chat-name{
+    width:80%;
+    padding: 15px 20px;
+    cursor: move;
+    user-select: none;
+}
+/*窗口控制框*/
+.window-control{
+    position: absolute;
+    right: 0;
+    top: 0;
+    margin: 15px 10px 0;
+}
+.window-control>span{
+    display: inline-block;
+    height: 20px;
+    width: 20px;
+    color: #999;
+    margin-left: 10px;
+    cursor: pointer;
+}
+.window-control>span:hover {
+    color: #fa4f52;
+}
+
+/*聊天信息框*/
+.chat-box{
+    display: none; /*默认隐藏*/
+    position: relative;
+    box-sizing: border-box;
+    height: 100%;
+    padding-top: 51px;
+    padding-bottom: 150px;
+}
+
 .chats{
     box-sizing: border-box;
     height: 100%;
-    width: 100%;
     overflow-y: auto;
+    padding: 0 20px;
     background-color: #f8f8f8;
     border-bottom: 1px solid #e4e4e4;
 }
+.chats-list>li{
+    padding: 7px;
+    overflow: hidden;
+}
+.chats-list .chat-tip{
+    font-size: 12px;
+    text-align: center;
+    color: #ccc;
+    padding: 0 20px 14px;
+}
+.chats-list .chat-avatar{
+    float: left;
+    height: 30px;
+    width: 30px;
+    border-radius: 50%;
+    overflow: hidden;
+}
+.chats-list .chat-avatar-send{
+    float: right;
+}
+.chats-list .chat-avatar img{
+    height: 30px;
+    width: 30px;
+    border-radius: 50%;
+}
+.chats-list .chat-txt{
+    float: left;
+    max-width: 400px;
+    margin-left: 10px;
+}
+.chats-list .chat-txt-send{
+    float: right;
+    margin: 0 10px 0 0;
+}
+.chat-user-name{
+    font-size: 12px;
+    margin-bottom: 3px;
+    color: #9e9e9e;
+}
+.chats-list .chat-txt-send .chat-user-name{
+    text-align: right;
+}
+.chats-list .chat-msg{
+    padding: 5px 10px;
+    line-height: 26px;
+    border-radius: 4px;
+    background-color: white;
+    border: 1px solid #dedede;
+    word-break: break-all;
+    word-wrap: break-word;
+}
+.chats-list .chat-msg img{
+    display: inline-block;
+    width: 22px;
+    margin: 0 2px;
+    vertical-align: middle;
+}
+.chats-list .chat-txt-send .chat-msg{
+    background-color: #bbeaff;
+}
+
+
+
+    /*信息输入框*/
 .inputarea{
     box-sizing: border-box;
+    position: absolute;
+    bottom: 0;
+    left: 0;
     height: 150px;
     width: 100%;
     padding: 10px;
     background-color: #f8f8f8;
 }
+/*聊天菜单*/
 .edit-menu{
     height: 25px;
 }
@@ -227,9 +448,33 @@
     display: block;
     width: 100%;
     height: 75px;
+    line-height: 20px;
     resize: none;
     border: 0;
     outline: 0;
     font-size: 14px;
     background-color: transparent;
 }
+.edit-btns{
+    height: 28px;
+}
+.edit-btns button{
+    float: right;
+    height: 28px;
+    width: 62px;
+    border: 0;
+    outline: 0;
+    font-size: 12px;
+    color: white;
+    border-radius: 4px;
+    margin-left: 10px;
+}
+.adit-btn-send{
+    background-color: #fa4f52;
+    cursor: pointer;
+}
+.adit-btn-send-disabled{
+    opacity: .5;
+    cursor: default;
+}
+
