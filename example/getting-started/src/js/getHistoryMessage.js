@@ -1,4 +1,3 @@
-
 //dom元素
 import {
     $chat_box,

@@ -4,7 +4,7 @@ import { $yyim_iogin, $yyim_box } from './jqelements';
 //用户登陆，传入用户名(暂时写死为zongtf，因为其他的注册不成功)
 export default (username) => {
     $.ajax({
-        url: 'http://172.20.15.60/sysadmin/rest/yonyou/im_pre/token',
+        url: 'https://172.20.15.60/sysadmin/rest/yonyou/im_pre/token',
         type: 'POST',
         dataType: 'json',
         headers: {"Content-Type": "application/json"},

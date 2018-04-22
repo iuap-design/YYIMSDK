@@ -11,7 +11,7 @@ YYIMChat.initSDK({
     wsurl: '172.20.15.60', //websocket Url
     wsport: 5227, //websocket port 5227/5222/5225
     hbport: 7075, //httpbind  port 7075/7070
-    servlet: 'http://172.20.15.60/', //rest Url
+    servlet: 'https://172.20.15.60/', //rest Url
     flash_swf_url: 'xxx/x/Moxie.swf', //flash 上传 swf文件位置
     logEnable: true, //client log
     clientMark: 'web', //client mark 'web' or 'pc'
