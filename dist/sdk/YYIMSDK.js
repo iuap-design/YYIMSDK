@@ -10083,3 +10083,5017 @@ YYIMManager.prototype.exeBackhander = function(type,options) {
 };
  	return YYIMManager.getInstance();
 })();
+YYIMChat = (function(YYIMChat){
+	var YYIMManager = YYIMChat.constructor;
+	
+var Manager = (function() {
+
+	/**
+	 * 获取最近联系（群组、公众号）摘要列表 rongqb 20160706
+	 * @param arg {
+	 * startDate: timestamp,
+	 * size: Number, //50
+	 * success:function,
+	 * error:function,
+	 * complete:function
+	 * }
+	 */
+	function getRecentDigset(arg) {
+		var param = {
+			startDate: arg.startDate
+		};
+		if(arg.size){
+			param.size = arg.size;
+		}
+		jQuery.ajax({
+			url: YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + YYIMChat.getUserID() + '/contactsmessage/digests?token=' + YYIMChat.getToken(),
+			type: 'get',
+			data: param,
+			dataType: 'json',
+			cache: false,
+			success: function(data) {
+				for(var x in data.list) {
+					if(data.list.hasOwnProperty(x)){
+						var item = data.list[x];
+						
+						item.id = YYIMChat.getJIDUtil().getID(item.jid);
+						item.type = YYIMChat.getJIDUtil().getChatTypeByJid(item.jid);
+						
+						try {
+							if(item.lastMessage) {
+								item.lastMessage = messageParser(JSON.parse(item.lastMessage), item.type);
+							}
+						} catch(e) {
+						}
+					}
+				}
+				arg.success && arg.success(data);
+				arg = null;
+			},
+			error: function(xhr) {
+				try {
+					arg.error && arg.error(JSON.parse(xhr.responseText));
+					arg = null;
+				} catch(e) {
+					arg.error && arg.error();
+					arg = null;
+				}
+			}
+		});
+	}
+
+	function parseContent(content,contentType) {
+		if (content) {
+			var body = JSON.parse(content);
+			try{
+				if(isNaN(Number(body.content))
+				&& contentType != YYIMChat.getConstants().MESSAGE_CONTENT_TYPE.TEXT){ //非数字字符串继续转换 rongqb 20151014
+					body.content = JSON.parse(body.content);
+					if (body.content.content) {
+						body.content = body.content.content;
+					}
+				}
+			}catch(e){
+			}
+			return body;
+		}else {
+			return null;
+		}
+	}
+
+	/**
+	 * 解析最近一条消息
+	 */
+	function messageParser(packet, type) {
+
+		var message = {
+			from: YYIMChat.getJIDUtil().getID(packet.sender),
+			to: YYIMChat.getJIDUtil().getID(packet.receiver || YYIMChat.getUserID()),
+			id: packet.packetId,
+			dateline: packet.dateline || packet.ts,
+			type: type,
+			sessionVersion: packet.sessionVersion
+		};
+
+		if(type){
+			if(type == YYIMChat.getConstants().CHAT_TYPE.GROUP_CHAT){
+				message.from = {
+					room: YYIMChat.getJIDUtil().getID(packet.mucid),
+					roster: YYIMChat.getJIDUtil().getID(packet.sender)
+				};
+			}else if(type == YYIMChat.getConstants().CHAT_TYPE.PUB_ACCOUNT){
+				message.from = {
+					room: YYIMChat.getJIDUtil().getID(packet.sender),
+					roster: YYIMChat.getJIDUtil().getID(YYIMChat.getJIDUtil().getResource(packet.sender))
+				};
+			}
+		}
+
+		if(packet.content) {
+			message.data = message.data || {};
+			try {
+				var content = parseContent(packet.content,packet.contentType);
+				if(!!content && (!!content.content || content.content === '')) {
+					message.data = content;
+				} else {
+					message.data.content = content;
+				}
+			} catch(e) {}
+
+			message.data.contentType = packet.contentType;
+			message.data.dateline = packet.dateline || packet.ts;
+
+			if(message.data.content 
+			&& message.data.contentType 
+			&& (message.data.contentType == YYIMChat.getConstants().MESSAGE_CONTENT_TYPE.IMAGE 
+			|| message.data.contentType == YYIMChat.getConstants().MESSAGE_CONTENT_TYPE.FILE)) {
+
+				message.data.content.attachId = message.data.content.path;
+				message.data.content.path = YYIMChat.getFileUrl(message.data.content.path);
+			}
+
+			if(YYIMChat.getJIDUtil().getID(packet.sender) != YYIMChat.getUserID()) {
+				var receipt = {
+					to: YYIMChat.getJIDUtil().getID(packet.mucid || packet.sender),
+					id: message.id,
+					type: message.type,
+					sessionVersion: message.sessionVersion
+				};
+				message.data.receipt = receipt;
+			}
+		}
+		return message;
+	}
+	
+	function removeRecentDigest(arg){
+		var typeRelation = {
+			'chat': 'user',
+			'groupchat': 'room',
+			'pubaccount': 'pub'
+		};
+		
+		jQuery.ajax({
+			url: YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + YYIMChat.getUserID() + '/contacts/' + (typeRelation[arg.type] || typeRelation['chat']) + '/' + arg.id + '?token=' + YYIMChat.getToken(),
+			type: 'DELETE',
+			dataType: 'json',
+			cache: false,
+			success: function(data) {
+				arg.success && arg.success(data);
+				arg = null;
+			},
+			error: function(xhr) {
+				try {
+					arg.error && arg.error(JSON.parse(xhr.responseText));
+					arg = null;
+				} catch(e) {
+					arg.error && arg.error();
+					arg = null;
+				}
+			}
+		});
+	}
+
+	return {
+		getRecentDigset: getRecentDigset,
+		removeRecentDigest: removeRecentDigest
+	};
+})();
+/**
+ * 获取最近联系人（群组、公众号）摘要列表 rongqb 20160908
+ * @param arg {
+ * startDate: timestamp,
+ * size: Number, //default: 50, max: 500
+ * success:function,
+ * error:function,
+ * complete:function
+ * }
+ */
+YYIMManager.prototype.getRecentDigset = function(arg) {
+	arg.startDate = (YYIMUtil['isWhateType'](arg.startDate,'Number') &&  arg.startDate > 0) ? arg.startDate: 0;
+	if(!(YYIMUtil['isWhateType'](arg.size,'Number') &&  arg.size > 0)){
+		delete arg.size;		
+	}
+	Manager.getRecentDigset(arg);
+};
+
+/**
+ * 删除摘要 rognqb 20170225
+ * @param arg {
+ * id: String,
+ * type: String,
+ * success:function,
+ * error:function,
+ * complete:function
+ */
+YYIMManager.prototype.removeRecentDigest = function(arg) {
+	if(arg.id){
+		Manager.removeRecentDigest(arg);
+	}else{
+		arg && arg.error && arg.error();	
+	}	
+};
+ 	return YYIMManager.getInstance();
+})(YYIMChat);
+
+YYIMChat = (function(YYIMChat){
+	var YYIMManager = YYIMChat.constructor;
+	
+var Manager = (function(){
+	/**
+     * 设置IM具备AI能力 yaoleib20171214
+     * arg {
+	 * success:function,
+	 * error:function,
+	 * complete:function
+	 * }
+     */
+    function setAIAbility(arg){
+        jQuery.ajax({
+            url: YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + YYIMManager.getInstance().getUserID() + '/profile/intelligentable?token=' + YYIMManager.getInstance().getToken(),
+            type: 'post',
+            data: JSON.stringify(arg),
+            dataType: 'json',
+            cache: false,
+            processData:false,
+            contentType: "application/json", //必须有
+            success: function(data){
+                arg.success && arg.success(arg);
+                arg = null;
+            },
+            error: function(xhr){
+                try{
+                    arg.error && arg.error(JSON.parse(xhr.responseText));
+                    arg = null;
+                }catch(e){
+                    arg.error && arg.error();
+                    arg = null;
+                }
+            }
+        });
+    }
+
+    /**
+     * 获取用户AI热词,用于前端过滤 yaoleib20171214
+     * arg {
+	 * success:function,
+	 * error:function,
+	 * complete:function
+	 * }
+     */
+    function getAIWords(arg){
+		jQuery.ajax({
+            url: YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + YYIMManager.getInstance().getUserID() + '/intelligent/words?token=' + YYIMManager.getInstance().getToken() + '&apiKey=' + YYIMChat.getApiKey(),
+            type: 'get',
+            data: '',
+            dataType: 'json',
+            cache: false,
+            processData:false,
+            contentType: "application/json", //必须有
+            success: function(data){
+                arg.success && arg.success(data);
+                arg = null;
+            },
+            error: function(xhr){
+                try{
+                    arg.error && arg.error(JSON.parse(xhr.responseText));
+                    arg = null;
+                }catch(e){
+                    arg.error && arg.error();
+                    arg = null;
+                }
+            }
+        });
+    }
+
+	/**
+     * 获取当前在线的设备 yaoleib20171219
+     * arg {
+	 * success:function,
+	 * error:function,
+	 * complete:function
+	 * }
+     */
+    function getMultiTerminals(arg){
+		jQuery.ajax({
+            url: YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + YYIMManager.getInstance().getUserID() + '/multiterminals?token=' + YYIMManager.getInstance().getToken(),
+            type: 'get',
+            data: '',
+            dataType: 'json',
+            cache: false,
+            processData:false,
+            contentType: "application/json", //必须有
+            success: function(data){
+                arg.success && arg.success(data);
+                arg = null;
+            },
+            error: function(xhr){
+                try{
+                    arg.error && arg.error(JSON.parse(xhr.responseText));
+                    arg = null;
+                }catch(e){
+                    arg.error && arg.error();
+                    arg = null;
+                }
+            }
+        });
+    }
+
+	/**
+     * 发送协同命令 yaoleib20171219
+     * arg {
+	 * success:function,
+	 * error:function,
+	 * complete:function
+	 * }
+     */
+    function sendMultiTerminalsCommand(arg){
+		jQuery.ajax({
+            url: YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + YYIMManager.getInstance().getUserID() + '/multiterminals/command?token=' + YYIMManager.getInstance().getToken(),
+            type: 'POST',
+            data: arg.data,
+            dataType: 'json',
+            cache: false,
+            processData:false,
+            contentType: "application/json", //必须有
+            success: function(data){
+                arg.success && arg.success(data);
+                arg = null;
+            },
+            error: function(xhr){
+                try{
+                    arg.error && arg.error(JSON.parse(xhr.responseText));
+                    arg = null;
+                }catch(e){
+                    arg.error && arg.error();
+                    arg = null;
+                }
+            }
+        });
+    }
+
+	return {
+        setAIAbility: setAIAbility,
+        getAIWords: getAIWords,
+        getMultiTerminals: getMultiTerminals,
+        sendMultiTerminalsCommand: sendMultiTerminalsCommand
+	};
+})();
+
+/**
+ * 设置IM具备AI能力 yaoleib20171214
+ * arg {
+ *  success:function,
+ *  error:function,
+ *  complete:function
+ * }
+ */
+YYIMManager.prototype.setAIAbility = function(arg){
+    arg = arg || {};
+    if(!!arg.intelligentable){
+        Manager.setAIAbility(arg);
+    }else{
+        arg.error && arg.error();
+    }
+};
+
+/**
+ * 获取用户AI热词,用于前端过滤 yaoleib20171214
+ * arg {
+ *  success:function,
+ *  error:function,
+ *  complete:function
+ * }
+ */
+YYIMManager.prototype.getAIWords = function(arg){
+    Manager.getAIWords(arg || {});
+};
+
+/**
+* 设置AI分析开关是否启用
+* isAIAbility boolean
+*/
+YYIMManager.prototype.openAIAbility = function(isAIAbility) {
+    this.isAIAbility = isAIAbility;
+};
+
+/**
+ * 设置是否启用热词过滤 yaoleib20171225
+ * isOpenFilter boolean
+ */
+YYIMManager.prototype.openFilterWords = function(isOpenFilter){
+    YYAIAbility.openFilterWords(isOpenFilter);
+};
+
+/**
+ * 注入热词 yaoleib20171225
+ * arg string 热词时间戳
+ */
+YYIMManager.prototype.setDictionaries = function(intelligentWordsTime){
+    var storageWordsTime = window.localStorage.intelligentWordsTime;
+    if(storageWordsTime != intelligentWordsTime){
+        YYIMChat.getAIWords({
+            success: function(data){
+                YYAIAbility.setDictionaries(data.intelligentWords || []);
+
+                // 设置新的时间戳
+                window.localStorage.intelligentWordsTime = intelligentWordsTime;
+            },
+            error: function(xhr){
+                try{
+					arg.error && arg.error(JSON.parse(xhr.responseText));
+					arg = null;
+				}catch(e){
+					arg.error && arg.error();
+					arg = null;
+				}
+            }
+        });
+    }
+};
+
+/**
+ * 判断消息是否传递给AI分析 yaoleib20171225
+ * arg string
+ */
+YYIMManager.prototype.intelligentAnalysis = function(keyword){
+    YYAIAbility.intelligentAnalysis(keyword);
+};
+
+/**
+ * 获取当前在线的设备 yaoleib20171219
+ * arg {
+ * success:function,
+ * error:function,
+ * complete:function
+ * }
+ */
+YYIMManager.prototype.getMultiTerminals = function(arg){
+    Manager.getMultiTerminals(arg || {});
+};
+
+/**
+ * 发送协同命令 yaoleib20171219
+ * arg {
+ * success:function,
+ * error:function,
+ * complete:function
+ * }
+ */
+YYIMManager.prototype.sendMultiTerminalsCommand = function(arg){
+    Manager.sendMultiTerminalsCommand(arg || {});
+};
+
+ 	return YYIMManager.getInstance();
+})(YYIMChat);
+
+YYIMChat = (function(YYIMChat){
+	var YYIMManager = YYIMChat.constructor;
+	
+var Manager = (function(){
+	/**
+	 * 多方通话 rongqb 20160104
+	 * @param arg {
+	 * 	caller: ,//主叫号码
+	 *  phones：,//被叫号码
+	 *  accountMmanaged:true, //账号托管
+	 *  account：,//通话账号 accountMmanaged:true时 不传
+	 *  key：,//通话秘钥  accountMmanaged:true时 不传
+	 *  success:function,
+	 *  error:function
+	 * }
+	 */
+	function multiPartyCall(arg){
+		
+		if(arg.accountMmanaged === true){
+			/**
+			 * 账号托管模式
+			 */
+			var data = {
+					etpId: YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY,
+					appId: YYIMChat.getConfig().MULTI_TENANCY.APP_KEY,
+					caller: arg.caller, //主叫号码
+					phones: arg.phones, //被叫号码
+					username: YYIMManager.getInstance().getUserNode() //发起会议的id
+			};
+			
+			jQuery.ajax({
+				url: YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + 'voip/make?token=' + YYIMManager.getInstance().getToken(),
+				type: 'post',
+				data: JSON.stringify(data),
+				dataType: 'json',
+				cache: false,
+				processData:false,
+				contentType: "application/json", //必须有
+				headers:{
+//					"Content-Type":"application/json"
+				},
+				success: arg.success,
+				error: function(xhr){
+					try{
+						arg.error && arg.error(JSON.parse(xhr.responseText));
+						arg = null;
+					}catch(e){
+						arg.error && arg.error();
+						arg = null;
+					}
+				}
+			});
+			
+		}else{
+			/**
+			 * 直接调用 嘟嘟接口 需要上传 账户和密码
+			 */
+			var timestamp = new Date().getTime();
+			var data = {
+					caller: arg.caller, //主叫号码
+					phones: arg.phones, //被叫号码
+					account_identify: arg.account, //账号id
+					userId: YYIMManager.getInstance().getUserBareJID(), //发起会议的id
+					timestamp: timestamp,
+					sign: hex_sha1(arg.account + arg.key + timestamp)
+			};
+			
+			jQuery.ajax({
+				url: YYIMChat.getConfig().MULTIPARTYCALL.ADDRESS,
+				type: 'get',
+				data: data,
+				dataType: 'jsonp',
+				cache: false,
+				jsonp:'callback',
+				success: arg.success,
+				error: function(xhr){
+					try{
+						arg.error && arg.error(JSON.parse(xhr.responseText));
+						arg = null;
+					}catch(e){
+						arg.error && arg.error();
+						arg = null;
+					}
+				}
+			});
+		}
+	}
+	
+	function getServerCorrection(arg){
+		var start,end = 0;
+		jQuery.ajax({
+			url: YYIMChat.getConfig().SERVLET.REST_SYSTEM_SERVLET + 'time',
+			type: 'get',
+			cache: false,
+			beforeSend: function(){
+				start = new Date().getTime();
+			},
+			success: function(serverTime){
+				end = new Date().getTime();
+				arg && arg.success && arg.success(serverTime - (start + end)/2,end - start);
+				arg = null;
+			},
+			error: function(xhr){
+				try{
+					arg.error && arg.error(JSON.parse(xhr.responseText));
+					arg = null;
+				}catch(e){
+					arg.error && arg.error();
+					arg = null;
+				}
+			}
+		});
+	}
+	 
+	var corrections = [];
+	function getTimeCorrection(callback){
+		if(YYIMChat.getConfig().TIMECORRECTION.LOAD){
+			callback && callback(YYIMChat.getConfig().TIMECORRECTION.RESULT);
+		}else{
+			getServerCorrection({
+				success: function(correct,intervcal){
+					if(intervcal < YYIMChat.getConfig().TIMECORRECTION.RESIDUAL){
+						YYIMChat.getConfig().TIMECORRECTION.LOAD = true;
+						YYIMChat.getConfig().TIMECORRECTION.RESULT = Math.round(correct);
+						return callback && callback(YYIMChat.getConfig().TIMECORRECTION.RESULT);;
+					}else{
+						corrections.push(correct);
+						
+						if(corrections.length < YYIMChat.getConfig().TIMECORRECTION.TIMES){
+							getTimeCorrection(callback);
+						}else{
+							var sum = 0;
+							for(var x in corrections){
+								if(YYIMUtil['isWhateType'](corrections[x],'Number')){
+									sum += corrections[x];
+								}
+							}
+							corrections.length = 0;
+							YYIMChat.getConfig().TIMECORRECTION.LOAD = true;
+							YYIMChat.getConfig().TIMECORRECTION.RESULT = Math.round(sum/YYIMChat.getConfig().TIMECORRECTION.TIMES);
+							callback && callback(YYIMChat.getConfig().TIMECORRECTION.RESULT);
+						}
+					}
+				}
+			});
+		}
+	}
+	
+	return {
+		multiPartyCall: multiPartyCall,
+		getTimeCorrection: getTimeCorrection
+	};
+})();
+/**
+ * 多方通话 rongqb 20160104
+ * @param arg {
+ * 	caller: //主叫号码
+ *  phones：//被叫号码
+ *  accountMmanaged:true, //账号托管为true时，不需要输入账号密码，去im多租户后台管理账号
+ *  account：//通话账号  accountMmanaged:true时 不传
+ *  key：//通话秘钥  accountMmanaged:true时 不传
+ *  success:function,
+ *  error:function
+ * }
+ */
+YYIMManager.prototype.multiPartyCall = function(arg){
+	if(typeof arg === 'undefined' || typeof arg.caller === 'undefined' || !YYIMArrayUtil.isArray(arg.phones) || !arg.phones.length){
+		arg.error && arg.error();
+		return;
+	}
+	
+	if(!YYIMRegExp.phone.test(arg.caller)){
+		arg.error && arg.error();
+		return;
+	}
+	
+	var phones = [];
+	for(var x in arg.phones){
+		var phone = arg.phones[x].toString();
+		if(YYIMRegExp.phone.test(phone)){
+			if(phones.indexOf(phone) === -1){
+				phones.push(phone);
+				var tempCondition = phones.join(",");
+				if(phones.length > YYIMChat.getConfig().MULTIPARTYCALL.PARTYMAXLENGTH || tempCondition.length > YYIMChat.getConfig().MULTIPARTYCALL.PHONESMAXLENGTH){
+					phones.pop();
+					break;
+				}
+			}
+		}
+	}
+	
+	if(!phones.length){
+		arg.error && arg.error();
+		return;
+	}
+	
+	arg.caller = arg.caller.toString();
+	arg.phones = phones;
+	
+	if(arg.accountMmanaged !== true){
+		arg.phones = phones.join(',');
+		arg.account = arg.account? arg.account:YYIMChat.getConfig().MULTIPARTYCALL.ACCOUNT;
+		arg.key = arg.key? arg.key:YYIMChat.getConfig().MULTIPARTYCALL.KEY;
+		
+		if(typeof arg.account === 'undefined' || typeof arg.key === 'undefined'){
+			arg.error && arg.error();
+			return;
+		}
+	}
+	
+	Manager.multiPartyCall(arg);
+}; 
+
+YYIMManager.prototype.getTimeCorrection = function(callback) {
+	Manager.getTimeCorrection(callback);
+};
+
+
+ 	return YYIMManager.getInstance();
+})(YYIMChat);
+
+
+YYIMChat = (function(YYIMChat){
+	var YYIMManager = YYIMChat.constructor;
+	
+var Manager = (function() {
+
+	function getChatGroups(arg) {
+		jQuery.ajax({
+//			url: YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + YYIMChat.getUserID() + '/room/increment?timestamp=' + arg.startDate + '&token=' + YYIMChat.getToken() + '&membersLimit=' + arg.membersLimit,
+			url: YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + YYIMChat.getUserID() + '/room/contacts/increment?timestamp=' + arg.startDate + '&token=' + YYIMChat.getToken() + '&membersLimit=' + arg.membersLimit,
+			type: 'get',
+			dataType: 'json',
+			cache: false,
+			success: function(chatGroupList) {
+				if(!!chatGroupList){
+					chatGroupList.roomItems = chatGroupList.roomItems || [];
+					chatGroupList.roomNames = chatGroupList.roomNames || [];
+					chatGroupList.leftRooms = chatGroupList.leftRooms || [];
+					
+					var i = chatGroupList.roomItems.length || 0;
+					while(i--) {
+						chatGroupList.roomItems[i] = handleChatGroup(chatGroupList.roomItems[i]);
+					}
+					
+					var j = chatGroupList.roomNames.length || 0;
+					while(j--){
+						chatGroupList.roomNames[j] = YYIMChat.getJIDUtil().getID(chatGroupList.roomNames[j]);
+					}
+					
+					var z = chatGroupList.leftRooms.length || 0;
+					while(z--){
+						chatGroupList.leftRooms[z] = YYIMChat.getJIDUtil().getID(chatGroupList.leftRooms[z]);
+					}
+				}
+				arg.success && arg.success(chatGroupList || {});
+				arg = null;
+			},
+			error: function(xhr) {
+				try {
+					arg.error && arg.error(JSON.parse(xhr.responseText));
+					arg = null;
+				} catch(e) {
+					arg.error && arg.error();
+					arg = null;
+				}
+			}
+		});
+	}
+	/**
+	 * 查找群
+	 * @param arg {keyword, start, size, success: function, error: function,complete: function}
+	 */
+	function queryChatGroup(arg) {
+		var iqBody = {
+			start: YYIMCommonUtil.isNumber(arg.start) ? arg.start : 0,
+			size: YYIMCommonUtil.isNumber(arg.size) ? arg.size : 20,
+			search: arg.keyword
+		};
+		YYIMChat.getConnection().send(new JumpPacket(iqBody, OPCODE.QUERY_CHATGROUP.SEND), function(queryResult, _arg) {
+			var items = queryResult.items || [],
+				i = items.length;
+			while(i--) {
+				var item = items[i];
+				items[i].id = YYIMChat.getJIDUtil().getID(item.jid);
+				items[i].name = items[i].name || items[i].id;
+			}
+			_arg.complete && _arg.complete();
+			_arg.success && _arg.success({
+				start: queryResult.start,
+				total: queryResult.total,
+				items: items
+			});
+		}, arg);
+	}
+
+
+	/**
+	 * 获取群组信息
+	 * @param arg {jid : 群组的jid, success : function, error : function}
+	 */
+//	function getChatGroupInfo(arg) {
+//		var iqBody = {
+//			to: arg.jid,
+//			type: YYIMChat.getConstants().TYPE.GET,
+//			ns: NS_DISCO_INFO
+//		};
+//		YYIMChat.getConnection().send(new JumpPacket(iqBody, OPCODE.CHATGROUP_INFO.SEND), function(infoResult, _arg) {
+//			_arg.complete && _arg.complete();
+//			var group = handleChatGroup(infoResult);
+//			_arg.success && _arg.success(group);
+//		}, arg);
+//	}
+	function getChatGroupInfo(arg){
+		jQuery.ajax({
+			url: YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + YYIMChat.getUserID() + '/room/info?membersLimit=' + arg.membersLimit + '&mucId=' + arg.jid + '&token=' + YYIMChat.getToken(),
+			type: 'get',
+			dataType: 'json',
+			cache: false,
+			success: function(result) {
+				var group = handleChatGroup(result);
+				arg.success && arg.success(group);
+				arg = null;
+			},
+			error: function(xhr) {
+				try {
+					arg.error && arg.error(JSON.parse(xhr.responseText));
+					arg = null;
+				} catch(e) {
+					arg.error && arg.error();
+					arg = null;
+				}
+			}
+		});
+	}
+
+	/**
+	 * 创建群组 rongqb 20151117
+	 *  @param arg {id: string,members:[],name:string, success: function,complete: function}
+	 *  resource:2.1 
+	 */
+	function createChatGroup(arg) {
+		var iqBody = {
+			id:  Math.uuid(),
+			to: arg.to,
+			naturalLanguageName: arg.name,
+			from: YYIMChat.getUserBareJID(),
+			invitees: arg.members
+		};
+
+		YYIMChat.getConnection().send(new JumpPacket(iqBody, OPCODE.CREATE_GROUP.SEND), function(result, _arg) {
+			_arg.complete && _arg.complete();
+			_arg.success && _arg.success(handleChatGroup(result));
+		}, arg);
+	}
+
+	/**
+	 *  群主转让群组 rongqb 20160104
+	 *  @param arg {id: string,to:群组,newOwner:string,success:function,error:function,complete:function}
+	 *  resource:2.3 
+	 */
+	function transferChatGroup(arg) {
+		var iqBody = {
+			id:  Math.uuid(),
+			to: arg.to,
+			from: YYIMChat.getUserBareJID(),
+			newOwner: arg.newOwner
+		};
+
+		YYIMChat.getConnection().send(new JumpPacket(iqBody, OPCODE.TRANSFER_GROUP.SEND), function(result, _arg) {
+			_arg.complete && _arg.complete();
+			_arg.success && _arg.success(transferChatGroupOwner(result));
+		}, arg);
+	}
+
+	/**
+	 *  群主解散群组 rongqb 20160106
+	 *  @param arg {id: string,to:群组}
+	 *  resource:2.3 
+	 */
+	function dismissChatGroup(arg) {
+		var iqBody = {
+			id:  Math.uuid(),
+			to: arg.to,
+			from: YYIMChat.getUserBareJID()
+		};
+
+		YYIMChat.getConnection().send(new JumpPacket(iqBody, OPCODE.DISMISS_GROUP.SEND), function(result, _arg) {
+			_arg.complete && _arg.complete();
+			_arg.success && _arg.success({
+				id: result.id,
+				from: YYIMChat.getJIDUtil().getID(result.from),
+				to: YYIMChat.getJIDUtil().getID(result.to)
+			});
+		}, arg);
+	}
+
+	/**
+	 * 房间成员邀请人入群 rongqb 20151118
+	 *  @param arg {id: string,to:群组,members:[],name:string, success: function,complete: function}
+	 *  resource:2.1 
+	 */
+	function inviteGroupMember(arg) {
+		var iqBody = {
+			id:  Math.uuid(),
+			to: arg.to,
+			from: YYIMChat.getUserBareJID(),
+			invitees: arg.members
+		};
+
+		YYIMChat.getConnection().send(new JumpPacket(iqBody, OPCODE.INVITE_GROUP_MEMBER.SEND), function(result, _arg) {
+			_arg.complete && _arg.complete();
+			_arg.success && _arg.success(handleChatGroup(result));
+		}, arg);
+	}
+
+	/**
+	 * 群成员更改配置信息 rongqb 20151119
+	 *  @param arg {id: string,to:群组,name:string, success: function,complete: function}
+	 *  resource:2.1 
+	 */
+	function modifyChatGroupInfo(arg) {
+		var iqBody = {
+			id:  Math.uuid(),
+			naturalLanguageName: arg.name,
+			from: YYIMChat.getUserBareJID(),
+			to: arg.to
+		};
+
+		YYIMChat.getConnection().send(new JumpPacket(iqBody, OPCODE.MODIFY_GROUP_INFO.SEND), function(result, _arg) {
+			_arg.complete && _arg.complete();
+			_arg.success && _arg.success(handleChatGroup(result));
+		}, arg);
+	}
+
+	/**
+	 *  群主踢人 rongqb 20151119
+	 *  @param arg {id: string,to:群组,member:string, success: function,complete: function}
+	 *  resource:2.1 
+	 */
+	function kickGroupMember(arg) {
+		var iqBody = {
+			id:  Math.uuid(),
+			member: arg.member,
+			from: YYIMChat.getUserBareJID(),
+			to: arg.to
+		};
+
+		YYIMChat.getConnection().send(new JumpPacket(iqBody, OPCODE.KICK_GROUP_MEMBER.SEND), function(result, _arg) {
+			_arg.complete && _arg.complete();
+			_arg.success && _arg.success(handleChatGroup(result));
+		}, arg);
+	}
+
+	/**
+	 * 群成员退出群 rongqb 20151119
+	 *  @param arg {id: string,to:群组,success: function,complete: function}
+	 *  resource:2.1 
+	 */
+	function exitChatGroup(arg) {
+		var iqBody = {
+			id:  Math.uuid(),
+			from: YYIMChat.getUserBareJID(),
+			to: arg.to
+		};
+
+		YYIMChat.getConnection().send(new JumpPacket(iqBody, OPCODE.EXIT_GROUP.SEND), function(result, _arg) {
+			_arg.complete && _arg.complete();
+			_arg.success && _arg.success({
+				from: YYIMChat.getJIDUtil().getID(result.from),
+				id: result.id,
+				to: YYIMChat.getJIDUtil().getID(result.to)
+			});
+		}, arg);
+	}
+
+	/**
+	 * 群组信息返回处理函数
+	 */
+	function handleChatGroup(result) {
+		if(!result) {
+			return;
+		}
+
+		var j = result.members.length;
+		var members = [];
+		while(j--) {
+			var member = result.members[j];
+			member.id = YYIMChat.getJIDUtil().getID(member.jid);
+			members.push(member);
+		}
+		var chatGroup = {
+			id: YYIMChat.getJIDUtil().getID(result.from || result.jid),
+			name: result.naturalLanguageName || result.roomname || result.name,
+			photo: result.photo,
+			numberOfMembers: result.numberOfMembers,
+			superLarge: result.superLarge,
+			collected: result.collected,
+			type: result.type,
+			safeModel: result.safeModel,
+			creationdate: result.creationdate,
+			creater: YYIMChat.getJIDUtil().getID(result.operator),
+			members: members,
+			owners: result.owners,
+			tag: result.tag
+		};
+		return chatGroup;
+	}
+
+	/**
+	 * 群组转让返回处理函数 rongqb 20160106
+	 */
+	function transferChatGroupOwner(result) {
+		if(!result) {
+			return;
+		}
+
+		var j = result.memberItems.length;
+		var members = [];
+		while(j--) {
+			var member = result.memberItems[j];
+			member.id = YYIMChat.getJIDUtil().getID(member.jid);
+			members.push(member);
+		}
+		var chatGroup = {
+			id: YYIMChat.getJIDUtil().getID(result.from),
+			members: members
+		};
+		return chatGroup;
+	}
+
+	/**
+	 *  收藏群组(收藏/取消收藏) rongqb 20151201
+	 *  @param arg {id: string,to:群组,type:'add/remove', success: function,complete: function}
+	 *  resource:2.1 
+	 */
+	function collectChatGroup(arg) {
+		var iqBody = {
+			id:  Math.uuid(),
+			from: YYIMChat.getUserBareJID(),
+			to: arg.to,
+			type: arg.type
+		};
+
+		YYIMChat.getConnection().send(new JumpPacket(iqBody, OPCODE.COLLECT_GROUP.SEND), function(result, _arg) {
+			_arg.complete && _arg.complete();
+			_arg.success && _arg.success({
+				from: YYIMChat.getJIDUtil().getID(_arg.to),
+				id: result.id,
+				to: YYIMChat.getUserID(),
+				type: _arg.type,
+				code: result.code,
+				message: result.message
+			});
+		}, arg);
+	}
+
+	/**
+	 * 获取群组共享文件 rongqb 20160714 
+	 * arg {
+	 *  id:String,
+	 *  fileType: String, //'file','image','microvideo'
+	 *  type: String,//'chat','groupchat'
+	 *  start:number,
+	 *  size:number
+	 * }
+	 */
+	function getSharedFiles(arg) {
+		var type = ([YYIMChat.getConstants().CHAT_TYPE.CHAT, YYIMChat.getConstants().CHAT_TYPE.GROUP_CHAT, YYIMChat.getConstants().CHAT_TYPE.PUB_ACCOUNT].indexOf(arg.type) > -1) ? arg.type : YYIMChat.getConstants().CHAT_TYPE.CHAT;
+
+		var url = YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/shareattachment/persional/attachment/' + YYIMChat.getUserID() + '/' + arg.id;
+		if(type == YYIMChat.getConstants().CHAT_TYPE.GROUP_CHAT) {
+			url = YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/shareattachment/room/attachment/' + arg.id + '/' + YYIMChat.getUserID();
+		}
+
+		jQuery.ajax({
+			url: url,
+			data: {
+				token: YYIMChat.getToken(),
+				fileType: (['file', 'image', 'microvideo'].indexOf(arg.fileType) > -1) ? arg.fileType : 'file',
+				start: parseInt(arg.start) || 0,
+				size: parseInt(arg.size) || 20
+			},
+			type: 'get',
+			dataType: 'json',
+			cache: false,
+			success: function(data) {
+				var items = data.list || [];
+				i = items.length;
+				while(i--) {
+					var item = items[i];
+					item.id = item.packetId;
+					item.creator = YYIMChat.getJIDUtil().getID(item.creator);
+					item.owner = [];
+					if(type == YYIMChat.getConstants().CHAT_TYPE.GROUP_CHAT) {
+						item.owner.push({
+							id: YYIMChat.getJIDUtil().getID(item.ownerId),
+							type: type
+						});
+					} else {
+						var temp = item.ownerId.split('::');
+						temp[0] = YYIMChat.getJIDUtil().getID(temp[0]);
+						temp[1] = YYIMChat.getJIDUtil().getID(temp[1]);
+						item.owner.push({
+							id: temp[0],
+							type: type
+						},{
+							id: temp[1],
+							type: type
+						});
+					}
+					delete item.ownerId;
+				}
+				arg.success && arg.success(data);
+				arg = null;
+			},
+			error: function(xhr) {
+				try {
+					arg.error && arg.error(JSON.parse(xhr.responseText));
+					arg = null;
+				} catch(e) {
+					arg.error && arg.error();
+					arg = null;
+				}
+			}
+		});
+	}
+	/**
+	 * 获取指定群的群成员[chatroom]
+	 * @param arg {id: string, success: function, error: function,complete: function}
+	 */
+	function getGroupMembers(arg) {
+		jQuery.ajax({
+			url: YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + YYIMChat.getUserID() + '/room/members?mucId=' + arg.id + '&token=' + YYIMChat.getToken(),
+			type: 'get',
+			dataType: 'json',
+			cache: false,
+			success: function(result){
+				if(result && result.length){
+					var index = result.length;
+					while(index--){
+						result[index].id = YYIMChat.getJIDUtil().getID(result[index].jid);
+					}
+				}
+				arg.success && arg.success(result || []);
+				arg = null;
+			},
+			error: function(){
+				try {
+					arg.error && arg.error(JSON.parse(xhr.responseText));
+					arg = null;
+				} catch(e) {
+					arg.error && arg.error();
+					arg = null;
+				}
+			}
+		});
+	}
+	
+		/**
+	 * 加入群组, 需要合法的jid
+	 * @param arg {jid: roomJid, success:function, error:function}
+	 * @returns
+	 */
+	function joinChatGroup(arg) {
+		var presenceBody = {
+			to : arg.jid + "/" + YYIMChat.getUserNode()
+		};
+		
+		YYIMChat.getConnection().send(new JumpPacket(presenceBody, OPCODE.CHATGROUP.SEND), function(joinResult, _arg) {
+			if(joinResult && joinResult.code == '40301'){
+				_arg.error && _arg.error({
+					code : joinResult.code,
+					message : joinResult.message
+				});
+			}else if(joinResult){
+				joinResult.id = YYIMChat.getJIDUtil().getID(joinResult.from);
+				_arg.success && _arg.success(joinResult);
+			}
+		}, arg);
+	}
+	
+	function monitor(){
+		/**
+		 * 群信息更新 rongqb 20151119
+		 * resource:2.1
+		 */
+		YYIMChat.getConnection().registerHandler(OPCODE.ON_GROUP_UPDATE.KEY, function(packet) {
+			var chatgroup = handleChatGroup(packet);
+			if(chatgroup){
+				YYIMChat.onGroupUpdate(chatgroup);			
+			}
+		});
+		
+		/**
+		 * 群组转让 rongqb 20160106
+		 * resource:2.3
+		 */
+		YYIMChat.getConnection().registerHandler(OPCODE.ON_GROUP_TRANSFER.KEY, function(packet) {
+			var chatgroup = transferChatGroupOwner(packet);
+			if(chatgroup){
+				YYIMChat.onTransferGroupOwner(chatgroup);			
+			}
+		});
+		
+		/**
+		 * 被群组踢了 rongqb 20151119
+		 * resource:2.1
+		 */
+		YYIMChat.getConnection().registerHandler(OPCODE.KICKED_GROUP.KEY, function(packet) {
+			var result = {
+				id : packet.id,
+				from : YYIMChat.getJIDUtil().getID(packet.from),
+				to : YYIMChat.getJIDUtil().getID(packet.to)
+			};
+			if(result){
+				YYIMChat.onKickedOutGroup(result);			
+			}
+		});
+	}
+	
+
+	return {
+		monitor: monitor,
+		queryChatGroup: queryChatGroup,
+		getGroupMembers : getGroupMembers,
+		joinChatGroup: joinChatGroup,
+		getChatGroupInfo: getChatGroupInfo,
+		getChatGroups: getChatGroups,
+		createChatGroup: createChatGroup,
+		transferChatGroup: transferChatGroup,
+		dismissChatGroup: dismissChatGroup,
+		getSharedFiles: getSharedFiles,
+		inviteGroupMember: inviteGroupMember,
+		modifyChatGroupInfo: modifyChatGroupInfo,
+		kickGroupMember: kickGroupMember,
+		exitChatGroup: exitChatGroup,
+		collectChatGroup: collectChatGroup
+	};
+})();
+YYIMChat.setBackhander({
+	'monitor': {
+		'groupMonitor': Manager.monitor
+	},
+	'initCallback': {
+		'group':  function(options){
+			YYIMChat.onGroupUpdate = options.onGroupUpdate || function(){};  //群信息更新
+			YYIMChat.onTransferGroupOwner = options.onTransferGroupOwner || function(){}; // 群主转让
+			YYIMChat.onKickedOutGroup = options.onKickedOutGroup || function(){};   //被群踢出 
+		}
+	}
+});
+
+/**
+ * 查找群
+ * @param arg {keyword, start, size, success: function, error: function,complete: function}
+ */
+YYIMManager.prototype.queryChatGroup = function(arg) {
+	if(YYIMCommonUtil.isStringAndNotEmpty(arg.keyword)) {
+		Manager.queryChatGroup(arg);
+	} else {
+		arg && arg.error && arg.error();
+	}
+};
+
+/**
+ * 加入群
+ * @param arg {id: roomJid, success:function, error:function}
+ */
+YYIMManager.prototype.joinChatGroup = function(arg) {
+	if(YYIMCommonUtil.isStringAndNotEmpty(arg.id)) {
+		Manager.joinChatGroup({
+			jid: YYIMChat.getJIDUtil().buildChatGroupJID(YYIMChat.getJIDUtil().getNode(arg.id)),
+			success: arg.success,
+			error: arg.error
+		});
+	} else {
+		arg && arg.error && arg.error();
+	}
+};
+
+/**
+ * 获取群组信息
+ * @param arg {id : chatGroupId, success : function, error : function}
+ */
+YYIMManager.prototype.getChatGroupInfo = function(arg) {
+	if(YYIMCommonUtil.isStringAndNotEmpty(arg.id)) {
+		Manager.getChatGroupInfo({
+			jid: YYIMChat.getJIDUtil().buildChatGroupJID(YYIMChat.getJIDUtil().getNode(arg.id)),
+			membersLimit: (YYIMCommonUtil.isNumber(arg.membersLimit) && arg.membersLimit > 0) ? arg.membersLimit : YYIMChat.getConfig().GROUP.MEMBERSLIMIT,
+			success: arg.success,
+			error: arg.error
+		});
+	} else {
+		arg && arg.error && arg.error();
+	}
+};
+
+/**
+ * 获取群组列表
+ * @param arg {
+ * startDate: timestamp,
+ * membersLimit: Number, //拉取成员数量，默认10
+ * success: function,    //成功回调函数
+ * error: function,  	 //失败回调函数
+ * complete:function     //无论成功失败都回调的函数
+ * }
+ */
+YYIMManager.prototype.getChatGroups = function(arg) {
+	arg  = arg || {};
+	arg.startDate = (YYIMUtil['isWhateType'](arg.startDate,'Number') &&  arg.startDate > 0) ? arg.startDate: 0;
+	arg.membersLimit = (YYIMCommonUtil.isNumber(arg.membersLimit) && arg.membersLimit > 0) ? arg.membersLimit : YYIMChat.getConfig().GROUP.MEMBERSLIMIT;
+	Manager.getChatGroups(arg);
+};
+
+/**
+ * 创建群组 rongqb 20151117
+ * @param arg {
+ * 	name: String,
+ * 	members:[], 
+ *  success: function, 
+ *  error: function, 
+ *  complete:function
+ * }
+ */
+YYIMManager.prototype.createChatGroup = function(arg) {
+	if(!(YYIMArrayUtil.isArray(arg.members))) {
+		delete arg.members;
+	}
+	if(arg.members) {
+		Manager.createChatGroup(arg);
+	} else {
+		arg && arg.error && arg.error();
+	}
+};
+
+/**
+ *  群主转让群组 rongqb 20160104
+ *  @param arg {
+ *  to:String,
+ *  newOwner:string,
+ *  success:function,
+ *  error:function,
+ *  complete:function
+ *  }
+ */
+YYIMManager.prototype.transferChatGroup = function(arg) {
+	if(arg && typeof(arg.newOwner) == 'string' && arg.to) {
+		arg.to = YYIMChat.getJIDUtil().buildChatGroupJID(YYIMChat.getJIDUtil().getNode(arg.to));
+		Manager.transferChatGroup(arg);
+	} else {
+		arg && arg.error && arg.error();
+	}
+};
+
+/**
+ *  群主解散群组 rongqb 20160106
+ *  @param arg {
+ *  to:String,
+ *  success:function,
+ *  error:function,
+ *  complete:function
+ *  }
+ */
+YYIMManager.prototype.dismissChatGroup = function(arg) {
+	if(arg && arg.to) {
+		arg.to = YYIMChat.getJIDUtil().buildChatGroupJID(YYIMChat.getJIDUtil().getNode(arg.to));
+		Manager.dismissChatGroup(arg);
+	} else {
+		arg && arg.error && arg.error();
+	}
+};
+
+/**
+ * 获取群组共享文件 rongqb 20160715 
+ * arg {
+ *  id:String,
+ *  fileType: String, //'file','image','microvideo'
+ *  type: String,//'chat','groupchat'
+ *  start:number,
+ *  size:number
+ * }
+ */
+YYIMManager.prototype.getSharedFiles = function(arg) {
+	if(arg && arg.id) {
+		Manager.getSharedFiles(arg);
+	} else {
+		arg && arg.error && arg.error();
+	}
+};
+
+/**
+ * 房间成员邀请人入群  rongqb 20151118
+ * @param arg {
+ * 	to:String,
+ * 	members: Array,
+ *  success:function,
+ *  error:function,
+ *  complete:function
+ * }
+ */
+YYIMManager.prototype.inviteGroupMember = function(arg) {
+	if(arg.members && YYIMArrayUtil.isArray(arg.members) && arg.members.length && arg.to) {
+		arg.to = YYIMChat.getJIDUtil().buildChatGroupJID(YYIMChat.getJIDUtil().getNode(arg.to));
+		Manager.inviteGroupMember(arg);
+	} else {
+		arg && arg.error && arg.error();
+	}
+};
+
+/**
+ * 群成员更改配置信息 rongqb 20151119
+ *  @param arg {
+ * 	to:String,群组id
+ * 	name:string, 
+ * 	success: function,
+ * 	error:function,
+ * 	complete: function
+ * }
+ */
+YYIMManager.prototype.modifyChatGroupInfo = function(arg) {
+	if(arg.name && arg.to) {
+		arg.to = YYIMChat.getJIDUtil().buildChatGroupJID(YYIMChat.getJIDUtil().getNode(arg.to));
+		Manager.modifyChatGroupInfo(arg);
+	} else {
+		arg && arg.error && arg.error();
+	}
+};
+
+/**
+ * 群组踢人 
+ *  @param arg {
+ *  to:String, //群组id
+ *  member:string, //被踢人id，一次只能踢一个人
+ *  success: function,
+ *  error:function,
+ *  complete: function
+ *  }
+ */
+YYIMManager.prototype.kickGroupMember = function(arg) {
+	if(arg.member && typeof(arg.member) == 'string' && arg.to) {
+		arg.to = YYIMChat.getJIDUtil().buildChatGroupJID(YYIMChat.getJIDUtil().getNode(arg.to));
+		Manager.kickGroupMember(arg);
+	} else {
+		arg && arg.error && arg.error();
+	}
+};
+
+/**
+ * 群成员退出群 rongqb 20151119
+ *  @param arg {
+ * 	to:String,
+ * 	success: function,
+ *  error:function,
+ *  complete: function
+ * }
+ */
+YYIMManager.prototype.exitChatGroup = function(arg) {
+	if(arg.to) {
+		arg.to = YYIMChat.getJIDUtil().buildChatGroupJID(YYIMChat.getJIDUtil().getNode(arg.to));
+		Manager.exitChatGroup(arg);
+	} else {
+		arg && arg.error && arg.error();
+	}
+};
+
+/**
+ *  收藏群组(收藏) rongqb 20151201
+ *  @param arg {
+ * 	to: String,
+ * 	success: function, 
+ *  error: function,
+ *  complete: functionf
+ * }
+ */
+YYIMManager.prototype.collectGroup = function(arg) {
+	if(arg.to) {
+		arg.to = YYIMChat.getJIDUtil().buildChatGroupJID(YYIMChat.getJIDUtil().getNode(arg.to));
+		arg.type = this.getConstants().COLLECT_TYPE.ADD;
+		Manager.collectChatGroup(arg);
+	} else {
+		arg && arg.error && arg.error();
+	}
+};
+
+/**
+ *  取消收藏群组 rongqb 20151201
+ *  @param arg {
+ * 	to: String,
+ *  type: String, //add remove
+ * 	success: function, 
+ *  error: function,
+ *  complete: function
+ * }
+ */
+YYIMManager.prototype.removeCollectGroup = function(arg) {
+	if(arg.to) {
+		arg.to = YYIMChat.getJIDUtil().buildChatGroupJID(YYIMChat.getJIDUtil().getNode(arg.to));
+		arg.type = this.getConstants().COLLECT_TYPE.REMOVE;
+		Manager.collectChatGroup(arg);
+	} else {
+		arg && arg.error && arg.error();
+	}
+};
+
+/**
+ * 获取群组成员 rongqb 20170314
+ * @param {Object} arg
+ */
+YYIMManager.prototype.getGroupMembers = function(arg) {
+	var id = arg.id || arg.to;
+	if(arg && id) {
+		if(YYIMCommonUtil.isStringAndNotEmpty(id)) {
+			Manager.getGroupMembers(arg);
+		}
+	} else {
+		arg && arg.error && arg.error();
+	}
+};
+ 	return YYIMManager.getInstance();
+})(YYIMChat);
+
+YYIMChat = (function(YYIMChat){
+	var YYIMManager = YYIMChat.constructor;
+	
+var Manager = (function(){
+	var receivedMsgIds = new BaseList();
+	/**
+	 * 监控message包
+	 */
+	function monitor() {
+		YYIMChat.getConnection().registerHandler(OPCODE.USER_MESSAGE.KEY, function(packet) {
+			parseMessage(packet, YYIMChat.getConstants().CHAT_TYPE.CHAT);
+		});
+
+		YYIMChat.getConnection().registerHandler(OPCODE.CHATGROUP_MESSAGE.KEY, function(packet) {
+			parseMessage(packet, YYIMChat.getConstants().CHAT_TYPE.GROUP_CHAT);
+		});
+
+		YYIMChat.getConnection().registerHandler(OPCODE.PUBACCOUNT_MESSAGE.KEY, function(packet) {
+			parseMessage(packet, YYIMChat.getConstants().CHAT_TYPE.PUB_ACCOUNT);
+		});
+		/**
+		 * 监听发送消息的已读回执 rongqb 20151120
+		 */
+		YYIMChat.getConnection().registerHandler(OPCODE.RECEIPTS.KEY, function(receipts) {
+			receipts.type = YYIMChat.getJIDUtil().getChatTypeByJid(receipts.to);
+			receipts.from = YYIMChat.getJIDUtil().getID(receipts.from);
+			receipts.to = YYIMChat.getJIDUtil().getID(receipts.to);
+
+			YYIMChat.onReceipts(receipts);
+		});
+
+		/**
+		 * 监听各端同步消息  rongqb 20151123
+		 */
+		YYIMChat.getConnection().registerHandler(OPCODE.SYNC_MESSAGE.KEY, function(packet) {
+			parseMessage(packet, packet.type);
+		});
+
+		/**
+		 * 监听透传消息  rongqb 20150603
+		 */
+		YYIMChat.getConnection().registerHandler(OPCODE.USERONLINEDELIVERPACKET.KEY, function(packet) {
+			parseTransparentMessage(packet,YYIMChat.getConstants().CHAT_TYPE.CHAT);
+		});
+
+		/**
+		 * 监听透传消息  rongqb 20150712
+		 */
+		YYIMChat.getConnection().registerHandler(OPCODE.MUCONLINEDELIVERPACKET.KEY, function(packet) {
+			parseTransparentMessage(packet,YYIMChat.getConstants().CHAT_TYPE.GROUP_CHAT);
+		});
+
+		/**
+		 * 监听透传消息  rongqb 20150712
+		 */
+		YYIMChat.getConnection().registerHandler(OPCODE.PUBONLINEDELIVERPACKET.KEY, function(packet) {
+			parseTransparentMessage(packet,YYIMChat.getConstants().CHAT_TYPE.PUB_ACCOUNT);
+		});
+
+		/**
+		 * 监听透传消息  rongqb 20150719
+		 */
+		YYIMChat.getConnection().registerHandler(OPCODE.REMINDSETTINGONLINEDELIVERPACKET.KEY, function(packet) {
+			parseTransparentMessage(packet);
+		});
+
+
+	};
+
+	function parseTransparentMessage(packet,type){
+		// 是否重复消息包
+		if(receivedMsgIds.get(packet.id)){
+			return;
+		}
+		receivedMsgIds.set(packet.id, packet);
+
+		packet.type = type || YYIMChat.getJIDUtil().getChatTypeByJid(packet.from);
+
+		packet.to = YYIMChat.getJIDUtil().getID(packet.to) || YYIMChat.getUserID();
+
+		packet.from = (packet.type != YYIMChat.getConstants().CHAT_TYPE.GROUP_CHAT) ? YYIMChat.getJIDUtil().getID(packet.from):{
+			room: YYIMChat.getJIDUtil().getID(packet.from),
+			roster: YYIMChat.getJIDUtil().getID(YYIMChat.getJIDUtil().getResource(packet.from))
+		};
+
+		if(packet.attributes){
+			if(packet.attributes.receiver){
+				packet.attributes.receiver = YYIMChat.getJIDUtil().getID(packet.attributes.receiver);
+			}
+
+			if(packet.attributes.bareJID){
+				packet.attributes.bareJID = {
+					id: YYIMChat.getJIDUtil().getID(packet.attributes.bareJID),
+					type: YYIMChat.getJIDUtil().getChatTypeByJid(packet.attributes.bareJID)
+				};
+			}
+
+			if(packet.attributes.userJids
+			&& YYIMChat.getUtil()['isWhateType'](packet.attributes.userJids,'Array')){
+				for(var x in packet.attributes.userJids){
+					if(packet.attributes.userJids.hasOwnProperty(x)){
+						packet.attributes.userJids[x] = YYIMChat.getJIDUtil().getID(packet.attributes.userJids[x]);
+					}
+				}
+			}
+		}
+		try{
+			YYIMChat.onTransparentMessage(packet);
+		}catch(e){
+			YYIMChat.log("TransparentMessHandleError:",0,packet);
+		}
+	}
+
+	/**
+	 * 解析消息体 rongqb 20170911
+	 * @param {Object} packet
+	 */
+	function parseMessageBody(packet, type){
+
+		var packetContent;
+		try{
+			// 除最简单文本消息，例如图片消息、文件、分享类消息，需要解析
+			packetContent = JSON.parse(packet.content);
+
+			if(packetContent
+			&& packetContent.content){
+				try{
+					if(isNaN(Number(packetContent.content))
+					&& packet.contentType != YYIMChat.getConstants().MESSAGE_CONTENT_TYPE.TEXT){
+						packetContent.content = JSON.parse(packetContent.content);
+					}
+				}catch(e){
+				}
+			}
+		}catch(e){
+			packetContent = packet.content;
+		}
+
+		var content = packetContent;
+
+		if(typeof packetContent.content != 'undefined'){
+			content = packetContent.content;
+		}
+
+		var body = {
+			content: content,
+			contentType: packet.contentType,
+			dateline: packet.dateline || packet.ts,
+			atuser: packetContent.atuser,
+			extend: packetContent.extend 	//扩展
+		};
+
+		if(packet.contentType == YYIMChat.getConstants().MESSAGE_CONTENT_TYPE.MERGEFORWARD){
+			body.title = packetContent.title;
+			body.containfileNum = packetContent.containfileNum;
+			body.safeMode = packetContent.safeMode;
+
+			if(packetContent.messages){
+				body.messages = [];
+				for(var x in packetContent.messages){
+					if(packetContent.messages.hasOwnProperty(x)){
+						var item = arguments.callee(packetContent.messages[x],type);
+						if(item){
+							body.messages.push(item);
+						}
+					}
+				}
+			}
+		}
+
+		var from = (type == YYIMChat.getConstants().CHAT_TYPE.CHAT) ? YYIMChat.getJIDUtil().getID(packet.sender || packet.from):{
+			room: YYIMChat.getJIDUtil().getID(packet.mucid || packet.sender || packet.from),
+			roster: YYIMChat.getJIDUtil().getID(YYIMChat.getJIDUtil().getResource(packet.sender || packet.from) || packet.sender)
+		};
+
+		var result = {
+			id: packet.id || packet.packetId,
+			type: type,
+			from: from,
+			dateline: body.dateline,
+			sessionVersion: packet.sessionVersion,
+			data: body
+		};
+
+		if(type == YYIMChat.getConstants().CHAT_TYPE.CHAT) {
+			result.resource = YYIMChat.getJIDUtil().getResource(packet.sender || packet.from);
+			result.to = YYIMChat.getJIDUtil().getID(packet.receiver || packet.to);
+		}else{
+			result.to = YYIMChat.getUserID();
+		}
+
+		if(body.contentType){
+			if(result.data.content
+			&& result.data.content.path){
+				result.data.content.attachId = result.data.content.path;
+				result.data.content.path = YYIMChat.getFileUrl(result.data.content.path);
+
+				if(body.contentType == YYIMChat.getConstants().MESSAGE_CONTENT_TYPE.FILE
+				|| body.contentType == YYIMChat.getConstants().MESSAGE_CONTENT_TYPE.IMAGE){
+					result.data.content.size = result.data.content.size || 0;
+				}
+			}
+
+			/**
+			 * 发送接收回执
+			 */
+			if(result.data
+			&& (packet.receipts === true
+				|| (YYIMChat.getJIDUtil().getID(packet.sender || packet.from) != YYIMChat.getUserID()))){
+
+				result.data.receipt = {
+					to: packet.mucid || packet.sender || packet.from,
+					id: packet.id || packet.packetId,
+					type: type,
+					sessionVersion: packet.sessionVersion
+				};
+
+				if(packet.receipts === true){
+					sendReceiptsPacket(result.data.receipt);
+				}
+			}
+			return result;
+		}
+	}
+
+	// 长连接接收到的消息
+	function parseMessage(packet, type) {
+		// 是否重复消息包
+		if(receivedMsgIds.get(packet.id)){
+			return;
+		}
+		receivedMsgIds.set(packet.id, packet);
+
+		var message = parseMessageBody(packet, type);
+
+		if(message){
+			try{
+				/**
+				 * 处理消息报文
+				 */
+				YYIMChat.onMessage(message);
+			}catch(e){
+				YYIMChat.log("ParseMessageError:",0,message,e);
+			}
+		}
+	}
+
+	/**
+	 * 发送回执
+	 *  @param arg {
+	 *   to: String,	//回执的对象
+	 * 	 type: String, 	//type
+	 * 	 id: String, 	//报文id
+	 *   sessionVersion: String,
+	 *   state: 1/2
+	 * }
+	 */
+	function sendReceiptsPacket(arg){
+		arg = arg || {};
+		var Jid = YYIMChat.getJIDUtil().buildUserJID(YYIMChat.getJIDUtil().getNode(arg.to));
+		if(arg.type == YYIMChat.getConstants().CHAT_TYPE.GROUP_CHAT){
+			Jid = YYIMChat.getJIDUtil().buildChatGroupJID(YYIMChat.getJIDUtil().getNode(arg.to));
+		}else if(arg.type == YYIMChat.getConstants().CHAT_TYPE.PUB_ACCOUNT){
+			Jid = YYIMChat.getJIDUtil().buildPubAccountJID(YYIMChat.getJIDUtil().getNode(arg.to));
+		}
+		var receiptsPacket = new JumpPacket({
+			to: Jid,
+			dateline: new Date().getTime(),
+			sessionVersion: arg.sessionVersion,
+			id: arg.id,
+			state: arg.state
+		}, OPCODE.RECEIPTS.SEND);
+		YYIMChat.getConnection().send(receiptsPacket);
+	}
+
+	/**
+	 * 发送消息
+	 * @param arg {id, to: jid, type: "groupchat"|"chat"|"pubaccount",body:object, success:function, error:function}
+	 */
+	 function sendMessage(arg) {
+	 	var body = arg.body || {};
+
+		// 发送请求参数处理 yaoleib20171220
+		body.extend = handleRequestParams(body);
+
+		if(body.extend && (typeof body.extend != 'string')){
+			try{
+				body.extend = JSON.stringify(body.extend);
+			}catch(e){
+				delete body.extend;
+				YYIMChat.log('ExtendIllegal',0,e.message);
+			}
+		}
+
+		var to,
+			msgBody = {
+    			id 			: arg.id,
+				spaceId		: arg.spaceId,
+    			type 		: arg.type || YYIMChat.getConstants().CHAT_TYPE.CHAT,
+    			contentType	: body.contentType || YYIMChat.getConstants().MESSAGE_CONTENT_TYPE.TEXT,
+    			dateline	: body.dateline || (YYIMChat.getConfig().TIMECORRECTION.AUTOCORRECTION? new Date().getTime() + YYIMChat.getConfig().TIMECORRECTION.RESULT: new Date().getTime()),
+    			content 	: JSON.stringify({
+    				atuser  : body.atuser,
+    				extend  : body.extend,
+    				content : body.content
+    			})
+			},
+			opcode = OPCODE.USER_MESSAGE.SEND;
+		/**
+		 * rongqb 20170628
+		 */
+	  	if((!body.contentType
+	    	|| body.contentType == YYIMChat.getConstants().MESSAGE_CONTENT_TYPE.TEXT)
+	    	&& arg.type == YYIMChat.getConstants().CHAT_TYPE.GROUP_CHAT){
+	    		if(YYIMUtil['isWhateType'](body.atuser,'Array')
+	    		&& body.atuser.length){
+	    			if(body.atuser.indexOf('im_atall') != -1){
+	    				msgBody.statRead = 1;
+	    			}else{
+	    				msgBody.statRead = 2;
+	    				msgBody.statMem = body.atuser;
+	    			}
+	    		}
+	    	}
+
+		if(arg.type == YYIMChat.getConstants().CHAT_TYPE.GROUP_CHAT){
+			to = YYIMChat.getJIDUtil().buildChatGroupJID(YYIMChat.getJIDUtil().getNode(arg.to));
+			opcode = OPCODE.CHATGROUP_MESSAGE.SEND;
+
+		}else if(arg.type == YYIMChat.getConstants().CHAT_TYPE.PUB_ACCOUNT){
+			to = YYIMChat.getJIDUtil().buildPubAccountJID(YYIMChat.getJIDUtil().getNode(arg.to));
+			opcode = OPCODE.PUBACCOUNT_MESSAGE.SEND;
+		}else{
+			msgBody.receipts = '1';
+			if(arg.resource){
+				// 给自己的其他端发
+				if(arg.to == YYIMChat.getUserID()) {
+					to = YYIMChat.getJIDUtil().buildUserJID(YYIMChat.getJIDUtil().getNode(arg.to), arg.resource);
+				}else{
+					to = YYIMChat.getJIDUtil().buildUserJID(YYIMChat.getJIDUtil().getNode(arg.to));
+				}
+			}else{
+				to = YYIMChat.getJIDUtil().buildUserJID(YYIMChat.getJIDUtil().getNode(arg.to));
+			}
+		}
+
+		msgBody.to = to;
+
+		YYIMChat.getConnection().send(new JumpPacket(msgBody, opcode), function(receipts) {
+			if(receipts.code == 40302){
+				arg.error && arg.error();
+				arg = null;
+			}else{
+				if(!!YYIMChat.getConfig().TIMECORRECTION.AUTOCORRECTION){
+					if(receipts && receipts.state == 1){
+						YYIMChat.onReceipts(receipts);
+					}
+				}else{
+					arg.success && arg.success(handleSendMessage(arg,body,receipts));
+					arg = null;
+				}
+			}
+		});
+
+		if(!!YYIMChat.getConfig().TIMECORRECTION.AUTOCORRECTION){
+			arg.success && arg.success(handleSendMessage(arg,body,{
+				dateline: msgBody.dateline
+			}));
+		}
+	}
+
+	/**
+	 * 发送请求参数处理 yaoleib20171220
+	 */
+	function handleRequestParams(body) {
+		var messageExtend = {
+			intelligentAnalysis: {}
+		};
+
+		// 消息开关，目前只有文本消息进行AI分析
+		if(body.contentType && body.contentType == YYIMChat.getConstants().MESSAGE_CONTENT_TYPE.TEXT){
+			//YYAIAbility.setDictionaries(["投票", "视频会议", "吃鸡", "电话", "拍照", "照片"]);
+
+			// 兼容写法，可能不会走进这个判断
+			if(body.extend && (typeof body.extend != 'string')){
+				messageExtend = body.extend;
+			}
+			if(YYAIAbility.intelligentAnalysis(body.content)){
+				messageExtend.intelligentAnalysis.intelligentable = true;
+				if(body.sceneParams){
+					messageExtend.intelligentAnalysis.params = body.sceneParams
+					delete body.sceneParams
+				}
+			}
+		}
+		return messageExtend;
+	}
+
+	/**
+	 * 发送出的消息处理函数
+	 */
+	function handleSendMessage(arg, body, receipts) {
+		var result = {
+			id : arg.id,
+			type : arg.type,
+			sessionVersion: receipts.sessionVersion || 0,
+			data : {
+				content : body.content,
+				contentType : body.contentType,
+				dateline : receipts.dateline,
+				extend : body.extend
+			}
+		};
+
+		if (result.type != YYIMChat.getConstants().CHAT_TYPE.CHAT) {
+			result.to = YYIMChat.getUserID();
+			result.from = {
+				room : YYIMChat.getJIDUtil().getID(arg.to),
+				roster : YYIMChat.getUserID()
+			};
+		} else {
+			result.to = YYIMChat.getJIDUtil().getID(arg.to);
+			result.from = YYIMChat.getUserID();
+			result.resource = YYIMChat.getResource();
+		}
+
+		if (result.data.content.path) {
+			result.data.content.attachId = result.data.content.path;
+			result.data.content.path = YYIMChat.getFileUrl(result.data.content.path);
+		}
+		return result;
+	}
+
+	/**
+	 * 获取历史记录
+	 * @param
+	 * arg {
+	 * 	id: String,
+	 *  type: 'chat/groupchat/pubaccount',
+	 *  start: number,
+	 *  size: number,
+	 *  startVersion: number, //默认为0
+	 *  endVersion: number
+	 * }
+	 */
+	function getHistoryMessage(arg) {
+		var requestUrl,route,params = {
+				token: YYIMChat.getToken(),
+				start: arg.start || 0,
+				size: arg.size || 100
+			};
+
+		if(arg.type == YYIMChat.getConstants().CHAT_TYPE.GROUP_CHAT){
+			route = 'groupchat';
+		}else if(arg.type == YYIMChat.getConstants().CHAT_TYPE.PUB_ACCOUNT){
+			route = 'pubaccount';
+		}else{
+			route = 'user';
+			if(arg.contentType){
+				var typelist = YYIMChat.getConstants().MESSAGE_CONTENT_TYPE;
+				for(var x in typelist){
+					if(arg.contentType == typelist[x]){
+						params.contentType = arg.contentType;
+						break;
+					}
+				}
+			}
+		}
+
+		requestUrl = YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + YYIMChat.getUserID() + '/msghistory/' + route + '/' + arg.id + '/version/' + (arg.startVersion || 0) + '/' + arg.endVersion;
+		requestUrl += '?' + jQuery.param(params);
+
+		YYIMChat.log("历史记录：request URL",	2,requestUrl);
+		jQuery.ajax({
+			url: requestUrl,
+			dataType: "json",
+			cache:false,
+			success: function(data) {
+				_historyMessageProcessor(data, arg);
+				arg = null;
+			},
+			error:function(xhr){
+				YYIMChat.log("getHistoryMessage_error:", 0, xhr.statusText);
+				try{
+					arg.error && arg.error(JSON.parse(xhr.responseText));
+					arg = null;
+				}catch(e){
+					arg.error && arg.error();
+					arg = null;
+				}
+			}
+		});
+	};
+
+	/**
+	 * 解析历史消息
+	 *
+	 * @param data ajax返回的数据
+	 * @param arg {id: 对方ID, resource: 对方资源 为anonymous时表示匿名用户, type: 'chat' | 'groupchat', start: number, num: number, success: function, error: function}
+	 */
+	function _historyMessageProcessor(data, arg){
+		YYIMChat.log("历史记录：data", 2, data);
+		var hisMsgArr = [];
+		for(var i in data.list){
+			if(data.list.hasOwnProperty(i)){
+				var item = data.list[i];
+				var message = parseMessageBody(item, arg.type);
+				hisMsgArr.push(message);
+			}
+		}
+
+		arg.success && arg.success({
+			contactReadVersion: data.contactReadVersion,
+			total: data.total,
+			result: hisMsgArr
+		});
+	};
+
+	/**
+	 * 撤销消息 rongqb 20160707
+	 * arg {
+	 * 	id: String, //消息id
+	 *  to: String, //消息的另一方,待定
+	 *  type: 'chat/groupchat/pubaccount',
+	 *  success: function,
+	 *  error: function,
+	 *  complete: function
+	 * }
+	 */
+	function revokeMessage(arg){
+		var url,param;
+		if(arg.type == YYIMChat.getConstants().CHAT_TYPE.GROUP_CHAT){
+			url = YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/revokeservice/groupmessage/'+ arg.id;
+			param = {
+				token:  YYIMChat.getToken(),
+				userid: YYIMChat.getUserNode(),
+				mucid: YYIMChat.getJIDUtil().getNode(arg.to)
+			};
+		}else{
+			url = YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/revokeservice/personalmessage/'+ arg.id;
+			param = {
+				token:  YYIMChat.getToken(),
+				fromuserid: YYIMChat.getUserNode(),
+				touserid: YYIMChat.getJIDUtil().getNode(arg.to)
+			};
+		}
+
+		url += '?' + jQuery.param(param);
+
+		jQuery.ajax({
+			url: url,
+			type: 'post',
+			cache: false,
+			success: function(data){
+				arg.success && arg.success({
+					id:arg.id
+				});
+				arg = null;
+			},
+			error: function(xhr){
+				try{
+					arg.error && arg.error(JSON.parse(xhr.responseText));
+					arg = null;
+				}catch(e){
+					arg.error && arg.error();
+					arg = null;
+				}
+			}
+		});
+	}
+
+	return {
+		monitor : monitor,
+		sendMessage : sendMessage,
+		getHistoryMessage : getHistoryMessage,
+		revokeMessage : revokeMessage,
+		sendReceiptsPacket: sendReceiptsPacket
+	};
+})();
+
+YYIMChat.setBackhander({
+	'monitor': {
+		'messageMonitor': Manager.monitor
+	},
+	'initCallback': {
+		'message':  function(options){
+			YYIMChat.onReceipts = options.onReceipts || function(){}; //回执
+			YYIMChat.onMessage = options.onMessage || function(){}; //消息回调
+			YYIMChat.onTransparentMessage = options.onTransparentMessage || function(){}; //透传消息
+		}
+	}
+});
+
+
+/**
+ * 获取历史记录 rongqb 20160815
+ * @param
+ * arg {
+ * 	id: String,
+ *  type: 'chat/groupchat/pubaccount',
+ *  start: number,
+ *  size: number,
+ *  startVersion: number, //默认为0
+ *  endVersion: number
+ * }
+ */
+YYIMManager.prototype.getHistoryMessage = function(arg){
+	arg = arg || {};
+
+	if(!YYIMUtil['isWhateType'](arg.start,'Number')){
+		arg.start = 0;
+	}
+
+	if(!YYIMUtil['isWhateType'](arg.size,'Number')){
+		arg.size = 100;
+	}
+
+	Manager.getHistoryMessage(arg);
+};
+
+/**
+ * 发送已读回执报文
+ *  @param arg {
+ *   to: String,	//回执的对象
+ *   type: String, 	//type
+ * 	 id: String, 	//报文id
+ *   sessionVersion: String
+ * }
+ */
+YYIMManager.prototype.sendReadedReceiptsPacket = function(arg){
+	if(arg && arg.id){
+		arg.state = 2;
+		Manager.sendReceiptsPacket(arg);
+	}
+};
+
+/**
+ * 异步发送form表单
+ * arg {
+ * 	  to:,
+ *    file:{
+ *       name:,
+ *       size:
+ *    },
+ *    data: FormData,
+ *    mediaType:, //1:图片，2：附件
+ *    type: "groupchat/chat/pubaccount",  //chat:单聊，groupcgat:群聊,pubaccount:公众号
+ *    progress: function,
+ *    success:function,
+ *    error:function,
+ *    complete:function
+ * }
+ */
+YYIMManager.prototype.sendFormMessage = function(arg) {
+	var that = this;
+	var file = arg.file
+
+	var param = {
+		token: this.getToken(),
+		creator: this.getUserNode(),
+		receiver: this.getJIDUtil().getNode(arg.to),
+		mediaType: arg.mediaType || 2,
+		randomId: Math.uuid(),
+		name: file.name,
+		size: file.size
+	};
+	var url = YYIMChat.getConfig().SERVLET.REST_RESOURCE_SERVLET + YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/upload';
+	url += '?' + jQuery.param(param);
+
+	jQuery.ajax({
+		xhr: function() {
+			var xhr = new window.XMLHttpRequest();
+			//Upload progress
+			xhr.upload.addEventListener("progress", function(evt) {
+				if(evt.lengthComputable) {
+					var percentComplete = evt.loaded / evt.total;
+					arg.progress && arg.progress({
+						loaded: evt.loaded,
+						total: evt.total,
+						percent: percentComplete
+					});
+				}
+			}, false);
+			//Download progress
+			xhr.addEventListener("progress", function(evt) {
+				if(evt.lengthComputable) {
+					var percentComplete = evt.loaded / evt.total;
+					arg.progress && arg.progress({
+						loaded: evt.loaded,
+						total: evt.total,
+						percent: percentComplete
+					});
+				}
+			}, false);
+			return xhr;
+		},
+		url: url,
+		type: 'post',
+		dataType: 'json',
+		data: arg.data,
+		processData: false,
+		contentType: false,
+		success: function(result) {
+			if(result && result.attachId) {
+				var CONTENT_TYPE = YYIMChat.getConstants().MESSAGE_CONTENT_TYPE;
+				arg.fileUploaded && arg.fileUploaded(result);
+				that.sendMessage({
+					id: arg.id,
+					to: arg.to,
+					spaceId: arg.spaceId,
+					type: arg.type, //chat:单聊，groupcgat:群聊,pubaccount:公众号
+					content: new IMFile({
+						name: file.name,
+						path: result.attachId,
+						size: file.size,
+						original: (param.mediaType === 1)? 1:null
+					}),
+					contentType: (param.mediaType === 1) ? CONTENT_TYPE.IMAGE : CONTENT_TYPE.FILE,
+					success: arg.success,
+					error: arg.error
+				});
+			} else {
+				arg.error && arg.error();
+			}
+			arg = null;
+		},
+		error: arg.error
+	});
+};
+
+/**
+ * 发送分享消息[分享消息]
+ * @param arg {
+ * to: id, //对话人id
+ * type: "groupchat/chat/pubaccount",  //chat:单聊，groupcgat:群聊,pubaccount:公众号
+ * extend: string,  //扩展字段
+ * content:{
+ * 		shareImageUrl:string, //分享中图片的url
+ * 		shareUrl:string, //分享的url
+ * 		shareDesc:string, //分享的内容描述
+ * 		shareTitle:string //分享的标题
+ * 	},
+ * success:function //成功回调函数
+ * }
+ */
+YYIMManager.prototype.sendShareMessage = function(arg){
+	arg.contentType = YYIMChat.getConstants().MESSAGE_CONTENT_TYPE.SHARE;
+	this.sendMessage(arg);
+};
+
+/**
+ * 发送文本消息[文本,表情]
+ * @param arg {
+ * to: id,  //对话人id
+ * type: "groupchat/chat/pubaccount",  //chat:单聊，groupcgat:群聊,pubaccount:公众号
+ * content:text, //消息文本
+ * extend: string,  //扩展字段
+ * success:function //成功回调函数
+ * }
+ */
+YYIMManager.prototype.sendTextMessage = function(arg){
+	arg.content = arg.msg  || arg.content;
+	arg.contentType = YYIMChat.getConstants().MESSAGE_CONTENT_TYPE.TEXT;
+	this.sendMessage(arg);
+};
+
+/**
+ * 发送消息接口整合
+ * @param arg {
+ * to: id,  //对话人id
+ * type: "groupchat/chat/pubaccount",  //chat:单聊，groupcgat:群聊,pubaccount:公众号
+ * extend: string,  //扩展字段
+ * atuser: array,  //at 成员
+ * data:
+ * success:function //成功回调函数
+ * },
+ * contentType
+ */
+YYIMManager.prototype.sendMessage = function(arg){
+	arg.id = arg.id || Math.uuid();
+	arg.type = arg.type || YYIMChat.getConstants().CHAT_TYPE.CHAT;
+	arg.body = {
+		dateline: arg.dateline,
+		extend: arg.extend,
+		content: arg.content,
+		contentType: arg.contentType,
+		sceneParams: arg.sceneParams
+	};
+
+	if(arg.type === YYIMChat.getConstants().CHAT_TYPE.GROUP_CHAT
+	&& YYIMArrayUtil.isArray(arg.atuser)){
+		arg.body.atuser = arg.atuser;
+	}
+
+	Manager.sendMessage(arg);
+};
+
+/**
+ * 撤销消息 rongqb 20160707
+ * arg {
+ * 	id: String, //消息id
+ *  to: String, //消息的另一方,待定
+ *  type: 'chat/groupchat/pubaccount',
+ *  success: function,
+ *  error: function,
+ *  complete: function
+ * }
+ */
+YYIMManager.prototype.revokeMessage = function(arg){
+	if(arg && arg.id){
+		Manager.revokeMessage(arg);
+	}else{
+		arg && arg.error && arg.error();
+	}
+};
+
+/**
+ * 发送图片消息
+ * @param arg{
+ * fileInputId：DomID, //文件域id
+ * drop_element: [dropID], //拖拽上传元素id，或者数组
+ * chatInfo: function(){ //用户发送消息时获取对话人信息
+ * 	  return {
+ * 		to: String //对话人id
+ *      type: 'chat/groupchat/pubaccount',
+ *      extend: 扩展字段
+ * 	  };
+ * },
+ * fileFiltered: function, //文件被添加到上传队列
+ * fileUploaded: function, //上传队列某一个文件上传完毕
+ * beforeUpload: function, //文件上传之前触发
+ * success:function,  //成功回调函数
+ * error: function,
+ * progress: function
+ * }
+ */
+YYIMManager.prototype.sendPic = function(arg){
+	arg = arg || {};
+	if(YYIMUtil['isWhateType'](arg.chatInfo,'Function')){
+		this.uploader(jQuery('#' + arg.fileInputId)[0] || arg.fileInputId,{
+			drop_element: arg.drop_element,
+			chatInfo: arg.chatInfo,
+			fileFiltered: arg.fileFiltered,
+			beforeUpload: arg.beforeUpload,
+			mediaType: 1, //1:image ,2: file,3:doc
+			success: function(result){
+				Manager.sendMessage({
+					id : result.chatInfo.messageId || Math.uuid(),
+					spaceId: result.chatInfo.spaceId,
+					body : {
+						extend: result.chatInfo.extend,
+						content : new IMFile({
+							id: result.file.id,
+							name: result.file.name,
+							path: result.data && result.data.attachId,
+							size: result.file.size,
+							original: 1
+						}),
+						contentType : YYIMChat.getConstants().MESSAGE_CONTENT_TYPE.IMAGE
+					},
+					to : result.chatInfo.to,
+					type :result.chatInfo.type,
+					success : function(data) {
+						arg.success && arg.success(data);
+					}
+				});
+				arg.fileUploaded && arg.fileUploaded(result);
+			},
+			error: arg.error,
+			progress: arg.progress
+		});
+	}else{
+		arg && arg.error && arg.error();
+	}
+};
+
+/**
+ * 发送文件消息
+ * @param arg{
+ * fileInputId：DomID, //文件域id
+ * drop_element: [dropID], //拖拽上传元素id，或者数组
+ * chatInfo: function(){ //用户发送消息时获取对话人信息
+ * 	  return {
+ * 		to: String //对话人id
+ *      type: 'chat/groupchat/pubaccount',
+ *      extend: 扩展字段
+ * 	  };
+ * },
+ * fileFiltered: function, //文件被添加到上传队列
+ * fileUploaded: function, //上传队列某一个文件上传完毕
+ * beforeUpload: function, //文件上传之前触发
+ * success:function, //成功回调函数
+ * error: function,
+ * progress: function
+ * }
+ */
+YYIMManager.prototype.sendFile = function(arg){
+	var that = this;
+	arg = arg || {};
+	if(YYIMUtil['isWhateType'](arg.chatInfo,'Function')){
+		this.uploader(jQuery('#' + arg.fileInputId)[0] || arg.fileInputId,{
+			drop_element: arg.drop_element,
+			chatInfo: arg.chatInfo,
+			fileFiltered: arg.fileFiltered,
+			beforeUpload: arg.beforeUpload,
+			mediaType: 3, //1:image ,2: file,3:doc
+			success: function(result){
+				var mediaType = 3;
+
+				if(YYIMChat.getConfig().UPLOAD.IMAGE_TYPES.test(result.file.name)){
+					mediaType = 1;
+				}
+
+				var file = new IMFile({
+					id: result.file.id,
+					name: result.file.name,
+					path: result.data && result.data.attachId,
+					size: result.file.size
+				});
+
+				if(mediaType === 1){
+					file.build({
+						original: 1
+					});
+				}
+
+				if(result
+				&& result['data']
+				&& result['data']['data']
+				&& result['data']['data']['fileUrl']){
+					//esn pc 上传
+					file.build({
+						path: result['data']['data']['fileUrl'],
+						fid: result['data']['data']['fid']
+					});
+				}
+
+				if(YYIMUtil['isWhateType'](result['data'],'Array')){
+					//esn web 上传
+					file = new IMFile({
+						id: result.file.id,
+						name: result.file.name,
+						path: result['data'][4],
+						size: result.file.size,
+						fid: result['data'][0]
+					});
+				}
+
+				Manager.sendMessage({
+					id : result.chatInfo.messageId || Math.uuid(),
+					spaceId: result.chatInfo.spaceId,
+					body : {
+						extend: result.chatInfo.extend,
+						content : file,
+						contentType : (mediaType === 1)? that.getConstants().MESSAGE_CONTENT_TYPE.IMAGE :that.getConstants().MESSAGE_CONTENT_TYPE.FILE
+					},
+					to : result.chatInfo.to,
+					type :result.chatInfo.type,
+					success : function(data) {
+						arg.success && arg.success(data);
+					}
+				});
+
+				arg.fileUploaded && arg.fileUploaded(result);
+			},
+			error: arg.error,
+			progress: arg.progress
+		});
+	}else{
+		arg && arg.error && arg.error();
+	}
+};
+
+ 	return YYIMManager.getInstance();
+})(YYIMChat);
+
+YYIMChat = (function(YYIMChat){
+	var YYIMManager = YYIMChat.constructor;
+	
+var Manager = (function() {
+    /**
+     * 查询自己所关注的公共号
+     * @param arg {success: function, error: function, complete:function}
+     */
+    function getPubAccountItems(arg) {
+        var jumpPacket = new JumpPacket({
+            type: YYIMChat.getConstants().TYPE.GET,
+            ns: NS_PUBACCOUNT,
+            to: YYIMChat.getConfig().DOMAIN.PUBACCOUNT
+        }, OPCODE.PUBACCOUNT_LIST.SEND);
+
+        YYIMChat.getConnection().send(jumpPacket, function(pubaccountListResult, _arg) {
+            if (!_arg) return;
+
+            _arg.complete && _arg.complete();
+            var items = pubaccountListResult.items || [];
+            var i = items.length || 0;
+            while (i--) {
+                items[i].id = YYIMChat.getJIDUtil().getID(items[i].jid);
+            }
+            _arg.success && _arg.success(JSON.stringify(items));
+        }, arg);
+    }
+
+    /**
+     * 获取公共号列表（按需拉取） rongqb 20160912
+     */
+    function getPubAccounts(arg) {
+        jQuery.ajax({
+            url: YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/pubaccount/' + YYIMChat.getUserID() + '/items',
+            dataType: 'json',
+            data: {
+                token: YYIMChat.getToken(),
+                pubIds: JSON.stringify(arg.ids)
+            },
+            cache: false,
+            success: function(result) {
+                var data = {};
+                result = result || [];
+                var i = result.length || 0;
+                while (i--) {
+                    result[i].id = YYIMChat.getJIDUtil().getID(result[i].jid);
+                    data[result[i].id] = result[i];
+                }
+                arg.success && arg.success(result, data);
+                arg = null;
+            },
+            error: function(xhr) {
+                try {
+                    arg.error && arg.error(JSON.parse(xhr.responseText));
+                    arg = null;
+                } catch (e) {
+                    arg.error && arg.error();
+                    arg = null;
+                }
+            }
+        });
+    }
+
+    /**
+     * 获取公众号详情 rongqb 20160811
+     * arg {
+     *   id: String,
+     *   success: function,
+     *   error: function,
+     *   complete: function
+     * }
+     */
+    function getPubAccountInfo(arg) {
+        jQuery.ajax({
+            url: YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + arg.id + '/' + YYIMChat.getUserID() + '/pubaccount/info',
+            dataType: 'json',
+            data: {
+                token: YYIMChat.getToken()
+            },
+            cache: false,
+            success: function(result) {
+                if (result && result.data) {
+                    result.data.id = YYIMChat.getJIDUtil().getID(result.data.jid);
+                    arg.success && arg.success(result.data);
+                    arg = null;
+                }
+            },
+            error: function(xhr) {
+                try {
+                    arg.error && arg.error(JSON.parse(xhr.responseText));
+                    arg = null;
+                } catch (e) {
+                    arg.error && arg.error();
+                    arg = null;
+                }
+            }
+        });
+    }
+
+    /**
+     * 查找公共号
+     * @param arg {keyword, start, size, success: function, error: function,complete: function}
+     */
+    function queryPubaccount(arg) {
+        var iqBody = {
+            start: YYIMCommonUtil.isNumber(arg.start) ? arg.start : 0,
+            size: YYIMCommonUtil.isNumber(arg.size) ? arg.size : 20,
+            fields: ["Accountname", "Name"],
+            search: arg.keyword
+        };
+        YYIMChat.getConnection().send(new JumpPacket(iqBody, OPCODE.QUERY_PUBACCOUNT.SEND), function(queryResult, _arg) {
+            var items = queryResult.items || [],
+                result = [],
+                i = items.length;
+            while (i--) {
+                var item = items[i],
+                    jid = item.jid;
+                result.push({
+                    id: YYIMChat.getJIDUtil().getID(jid),
+                    name: YYIMCommonUtil.isStringAndNotEmpty(item.name) ? item.name : YYIMChat.getJIDUtil().getID(jid),
+                    type: item.type
+                });
+            }
+            _arg.complete && _arg.complete();
+            _arg.success && _arg.success({
+                start: queryResult.start,
+                total: queryResult.total,
+                items: result
+            });
+        }, arg);
+    }
+
+    /**
+     * 关注公共号，只能根据返回的subscribed来判断是否关注成功，返回的iq set both需忽略
+     * @param arg{jid , success, error}
+     */
+    function addPubAccount(arg) {
+        YYIMChat.getConnection().send(new JumpPacket({
+            type: YYIMChat.getConstants().PRESENCE_TYPE.SUBSCRIBE,
+            to: arg.jid
+        }, OPCODE.PRESENCE.SEND), function(addResult, _arg) {
+            _arg.complete && _arg.complete();
+            addResult.from = YYIMChat.getJIDUtil().getID(addResult.from);
+            addResult.to = YYIMChat.getJIDUtil().getID(addResult.to);
+            _arg.success && _arg.success(addResult);
+        }, arg);
+    }
+
+    /**
+     * 消息关注公共号 rongqb 20151207
+     * @param arg{to , success, error}
+     */
+    function removePubAccount(arg) {
+        YYIMChat.getConnection().send(new JumpPacket({
+            id: arg.id,
+            type: YYIMChat.getConstants().PRESENCE_TYPE.UNSUBSCRIBE,
+            to: arg.to
+        }, OPCODE.PRESENCE.SEND), function(addResult, _arg) {
+            _arg.complete && _arg.complete();
+            addResult.from = YYIMChat.getJIDUtil().getID(addResult.from);
+            addResult.to = YYIMChat.getJIDUtil().getID(addResult.to) || YYIMChat.getUserID();
+            _arg.success && _arg.success(addResult);
+        }, arg);
+    }
+
+    function monitor() {
+
+        /**
+         * 监控新建公众号 rongqb 20151208
+         */
+        YYIMChat.getConnection().registerHandler(OPCODE.PUBACCOUNT_LIST.KEY, function(packet) {
+            var items = packet.items;
+            if ((items && items.length || 0) === 0)
+                return;
+            var pubaccounts = [],
+                i = items.length;
+            while (i--) {
+                var item = items[i];
+                item.id = YYIMChat.getJIDUtil().getID(item.jid),
+                    pubaccounts.push(item);
+            }
+            YYIMChat.onPubaccountUpdate(pubaccounts);
+        });
+    }
+
+    return {
+        monitor: monitor,
+        addPubAccount: addPubAccount,
+        getPubAccounts: getPubAccounts,
+        getPubAccountItems: getPubAccountItems,
+        getPubAccountInfo: getPubAccountInfo,
+        removePubAccount: removePubAccount,
+        queryPubaccount: queryPubaccount
+    };
+})();
+YYIMChat.setBackhander({
+	'monitor': {
+		'pubaccountMonitor': Manager.monitor
+	},
+	'initCallback': {
+		'pubaccount': function(options){
+			YYIMChat.onPubaccountUpdate = options.onPubaccountUpdate || function(){}; //公众号更新
+		}
+	}
+});
+
+/**
+ * 获取广播号/订阅号列表[pubaccount]
+ * @param arg {
+ * success: function, //成功回调函数
+ * error: function,  //失败回调函数
+ * complete:function //无论成功失败都回调的函数
+ * }
+ */
+YYIMManager.prototype.getPubAccount = function(arg) {
+    Manager.getPubAccountItems(arg);
+};
+
+/**
+ * 获取公共号列表（按需拉取） rongqb 20160912
+ * @param arg {
+ *  ids: Array,
+ * 	success: function, 
+ *  error: function,
+ *  complete: function
+ * }
+ */
+YYIMManager.prototype.getPubAccounts = function(arg) {
+    if (YYIMUtil['isWhateType'](arg.ids, 'Array')) {
+        Manager.getPubAccounts(arg);
+    } else {
+        arg && arg.error && arg.error();
+    }
+};
+
+
+/**
+ *  批量拉取pubaccount info
+ */
+var batchInfosList = new BaseList();
+var batchInfosTimer;
+var getBatchInfos = function() {
+    var handler = batchInfosList;
+    batchInfosList = new BaseList();
+    Manager.getPubAccounts({
+        ids: handler.keys(),
+        success: function(list, data) {
+            handler.forEach(function(item, index) {
+                try {
+                    item && item.success && item.success(data[item.id]);
+                } catch (e) {
+                    //TODO handle the exception
+                    YYIMChat.log('SuccessHandleBatchPubaccountInfoError.', 0, e);
+                }
+            });
+            handler.clear();
+            handler = null;
+        },
+        error: function(err) {
+            handler.forEach(function(item, index) {
+                try {
+                    item && item.error && item.error(err);
+                } catch (e) {
+                    //TODO handle the exception
+                    YYIMChat.log('ErrorHandleBatchPubaccountInfoError.', 0, e);
+                }
+            });
+            handler.clear();
+            handler = null;
+        }
+    });
+}
+
+YYIMManager.prototype.getBatchPubInfos = function(arg) {
+    if (arg && arg.id && !batchInfosList.get(arg.id)) {
+        batchInfosList.set(arg.id, arg);
+        clearTimeout(batchInfosTimer);
+        if (batchInfosList.length() >= this.getConfig().BETCH_MAXLIMIT.PUBACCOUNT) {
+            getBatchInfos();
+        } else {
+            batchInfosTimer = setTimeout(function() {
+                getBatchInfos();
+            }, 200);
+        }
+    } else {
+        arg.error && arg.error();
+    }
+};
+
+/**
+ * 获取公众号详情 rongqb 20160811
+ * arg {
+ *   id: String,
+ *   success: function,
+ *   error: function,
+ *   complete: function
+ * }
+ */
+YYIMManager.prototype.getPubAccountInfo = function(arg){
+	if(YYIMCommonUtil.isStringAndNotEmpty(arg.id)) {
+		Manager.getPubAccountInfo(arg);
+	}else{
+		arg && arg.error && arg.error();
+	}
+};
+
+/**
+ * 关注公共账号 rongqb 20151207
+ * @param arg {
+ * 		id : 公共号id,
+ * 		success : function,
+ * 		error : function
+ * }
+ */
+YYIMManager.prototype.addPubaccount = function(arg){
+	if(YYIMCommonUtil.isStringAndNotEmpty(arg.id)) {
+		Manager.addPubAccount({
+			jid : YYIMChat.getJIDUtil().buildPubAccountJID(YYIMChat.getJIDUtil().getNode(arg.id)),
+			success : arg.success,
+			error : arg.error
+		});
+	}else{
+		arg && arg.error && arg.error();
+	}
+};
+
+/**
+ * 取消关注公共账号  rongqb 20151207
+ * @param arg {
+ * 		id : 公共号id,
+ * 		success : function,
+ * 		error : function
+ * }
+ */
+YYIMManager.prototype.removePubaccount = function(arg){
+	if(YYIMCommonUtil.isStringAndNotEmpty(arg.id)) {
+		Manager.removePubAccount({
+			id : Math.uuid(),
+			to : YYIMChat.getJIDUtil().buildPubAccountJID(YYIMChat.getJIDUtil().getNode(arg.id)),
+			success : arg.success,
+			error : arg.error
+		});
+	}else{
+		arg && arg.error && arg.error();
+	}
+};
+
+/**
+ * 查找公共号
+ * @param arg {keyword,start, size, success: function, error: function,complete: function}
+ */
+YYIMManager.prototype.queryPubaccount = function(arg){
+	if(YYIMCommonUtil.isStringAndNotEmpty(arg.keyword)) {
+		Manager.queryPubaccount(arg);
+	}else{
+		arg && arg.error && arg.error();
+	}
+};
+ 	return YYIMManager.getInstance();
+})(YYIMChat);
+
+YYIMChat = (function(YYIMChat){
+	var YYIMManager = YYIMChat.constructor;
+	
+var Manager = (function() {
+
+	/**
+	 * 请求自己或好友的VCard
+	 * @param arg
+	 * 	{
+	 * 		id : 为空则请求自己的VCard,
+	 * 		success : function,
+	 * 		error : function,
+	 * 		complete : function
+	 *  }
+	 */
+	function getVCard(arg) {
+		var vcardBody = {
+			type: YYIMChat.getConstants().TYPE.GET
+		};
+
+		if(arg && arg.id) {
+			vcardBody.to = YYIMChat.getJIDUtil().buildUserJID(YYIMChat.getJIDUtil().getNode(arg.id));
+		}
+
+		YYIMChat.getConnection().send(new JumpPacket(vcardBody, OPCODE.VCARD.SEND), function(vcardResult, _arg) {
+			_arg.complete && _arg.complete();
+			var vcard = vcardResult.vcard || {};
+			vcard.id = vcard.userId = YYIMChat.getJIDUtil().getID(vcard.username);
+			if(!!vcardResult.enableFields) {
+				vcard.enableFields = !!vcardResult.enableFields;
+			}
+			_arg.success && _arg.success(vcard);
+		}, arg);
+	}
+	
+	function getBatchVCards(arg){
+		var url = YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + YYIMChat.getUserID() + '/vcard?token=' + YYIMChat.getToken() + '&userids=' + arg.ids;
+		jQuery.ajax({
+			url: url,
+			type: 'get',
+			dataType: 'json',
+			cache: false,
+			success: function(result) {
+				var map = {};
+				if(result && result.list){
+					for(var x in result.list){
+						if(result.list.hasOwnProperty(x)){
+							var vcard = result.list[x];
+							vcard.id = YYIMChat.getJIDUtil().getID(vcard.username);
+							map[vcard.id] = vcard;
+						}
+					}
+				}
+				arg.success && arg.success(map);
+				arg = null;
+			},
+			error: function(xhr) {
+				try {
+					arg.error && arg.error(JSON.parse(xhr.responseText));
+					arg = null;
+				} catch(e) {
+					arg.error && arg.error();
+					arg = null;
+				}
+			}
+		});
+	}
+
+	/**
+	 * 请求自己所有好友的VCard
+	 * 
+	 * @param arg
+	 * {
+	 * 		success : function,
+	 * 		error : function,
+	 * 		complete : function
+	 * }
+	 */
+	function getVCards(arg) {
+		var iqBody = {
+			type: 'roster'
+		};
+
+		YYIMChat.getConnection().send(new JumpPacket(iqBody, OPCODE.VCARDS.SEND), function(vcardsResult, _arg) {
+			var results = vcardsResult.vcards || [];
+			vcards = [],
+				i = results.length;
+			while(i--) {
+				var vcard = results[i];
+				vcard.id = vcard.userId = YYIMChat.getJIDUtil().getID(vcard.username);
+				vcards.push(vcard);
+			}
+			_arg.complete && _arg.complete();
+			_arg.success && _arg.success(vcards);
+		}, arg);
+
+	}
+
+	/**
+	 * 修改当前用户的VCard
+	 * @param arg {
+	 * 		vcard : {
+	 * 			nickname,
+	 * 			photo,
+	 * 			email,
+	 * 			mobile,
+	 * 			telephone
+	 * 		},
+	 * 		success : function,
+	 * 		error : fcuntion
+	 * }
+	 */
+	function setVCard(arg) {
+		YYIMChat.getConnection().send(new JumpPacket({
+			type: YYIMChat.getConstants().TYPE.SET,
+			vcard: arg.vcard
+		}, OPCODE.VCARD.SEND), function(vcardResult, _arg) {
+			_arg.complete && _arg.complete();
+			_arg.success && _arg.success();
+		}, arg);
+	}
+
+	/**
+	 * 新增当前用户或者好友的Tag
+	 * @param arg {
+	 * 		id: String, //targetID
+	 * 		tag : Array,
+	 * 		success : function,
+	 * 		error : fcuntion
+	 * }
+	 */
+	function setTag(arg) {
+		var url;
+		if(!arg.id || arg.id === YYIMChat.getUserID()) {
+			url = YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + YYIMChat.getUserID() + '/vcard/tag?token=' + YYIMChat.getToken();
+		} else {
+			url = YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + YYIMChat.getUserID() + '/' + arg.id + '/roster/tag?token=' + YYIMChat.getToken();
+		}
+
+		jQuery.ajax({
+			url: url,
+			type: 'post',
+			data: JSON.stringify({
+				tag: arg.tag
+			}),
+			dataType: 'json',
+			cache: false,
+			processData: false,
+			contentType: "application/json", //必须有
+			success: function(data) {
+				arg.success && arg.success(arg.id);
+				arg = null;
+			},
+			error: function(xhr) {
+				try {
+					arg.error && arg.error(JSON.parse(xhr.responseText));
+					arg = null;
+				} catch(e) {
+					arg.error && arg.error();
+					arg = null;
+				}
+			}
+		});
+	};
+
+	/**
+	 * 删除当前用户或者好友的Tag
+	 * @param arg {
+	 * 		id: String, //targetID
+	 * 		tag : Array,
+	 * 		success : function,
+	 * 		error : fcuntion
+	 * }
+	 */
+	function removeTag(arg) {
+		var url;
+		if(!arg.id || arg.id === YYIMChat.getUserID()) {
+			url = YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + YYIMChat.getUserID() + '/vcard/tag?token=' + YYIMChat.getToken() + '&tag=' + JSON.stringify(arg.tag);
+		} else {
+			url = YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + YYIMChat.getUserID() + '/' + arg.id + '/roster/tag?token=' + YYIMChat.getToken() + '&tag=' + JSON.stringify(arg.tag);
+		}
+		jQuery.ajax({
+			url: url,
+			type: 'delete',
+			dataType: 'json',
+			cache: false,
+			success: function(data) {
+				arg.success && arg.success(arg.id);
+				arg = null;
+			},
+			error: function(xhr) {
+				try {
+					arg.error && arg.error(JSON.parse(xhr.responseText));
+					arg = null;
+				} catch(e) {
+					arg.error && arg.error();
+					arg = null;
+				}
+			}
+		});
+	};
+
+	/**
+	 * 获取用户在线状态 rongqb 20151119
+	 * arg {
+	 * username: ['zhangsan','lisi'],
+	 * success:function,
+	 * error:function,
+	 * complete:function,
+	 * }
+	 * resource:2.1
+	 */
+	function getRostersPresence(arg) {
+		jQuery.ajax({
+			url: YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + YYIMChat.getUserID() + '/presence/detail?token=' + YYIMChat.getToken() + '&username=' + arg.username,
+			type: 'get',
+			dataType: 'json',
+			cache: false,
+			timeout: 5000,
+			success: function(data) {
+				arg.success && arg.success(data);
+				arg = null;
+			},
+			error: function(xhr) {
+				try {
+					arg.error && arg.error(JSON.parse(xhr.responseText));
+					arg = null;
+				} catch(e) {
+					arg.error && arg.error();
+					arg = null;
+				}
+			}
+		});
+	}
+
+	/**
+	 * 请求好友列表
+	 * @param arg {success: function, error: function, complete:function}
+	 */
+	function getRosterItems(arg) {
+		var jumpPacket = new JumpPacket({}, OPCODE.ROSTER_LIST.SEND);
+
+		YYIMChat.getConnection().send(jumpPacket, function(rosterListPacket, _arg) {
+			if(!_arg)
+				return;
+
+			_arg.complete && _arg.complete();
+
+			var items = rosterListPacket.items || [];
+
+			var rosters = [],
+				i = items.length || 0,
+				friquest = {};
+
+			while(i--) {
+				var item = items[i],
+					jid = item.jid,
+					roster = {
+						id: YYIMChat.getJIDUtil().getID(jid),
+						resource: YYIMChat.getJIDUtil().getResource(jid),
+						ask: item.ask,
+						recv: item.recv,
+						name: item.name,
+						photo: item.photo,
+						subscription: item.subscription,
+						group: item.groups,
+						tag: item.tag
+					};
+
+				if(YYIMChat.getJIDUtil().getDomain(jid) !== YYIMChat.getConfig().DOMAIN.PUBACCOUNT) {
+					rosters.push(roster);
+
+					if(!friquest[roster.id] && roster.subscription === 'none') {
+						if(roster.recv === 1) { //收到好友请求
+							friquest[roster.id] = roster;
+						} else if(roster.ask === 1) { //发送好友请求
+							//... 闲置
+						}
+					}
+				}
+			}
+
+			/**
+			 * 处理好友请求 20151204
+			 */
+			for(var x in friquest) {
+				if(friquest[x].id) {
+					YYIMChat.onSubscribe({
+						from: friquest[x].id,
+						type: YYIMChat.getConstants().PRESENCE_TYPE.SUBSCRIBE
+					});
+				}
+			}
+
+			_arg.success && _arg.success(JSON.stringify(rosters));
+		}, arg);
+	}
+
+	/**
+	 * 删除好友, 需要合法的jid
+	 * @param arg {jid: string, success: function, error: function,complete: function}
+	 */
+	function deleteRosterItem(arg) {
+		var iqBody = {
+			type: YYIMChat.getConstants().TYPE.SET,
+			ns: NS_ROSTER,
+			item: {
+				jid: arg.jid,
+				subscription: 'remove'
+			}
+		};
+
+		YYIMChat.getConnection().send(new JumpPacket(iqBody, OPCODE.UPDATE_ROSTER.SEND), function(deleteResult, _arg) {
+			_arg.complete && _arg.complete();
+			_arg.success && _arg.success(YYIMChat.getJIDUtil().getID(_arg.jid));
+		}, arg);
+	}
+
+	/**
+	 * 更新好友
+	 * @param arg {
+	 * 		roster : {
+	 * 			jid : 好友jid,
+	 * 			name : 好友昵称,
+	 * 			groups : ["group1","group2"] // 好友所在分组
+	 * 		},
+	 * 		success : function,
+	 * 		error : function
+	 * }
+	 */
+	function updateRosterItem(arg) {
+		var roster = arg.roster,
+			iqBody = {
+				item: {
+					jid: roster.jid,
+					name: roster.name,
+					groups: []
+				}
+			},
+			groups = roster.groups,
+			i = groups ? groups.length : 0;
+		while(i-- && YYIMCommonUtil.isStringAndNotEmpty(groups[i]))
+			iqBody.item.groups = iqBody.item.groups.concat(groups[i]);
+		YYIMChat.getConnection().send(new JumpPacket(iqBody, OPCODE.UPDATE_ROSTER.SEND), function(updateResult, _arg) {
+			_arg.complete && _arg.complete();
+
+			if(updateResult.code === 400) {
+				_arg.error && _arg.error(updateResult);
+			} else {
+				updateResult.to = YYIMChat.getJIDUtil().getID(updateResult.to);
+				_arg.success && _arg.success(updateResult);
+			}
+		}, arg);
+	}
+
+	/**
+	 * 查找好友[roster][包括好友和非好友]，查询字段：userName, name
+	 * @param arg {keyword, start, size, success: function, error: function,complete: function}
+	 */
+	function queryRosterItem(arg) {
+		var iqBody = {
+			start: YYIMCommonUtil.isNumber(arg.start) ? arg.start : 0,
+			size: YYIMCommonUtil.isNumber(arg.size) ? arg.size : 20,
+			fields: ["Username", "Name"],
+			search: arg.keyword
+		};
+		YYIMChat.getConnection().send(new JumpPacket(iqBody, OPCODE.QUERY_USER.SEND), function(queryResult, _arg) {
+			var items = queryResult.items || [],
+				result = [],
+				i = items.length;
+			while(i--) {
+				var item = items[i],
+					jid = item.jid;
+				if(jid === YYIMChat.getUserBareJID())
+					continue;
+				result.push({
+					id: YYIMChat.getJIDUtil().getID(jid),
+					name: YYIMCommonUtil.isStringAndNotEmpty(item.name) ? item.name : YYIMChat.getJIDUtil().getID(jid),
+					photo: item.photo,
+					email: item.email
+				});
+			}
+			_arg.complete && _arg.complete();
+			_arg.success && _arg.success({
+				start: queryResult.start,
+				total: queryResult.total,
+				items: result
+			});
+		}, arg);
+	}
+	
+	/**
+	 * 收藏联系人列表
+	 * @param {Object} arg
+	 */
+	function getFavoriteRosterList(arg) {
+		jQuery.ajax({
+			url: YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + YYIMChat.getUserID() + '/favoritedRosters',
+			type: 'get',
+			data: {
+				token: YYIMChat.getToken()
+			},
+			dataType: 'json',
+			cache: false,
+			success: function(data) {
+				if(data && data.items){
+					var i = data.items.length;
+					while(i--){
+						data.items[i].id = YYIMChat.getJIDUtil().getID(data.items[i].jid);
+					}
+				}
+				arg.success && arg.success(data.items);
+				arg = null;
+			},
+			error: function(xhr) {
+				try {
+					arg.error && arg.error(JSON.parse(xhr.responseText));
+					arg = null;
+				} catch(e) {
+					arg.error && arg.error();
+					arg = null;
+				}
+			}
+		});
+	}
+	
+	/**
+	 * 设置上线状态
+	 * @param arg{show, status, priority}
+	 */
+	function setPresence(arg) {
+		YYIMChat.getConnection().send(new JumpPacket(arg, OPCODE.PRESENCE.SEND));
+	}
+
+	/**
+	 * 收藏好友 rongqb 20161208
+	 * @param jid
+	 */
+	function favoriteRoster(jid) {
+		YYIMChat.getConnection().send(new JumpPacket({
+			type: YYIMChat.getConstants().PRESENCE_TYPE.COLLECT,
+			to: jid
+		}, OPCODE.PRESENCE.SEND));
+	}
+	
+	/**
+	 * 收藏联系人 rongqb 20161208
+	 * @param jid
+	 */
+	function cancelFavoriteRoster(jid) {
+		YYIMChat.getConnection().send(new JumpPacket({ 
+			favoritedRosterItem: { 
+				jid: jid,
+				subscription: YYIMChat.getConstants().FAVORITE_TYPE.REMOVE
+			},
+			from: YYIMChat.getUserFullJID()
+		},OPCODE.FAVORITED_ROSTERT.SEND));
+	}
+	
+	/**
+	 * 修改收藏联系人的信息 rongqb 20161209
+	 * @param {Object} jid
+	 * @param {Object} name
+	 */
+	function updateFavoriteRoster(jid,name) {
+		YYIMChat.getConnection().send(new JumpPacket({ 
+			favoritedRosterItem: { 
+				jid: jid,
+				name: name,
+				subscription: YYIMChat.getConstants().FAVORITE_TYPE.FAVORITE
+			},
+			from: YYIMChat.getUserFullJID()
+		},OPCODE.FAVORITED_ROSTERT.SEND));
+	}
+	
+	/**
+	 * 添加好友
+	 * @param jid
+	 */
+	function addRosterItem(jid) {
+		YYIMChat.getConnection().send(new JumpPacket({
+			type: YYIMChat.getConstants().PRESENCE_TYPE.SUBSCRIBE,
+			to: jid
+		}, OPCODE.PRESENCE.SEND));
+	}
+
+	/**
+	 * 同意联系人的订阅请求
+	 * @param jid
+	 */
+	function approveSubscribe(jid) {
+		YYIMChat.getConnection().send(new JumpPacket({
+			type: YYIMChat.getConstants().PRESENCE_TYPE.SUBSCRIBED,
+			to: jid
+		}, OPCODE.PRESENCE.SEND));
+	}
+	/**
+	 * 拒绝联系人的订阅请求
+	 * @param jid
+	 */
+	function rejectSubscribe(jid) {
+		YYIMChat.getConnection().send(new JumpPacket({
+			type: YYIMChat.getConstants().PRESENCE_TYPE.UNSUBSCRIBED,
+			to: jid
+		}, OPCODE.PRESENCE.SEND));
+	}
+
+	function monitor() {
+		
+		//联系人收藏，取消收藏 rongqb 20161208
+		YYIMChat.getConnection().registerHandler(OPCODE.FAVORITED_ROSTERT.KEY, function(packet){
+			if(packet && packet.favoritedRosterItem){
+				packet.favoritedRosterItem.id = YYIMChat.getJIDUtil().getID(packet.favoritedRosterItem.jid);
+			}
+			if(packet && packet.to){
+				packet.to = YYIMChat.getJIDUtil().getID(packet.to);
+			}
+			YYIMChat.onRosterFavorited(packet);
+		});
+		
+		// 好友删除, 修改, 增加
+		YYIMChat.getConnection().registerHandler(OPCODE.UPDATE_ROSTER.KEY, function(packet) {
+			var item = packet.item,
+				id = YYIMChat.getJIDUtil().getID(packet.item.jid);
+			// 好友添加成功或好友信息更新
+			if(item.subscription === 'both') {
+				YYIMChat.log('update or add: ' + JSON.stringify(item));
+				item.id = id;
+				YYIMChat.onRosterUpdateded(item);
+			}
+			// 好友删除成功或被对方删除
+			else if(item.subscription === 'none') {
+				YYIMChat.log('delete: ' + JSON.stringify(item));
+				item.id = id;
+				YYIMChat.onRosterDeleted(item);
+			}
+			// 删除成功后会受到关系为none的包, remove无需再操作
+			else if(item.subscription === 'remove') {
+				// do nothing
+			}
+
+		});
+
+		// 可能会收到订阅或上线包
+		YYIMChat.getConnection().registerHandler(OPCODE.PRESENCE.KEY, function(packet) {
+			// 订阅， 此处不做处理
+			if(packet.type && packet.type != YYIMChat.getConstants().TYPE.UNAVAILABLE) {
+				YYIMChat.onSubscribe({
+					from: YYIMChat.getJIDUtil().getID(packet.from),
+					type: packet.type
+				});
+				return;
+			}
+			// 上线包
+			var ps = {
+				from: YYIMChat.getJIDUtil().getID(packet.from),
+				resource: YYIMChat.getJIDUtil().getResource(packet.from),
+				type: packet.type,
+				show: packet.show,
+				status: packet.status
+			};
+			if(packet.type && packet.type == YYIMChat.getConstants().TYPE.UNAVAILABLE) {
+				ps.show = YYIMChat.getConstants().STATUS.UNAVAILABLE;
+				ps.status = YYIMChat.getConstants().STATUS.UNAVAILABLE;
+				removeFromOnline(ps.from);
+			}
+
+			if(!YYIMCommonUtil.isStringAndNotEmpty(ps.status)) {
+				ps.show = YYIMChat.getConstants().STATUS.CHAT;
+				ps.status = YYIMChat.getConstants().STATUS.CHAT;
+			};
+			YYIMChat.onPresence(ps);
+		});
+
+	}
+
+	return {
+		monitor: monitor,
+		approveSubscribe: approveSubscribe,
+		rejectSubscribe: rejectSubscribe,
+		deleteRosterItem: deleteRosterItem,
+		queryRosterItem: queryRosterItem,
+		getRostersPresence: getRostersPresence,
+		updateRosterItem: updateRosterItem,
+		setPresence: setPresence,
+		getVCard: getVCard,
+		getBatchVCards: getBatchVCards,
+		getVCards: getVCards,
+		setVCard: setVCard,
+		addRosterItem: addRosterItem,
+		favoriteRoster: favoriteRoster,
+		cancelFavoriteRoster: cancelFavoriteRoster,
+		updateFavoriteRoster: updateFavoriteRoster,
+		getFavoriteRosterList: getFavoriteRosterList,
+		getRosterItems: getRosterItems,
+		setTag: setTag,
+		removeTag: removeTag
+	};
+})();
+YYIMChat.setBackhander({
+	'monitor': {
+		'rosterMonitor': Manager.monitor
+	},
+	'initCallback': {
+		'roster':  function(options){
+			YYIMChat.onPresence = options.onPresence || function(){};  //好友上线
+			YYIMChat.onSubscribe = options.onSubscribe || function(){}; // 对方请求加好友
+			YYIMChat.onRosterDeleted = options.onRosterDeleted || function(){};  // 自己删除好友成功或对方进行了删除操作 
+			YYIMChat.onRosterUpdateded = options.onRosterUpdateded || function(){};  // 好友信息更新
+			YYIMChat.onRosterFavorited = options.onRosterFavorited || function(){};  // 好友收藏
+		}
+	}
+});
+
+/**
+ * 设置上线状态
+ * @param arg{show, status} 空则为在线
+ *  away -- 该实体或资源临时离开.
+    chat -- 该实体或资源活跃并想聊天.
+    dnd -- 该实体或资源忙(dnd = "Do Not Disturb"，免打扰).
+    xa -- 该实体或资源要离开相当长时间(xa = "eXtended Away"，长时间离开).
+       如果show未被提供或为NULL, 该实体被假定在线并且可用. 
+ */
+YYIMManager.prototype.setPresence = function(arg){
+	var presence = {};
+	if(arg && arg.show && this.getConstants().STATUS[arg.show.toUpperCase()]){
+		presence.show = arg.show;
+	}
+	if(arg && arg.status){
+		presence.status = arg.status;
+	}
+	Manager.setPresence(presence);
+};
+
+/**
+ * 获取自己或好友的VCard
+ * @param arg {
+ * 		id : 如果没有则获取自己的VCard,
+ * 		success : function,
+ * 		error : function
+ * }
+ */
+YYIMManager.prototype.getVCard = function(arg) {
+	arg = arg || {};
+	if(arg){
+		Manager.getVCard({
+			id: arg.id,
+			success : arg.success,
+			error : arg.error
+		});
+	}else{
+		arg.error && arg.error();
+	}
+};
+
+/**
+ *  批量拉取roster Vcard
+ */
+var batchVcardsList = new BaseList();
+var batchVcardsTimer;
+var getBatchVCards = function(){
+	var handler = batchVcardsList;
+	batchVcardsList = new BaseList();
+	Manager.getBatchVCards({
+		ids: JSON.stringify(handler.keys()),
+		success: function(vcards){
+			handler.forEach(function(item,index){
+				try{
+					item && item.success && item.success(vcards[item.id]);
+				}catch(e){
+					//TODO handle the exception
+					YYIMChat.log('SuccessHandleBatchVCardsError.',0,e);
+				}
+			});
+			handler.clear();
+			handler = null;
+		},
+		error: function(err){
+			handler.forEach(function(item,index){
+				try{
+					item && item.error && item.error(err);
+				}catch(e){
+					//TODO handle the exception
+					YYIMChat.log('ErrorHandleBatchVCardsError.',0,e);
+				}
+			});
+			handler.clear();
+			handler = null;
+		}
+	});
+}
+
+YYIMManager.prototype.getBatchVCards = function(arg) {
+    if (arg && arg.id && !batchVcardsList.get(arg.id)) {
+        batchVcardsList.set(arg.id, arg);
+        clearTimeout(batchVcardsTimer);
+        if (batchVcardsList.length() >= this.getConfig().BETCH_MAXLIMIT.ROSTER) {
+            getBatchVCards();
+        } else {
+            batchVcardsTimer = setTimeout(function() {
+                getBatchVCards();
+            }, 200);
+        }
+    } else {
+        arg.error && arg.error();
+    }
+};
+
+/**
+ * 获取所有好友的VCard
+ * 
+ * @param arg {
+ * 		success : function,
+ * 		error : function
+ * }
+ */
+YYIMManager.prototype.getVCards = function(arg) {
+	if(arg){
+		Manager.getVCards({
+			success : arg.success,
+			error : arg.error,
+			complete : arg.complete
+		});
+	}else{
+		arg.error && arg.error();
+	}
+};
+
+/**
+ * 修改当前用户的头像
+ * @param arg {
+ * 		nickname:String,
+ * 		photo:String,
+ * 		email:String,
+ * 		mobile:Number,
+ * 		telephone:Number,
+ *      organization:String,
+ *      gender:,
+ *      number:Number,
+ *      remarks:,
+ * 		location:String,
+ *      position:String,
+ * 		success : function,
+ * 		error : fcuntion
+ * }
+ */
+YYIMManager.prototype.setVCard = function(arg) {
+	Manager.setVCard({
+		vcard : {
+			nickname : arg.nickname,
+			photo : arg.photo,
+			email : arg.email,
+			mobile : arg.mobile,
+			telephone : arg.telephone,
+			organization : arg.organization,
+			gender : arg.gender,
+			number : arg.number,
+			remarks : arg.remarks,
+			location : arg.location,
+			position : arg.position
+		},
+		success : arg.success,
+		error : arg.error
+	});
+};
+
+
+/**
+ * 修改当前用户的Tag rongqb 20160719
+ * @param arg {
+ * 		tag : Array,
+ * 		success : function,
+ * 		error : fcuntion
+ * }
+ */
+YYIMManager.prototype.setVCardTag = function(arg){
+	arg = arg || {};
+	if(YYIMArrayUtil.isArray(arg.tag)){
+		var that = this;
+		Manager.setTag({
+			tag: arg.tag,
+			success: function(targetId){
+				that.getVCard({
+					id: targetId,
+					success: function(vcard){
+						arg.success && arg.success(vcard);
+					}
+				});
+			},
+			error: arg.error
+		});
+	}else{
+		arg.error && arg.error();
+	}
+};
+
+/**
+ * 删除当前用户的Tag rongqb 20160719
+ * @param arg {
+ * 		tag : Array,
+ * 		success : function,
+ * 		error : fcuntion
+ * }
+ */
+YYIMManager.prototype.removeVCardTag = function(arg){
+	arg = arg || {};
+	if(YYIMArrayUtil.isArray(arg.tag)){
+		var that = this;
+		Manager.removeTag({
+			tag: arg.tag,
+			success: function(targetId){
+				that.getVCard({
+					id: targetId,
+					success: function(vcard){
+						arg.success && arg.success(vcard);
+					}
+				});
+			},
+			error: arg.error
+		});
+	}else{
+		arg.error && arg.error();
+	}
+};
+
+
+/**
+ * 修改好友的Tag rongqb 20160719
+ * @param arg {
+ * 		id: String, //targetID 
+ * 		tag : Array,
+ * 		success : function,
+ * 		error : fcuntion
+ * }
+ */
+YYIMManager.prototype.setRosterTag = function(arg){
+	arg = arg || {};
+	if(arg.id && YYIMArrayUtil.isArray(arg.tag) && arg.id != this.getUserID()){
+		Manager.setTag({
+			id: arg.id,
+			tag: arg.tag,
+			success: function(targetId){
+				arg.success && arg.success(targetId);
+			},
+			error: arg.error
+		});
+	}else{
+		arg.error && arg.error();
+	}
+};
+
+/**
+ * 删除好友的Tag rongqb 20160719
+ * @param arg {
+ * 		id: String, //targetID 
+ * 		tag : Array,
+ * 		success : function,
+ * 		error : fcuntion
+ * }
+ */
+YYIMManager.prototype.removeRosterTag = function(arg){
+	arg = arg || {};
+	if(arg.id && YYIMArrayUtil.isArray(arg.tag) && arg.id != this.getUserID()){
+		Manager.removeTag({
+			id: arg.id,
+			tag: arg.tag,
+			success: function(targetId){
+				arg.success && arg.success(targetId);
+			},
+			error: arg.error
+		});
+	}else{
+		arg.error && arg.error();
+	}
+};
+
+
+/**
+ * 获取好友列表[roster]
+ * @param arg {
+ * 	success: function, 
+ * 	error: function,
+ * 	complete: function
+ * }
+ */
+YYIMManager.prototype.getRosterItems = function(arg){
+	Manager.getRosterItems(arg);
+};
+
+/**
+ * 添加好友[roster]
+ * @param id
+ */
+YYIMManager.prototype.addRosterItem = function(id){
+	if(YYIMCommonUtil.isStringAndNotEmpty(id)) {
+		Manager.addRosterItem(YYIMChat.getJIDUtil().buildUserJID(YYIMChat.getJIDUtil().getNode(id)));
+	}
+};
+
+/**
+ * 同意联系人的订阅请求
+ * @param id 请求订阅的联系人的ID
+ */
+YYIMManager.prototype.approveSubscribe = function(id) {
+	if(YYIMCommonUtil.isStringAndNotEmpty(id)) {
+		Manager.approveSubscribe(YYIMChat.getJIDUtil().buildUserJID(YYIMChat.getJIDUtil().getNode(id)));
+	}
+};
+
+/**
+ * 拒绝联系人的订阅请求
+ * @param id 请求订阅的联系人的ID
+ */
+YYIMManager.prototype.rejectSubscribe = function(id) {
+	if(YYIMCommonUtil.isStringAndNotEmpty(id)) {
+		Manager.rejectSubscribe(YYIMChat.getJIDUtil().buildUserJID(YYIMChat.getJIDUtil().getNode(id)));
+	}
+};
+
+/**
+ * 删除好友[roster]
+ * @param arg {id: string, success: function, error: function,complete: function}
+ */
+YYIMManager.prototype.deleteRosterItem = function(arg) {
+	if(YYIMCommonUtil.isStringAndNotEmpty(arg.id)) {
+		Manager.deleteRosterItem({
+			jid: YYIMChat.getJIDUtil().buildUserJID(YYIMChat.getJIDUtil().getNode(arg.id)),
+			success: arg.success,
+			error: arg.error
+		});
+	}
+};
+
+/**
+ * 查找好友[roster][包括好友和非好友]，查询字段：userName, name
+ * @param arg {keyword,start, size, success: function, error: function,complete: function}
+ */
+YYIMManager.prototype.queryRosterItem = function(arg) {
+	if(YYIMCommonUtil.isStringAndNotEmpty(arg.keyword)) {
+		Manager.queryRosterItem(arg);
+	}
+};
+
+/**
+ * 获取用户在线状态 rongqb 20151119
+ * arg {
+ * username: ['zhangsan','lisi'],
+ * success:function,
+ * error:function,
+ * complete:function,
+ * }
+ * resource:2.1
+ */
+YYIMManager.prototype.getRostersPresence = function(arg) {
+	if(YYIMArrayUtil.isArray(arg.username)) {
+		arg.username = JSON.stringify(arg.username);
+		Manager.getRostersPresence(arg);
+	}
+};
+
+/**
+ * 更新好友
+ * @param arg {
+ * 		roster : {
+ * 			id : 好友id,
+ * 			name : 好友昵称,
+ * 			groups : ["group1","group2"] // 好友所在分组
+ * 		},
+ * 		success : function,
+ * 		error : function
+ * }
+ */
+YYIMManager.prototype.updateRosterItem = function(arg) {
+	if(arg && arg.roster && YYIMCommonUtil.isStringAndNotEmpty(arg.roster.id)) {
+		Manager.updateRosterItem({
+			roster: {
+				jid: YYIMChat.getJIDUtil().buildUserJID(YYIMChat.getJIDUtil().getNode(arg.roster.id)),
+				name: arg.roster.name,
+				groups: arg.roster.groups
+			},
+			success: arg.success,
+			error: arg.error
+		});
+	}
+};
+
+/**
+ * 收藏/取消收藏 联系人[roster]
+ * @param arg id
+ */
+YYIMManager.prototype.favoriteRoster = function(id,type){
+	if(YYIMUtil['isWhateType'](id,'String')){
+		var jid = YYIMChat.getJIDUtil().buildUserJID(YYIMChat.getJIDUtil().getNode(id));
+		if(type == YYIMChat.getConstants().FAVORITE_TYPE.REMOVE){
+			Manager.cancelFavoriteRoster(jid);
+		}else{
+			Manager.favoriteRoster(jid);
+		}
+	}
+};
+
+/**
+ * 修改收藏联系人的备注 rongqb 20161209
+ * @param arg id,name
+ */
+YYIMManager.prototype.updateFavoriteRoster = function(id,name){
+	if(YYIMUtil['isWhateType'](id,'String') && YYIMUtil['isWhateType'](name,'String')){
+		var jid = YYIMChat.getJIDUtil().buildUserJID(YYIMChat.getJIDUtil().getNode(id));
+		Manager.updateFavoriteRoster(jid,name);
+	}
+};
+
+/**
+ * 获取收藏联系人列表
+ * @param {Object} arg {
+ * 	success: function,
+ * 	error: function
+ * }
+ */
+YYIMManager.prototype.getFavoriteRosterList = function(arg){
+	arg = arg || {};
+	Manager.getFavoriteRosterList({
+		success: arg.success,
+		error: arg.error
+	});
+};
+
+ 	return YYIMManager.getInstance();
+})(YYIMChat);
+
+YYIMChat = (function(YYIMChat){
+	var YYIMManager = YYIMChat.constructor;
+	
+var Manager = (function(){
+	/**
+	 * 获取用户Profile信息包括静音和置顶信息 rongqb 20160719
+	 * arg {
+	 * success:function,
+	 * error:function,
+	 * complete:function
+	 * }
+	 */
+	function getProfile(arg){
+	    // 传入AI Key yaoleib20171212
+	    var apiKeyParam = YYIMManager.getInstance().getApiKey();
+		if(apiKeyParam){
+            apiKeyParam = '&apiKey=' + apiKeyParam;
+        }
+		jQuery.ajax({
+			url: YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + YYIMManager.getInstance().getUserID() + '/profile?token=' + YYIMManager.getInstance().getToken() + apiKeyParam,
+			type: 'get',
+			cache: false,
+			datatype: 'json',
+			success: function(data){
+				if(data.muteItems){
+					var temp = {};
+					for(var x in data.muteItems){
+						var id = YYIMChat.getJIDUtil().getID(data.muteItems[x]);
+						var type = YYIMChat.getJIDUtil().getChatTypeByJid(data.muteItems[x]);
+						temp[id] = {
+							id: id,
+							type: type
+						};
+					}
+					data.muteItems = temp;
+				}
+
+				if(data.stickItems){
+					var temp = {};
+					for(var x in data.stickItems){
+						var id = YYIMChat.getJIDUtil().getID(data.stickItems[x]);
+						var type = YYIMChat.getJIDUtil().getChatTypeByJid(data.stickItems[x]);
+						temp[id] = {
+							id: id,
+							type: type
+						};
+					}
+					data.stickItems = temp;
+				}
+				if(data.userId ){
+					data.userId = YYIMChat.getJIDUtil().getID(data.userId);
+				}
+				arg.success && arg.success(data);
+				arg = null;
+			},
+			error: function(xhr){
+				try{
+					arg.error && arg.error(JSON.parse(xhr.responseText));
+					arg = null;
+				}catch(e){
+					arg.error && arg.error();
+					arg = null;
+				}
+			}
+		});
+	}
+
+	/**
+	 * 静音（免打扰）、置顶  rongqb 20160719
+	 * arg {
+	 * to: String,
+	 * type: String, //chat/groupchat/pubaccount
+	 * success: function,
+	 * error: function,
+	 * complete: function,
+	 * handle: 'mute/stick',
+	 * }
+	 */
+	function muteStick(arg){
+		var to;
+		if(arg.type == YYIMChat.getConstants().CHAT_TYPE.GROUP_CHAT){
+			to = YYIMChat.getJIDUtil().buildChatGroupJID(YYIMChat.getJIDUtil().getNode(arg.to));
+		}else if(arg.type == YYIMChat.getConstants().CHAT_TYPE.PUB_ACCOUNT){
+			to = YYIMChat.getJIDUtil().buildPubAccountJID(YYIMChat.getJIDUtil().getNode(arg.to));
+		}else{
+			to = YYIMChat.getJIDUtil().buildUserJID(YYIMChat.getJIDUtil().getNode(arg.to));
+		}
+		arg.handle = (arg.handle === 'mute')? arg.handle: 'stick';
+		jQuery.ajax({
+			url: YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + YYIMManager.getInstance().getUserID() + '/profile/' + arg.handle + '?token=' + YYIMManager.getInstance().getToken(),
+			type: 'post',
+			data: JSON.stringify({bareJID: to}),
+			dataType: 'json',
+			cache: false,
+			processData:false,
+			contentType: "application/json", //必须有
+			success: function(data){
+				arg.success && arg.success({
+					id: arg.to,
+					type: arg.type
+				});
+				arg = null;
+			},
+			error: function(xhr){
+				try{
+					arg.error && arg.error(JSON.parse(xhr.responseText));
+					arg = null;
+				}catch(e){
+					arg.error && arg.error();
+					arg = null;
+				}
+			}
+		});
+	}
+
+	/**
+	 * 取消静音（免打扰），置顶  rongqb 20160719
+	 * arg {
+	 * to: String,
+	 * type: String, //chat/groupchat/pubaccount
+	 * success: function,
+	 * error: function,
+	 * complete: function,
+	 * handle: 'mute/stick',
+	 * }
+	 */
+	function cancelMuteStick(arg){
+		var to;
+		if(arg.type == YYIMChat.getConstants().CHAT_TYPE.GROUP_CHAT){
+			to = YYIMChat.getJIDUtil().buildChatGroupJID(YYIMChat.getJIDUtil().getNode(arg.to));
+		}else if(arg.type == YYIMChat.getConstants().CHAT_TYPE.PUB_ACCOUNT){
+			to = YYIMChat.getJIDUtil().buildPubAccountJID(YYIMChat.getJIDUtil().getNode(arg.to));
+		}else{
+			to = YYIMChat.getJIDUtil().buildUserJID(YYIMChat.getJIDUtil().getNode(arg.to));
+		}
+		jQuery.ajax({
+			url: YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + YYIMManager.getInstance().getUserID() + '/profile/' + ((arg.handle === 'mute')? 'mute': 'stick') + '?token=' + YYIMManager.getInstance().getToken() + '&bareJID=' + to,
+			type: 'DELETE',
+			dataType: 'json',
+			success: function(data){
+				arg.success && arg.success({
+					id: arg.to,
+					type: arg.type
+				});
+				arg = null;
+			},
+			error: function(xhr){
+				try{
+					arg.error && arg.error(JSON.parse(xhr.responseText));
+					arg = null;
+				}catch(e){
+					arg.error && arg.error();
+					arg = null;
+				}
+			}
+		});
+	}
+
+	/**
+	 *  添加Profile项  rongqb 20160719
+	 * arg {
+	 *  profile: {key:value},
+	 *  success: function,
+	 *  error: function,
+	 *  complete: function
+	 * }
+	 */
+	function createProfile(arg){
+		jQuery.ajax({
+			url: YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + YYIMManager.getInstance().getUserID() + '/profile?token=' + YYIMManager.getInstance().getToken(),
+			type: 'post',
+			data: JSON.stringify(arg.profile),
+			dataType: 'json',
+			cache: false,
+			processData:false,
+			contentType: "application/json", //必须有
+			success: function(data){
+				arg.success && arg.success(arg.profile);
+				arg = null;
+			},
+			error: function(xhr){
+				try{
+					arg.error && arg.error(JSON.parse(xhr.responseText));
+					arg = null;
+				}catch(e){
+					arg.error && arg.error();
+					arg = null;
+				}
+			}
+		});
+	}
+
+	/**
+	 *  批量删除Profile中的项  rongqb 20160719
+	 * arg {
+	 *  profiles: Array,
+	 *  success: function,
+	 *  error: function,
+	 *  complete: function
+	 * }
+	 */
+	function removeProfile(arg){
+		jQuery.ajax({
+			url: YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + YYIMManager.getInstance().getUserID() + '/profile?token=' + YYIMManager.getInstance().getToken(),
+			type: 'PUT',
+			data: JSON.stringify(arg.profiles),
+			dataType: 'json',
+			cache: false,
+			processData:false,
+			contentType: "application/json", //必须有
+			success: function(data){
+				arg.success && arg.success(arg.profiles);
+				arg = null;
+			},
+			error: function(xhr){
+				try{
+					arg.error && arg.error(JSON.parse(xhr.responseText));
+					arg = null;
+				}catch(e){
+					arg.error && arg.error();
+					arg = null;
+				}
+			}
+		});
+	}
+
+	/**
+	 * 清理用户的Profile（彻底删除所有Profile信息）  rongqb 20160719
+	 * arg {
+	 *  success: function,
+	 *  error: function,
+	 *  complete: function
+	 * }
+	 */
+	function clearProfile(arg){
+		jQuery.ajax({
+			url: YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + YYIMManager.getInstance().getUserID() + '/profile?token=' + YYIMManager.getInstance().getToken(),
+			type: 'DELETE',
+			dataType: 'json',
+			cache: false,
+			success: function(data){
+				arg.success && arg.success();
+				arg = null;
+			},
+			error: function(xhr){
+				try{
+					arg.error && arg.error(JSON.parse(xhr.responseText));
+					arg = null;
+				}catch(e){
+					arg.error && arg.error();
+					arg = null;
+				}
+			}
+		});
+	}
+
+	/**
+	 * 移除群助手 rongqb 20170510
+	 * @param {Object} arg {
+	 * 	id: String,
+	 *  success: function,
+	 *  error: fucntion
+	 * }
+	 */
+	function removeGroupAssistant(arg){
+		jQuery.ajax({
+			url: YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + YYIMManager.getInstance().getUserID() + '/profile/groupassistant?token=' + YYIMManager.getInstance().getToken() + '&bareJID=' + YYIMChat.getJIDUtil().buildChatGroupJID(YYIMChat.getJIDUtil().getNode(arg.id)),
+			type: 'DELETE',
+			dataType: 'json',
+			cache: false,
+			success: function(data){
+				arg.success && arg.success();
+				arg = null;
+			},
+			error: function(xhr){
+				try{
+					arg.error && arg.error(JSON.parse(xhr.responseText));
+					arg = null;
+				}catch(e){
+					arg.error && arg.error();
+					arg = null;
+				}
+			}
+		});
+	}
+
+	return {
+		getProfile: getProfile,
+		muteStick: muteStick,
+		cancelMuteStick: cancelMuteStick,
+		createProfile: createProfile,
+		removeProfile: removeProfile,
+		clearProfile: clearProfile,
+		removeGroupAssistant: removeGroupAssistant
+	};
+})();
+
+/**
+ * 获取用户Profile信息包括静音和置顶信息 rongqb 20160719
+ * arg {
+ * success:function,
+ * error:function,
+ * complete:function
+ * }
+ */
+YYIMManager.prototype.getProfile = function(arg){
+	// 获取存储热词时间戳 yaoleib20171212
+	Manager.getProfile({
+		success: function(data){
+			var intelligentable = data.intelligentable;
+			var intelligentWordsTime = data.intelligentWordsTime;
+			if(intelligentable != 'undefined'){
+				//YYIMChat.openAIAbility(intelligentable);
+			}
+			if(intelligentWordsTime){
+				YYIMChat.setDictionaries(intelligentWordsTime);
+			}
+
+			arg.success && arg.success(data);
+		},
+		error: function(error){
+			arg.error && arg.error(errot);
+		}
+	})
+};
+
+/**
+ * 静音（免打扰）  rongqb 20160719
+ * arg {
+ * to: String,
+ * type: String, //chat/groupchat/pubaccount
+ * success: function,
+ * error: function,
+ * complete: function,
+ * }
+ */
+YYIMManager.prototype.mute = function(arg){
+	arg = arg || {};
+	if(!!arg.to){
+		arg.handle = 'mute';
+		Manager.muteStick(arg);
+	}else{
+		arg.error && arg.error();
+	}
+};
+
+/**
+ * 置顶  rongqb 20160719
+ * arg {
+ * to: String,
+ * type: String, //chat/groupchat/pubaccount
+ * success: function,
+ * error: function,
+ * complete: function
+ * }
+ */
+YYIMManager.prototype.stick = function(arg){
+	arg = arg || {};
+	if(!!arg.to){
+		arg.handle = 'stick';
+		Manager.muteStick(arg);
+	}else{
+		arg.error && arg.error();
+	}
+};
+
+/**
+* 取消静音（免打扰）  rongqb 20160719
+* arg {
+* to: String,
+* type: String, //chat/groupchat/pubaccount
+* success: function,
+* error: function,
+* complete: function
+* }
+*/
+YYIMManager.prototype.cancelMute = function(arg){
+	var that = this;
+	if(arg && arg.to){
+		Manager.cancelMuteStick({
+			to: arg.to,
+			type: arg.type,
+			handle: 'mute',
+			success: function(data){
+				if(arg.type == that.getConstants().CHAT_TYPE.GROUP_CHAT){
+					that.removeGroupAssistant({
+						id: arg.to,
+						success: function(){
+							arg.success && arg.success(data);
+						},
+						error: arg.error
+					});
+				}else{
+					arg.success && arg.success(data);
+				}
+			},
+			error: arg.error
+		});
+	}else{
+		arg && arg.error && arg.error();
+	}
+};
+
+/**
+* 取消置顶  rongqb 20160719
+* arg {
+* to: String,
+* type: String, //chat/groupchat/pubaccount
+* success: function,
+* error: function,
+* complete: function
+* }
+*/
+YYIMManager.prototype.cancelStick = function(arg){
+	if(arg && arg.to){
+		arg.handle = 'stick';
+		Manager.cancelMuteStick(arg);
+	}else{
+		arg && arg.error && arg.error();
+	}
+};
+
+/**
+ *  添加Profile项  rongqb 20160719
+ * arg {
+ *  profile: {key:value},
+ *  success: function,
+ *  error: function,
+ *  complete: function
+ * }
+ */
+YYIMManager.prototype.createProfile = function(arg){
+	arg = arg || {};
+	if(!!arg.profile){
+		Manager.createProfile(arg);
+	}else{
+		arg.error && arg.error();
+	}
+};
+
+/**
+ *  批量删除Profile中的项  rongqb 20160719
+ * arg {
+ *  profiles: Array,
+ *  success: function,
+ *  error: function,
+ *  complete: function
+ * }
+ */
+YYIMManager.prototype.removeProfile = function(arg){
+	arg = arg || {};
+	if(YYIMArrayUtil.isArray(arg.profiles)){
+		Manager.removeProfile(arg);
+	}else{
+		arg.error && arg.error();
+	}
+};
+
+/**
+ * 清理用户的Profile（彻底删除所有Profile信息）  rongqb 20160719
+ * arg {
+ *  success: function,
+ *  error: function,
+ *  complete: function
+ * }
+ */
+YYIMManager.prototype.clearProfile = function(arg){
+	Manager.clearProfile(arg || {});
+};
+
+/**
+ * 移除群助手 rongqb 20170510
+ * @param {Object} arg {
+ * 	id: String,
+ *  success: function,
+ *  error: fucntion
+ * }
+ */
+YYIMManager.prototype.removeGroupAssistant = function(arg){
+	if(arg && arg.id){
+		Manager.removeGroupAssistant(arg);
+	}else{
+		arg && arg.error && arg.error();
+	}
+};
+
+ 	return YYIMManager.getInstance();
+})(YYIMChat);
+
+YYIMChat = (function(YYIMChat){
+	var YYIMManager = YYIMChat.constructor;
+	
+var Manager = (function() {
+	
+	/**
+	 * 发送代办回执 rongqb 20171114
+	 * @param {Object} arg
+	 */
+	function sendToDoReceipts(arg) {
+		jQuery.ajax({
+			url: YYIMChat.getConfig().SERVLET.REST_TODO_USER + 'read/latest?token=' + YYIMChat.getToken() + '&userId='+ YYIMChat.getUserID(),
+			type: 'post',
+			data: JSON.stringify({
+				latestReadTs: arg.latestReadTs || 0
+			}),
+			dataType: 'json',
+			cache: false,
+			processData:false,
+			contentType: "application/json", //必须有
+			success: function() {
+				arg && arg.success && arg.success();
+				arg && (arg = null);
+			},
+			error: function(xhr) {
+				try {
+					arg && arg.error && arg.error(JSON.parse(xhr.responseText));
+					arg && (arg = null);
+				} catch(e) {
+					arg && arg.error && arg.error();
+					arg && (arg = null);
+				}
+			}
+		});
+	}
+
+	/**
+	 * 拉取代办通知摘要 rongqb 20170831
+	 * @param {Object} arg
+	 */
+	function getTodoDigset(arg) {
+		jQuery.ajax({
+			url: YYIMChat.getConfig().SERVLET.REST_TODO_USER + 'abstract',
+			type: 'get',
+			data: {
+				token: YYIMChat.getToken(),
+				userId: YYIMChat.getUserID()
+			},
+			dataType: 'json',
+			cache: false,
+			success: function(data) {
+				var result;
+				if(data 
+				&& data.result 
+				&& data.result['abstractItem']){
+					
+					result = data.result['abstractItem'] || {};
+					result['todoCount'] = data.result['todoCount'] || 0;
+					result['unReadCount'] = data.result['unReadCount'] || 0;
+					result['latestReadTs'] = data.result['latestReadTs'] || 0;
+				}
+				arg && arg.success && arg.success(result);
+				arg && (arg = null);
+			},
+			error: function(xhr) {
+				try {
+					arg && arg.error && arg.error(JSON.parse(xhr.responseText));
+					arg && (arg = null);
+				} catch(e) {
+					arg && arg.error && arg.error();
+					arg && (arg = null);
+				}
+			}
+		});
+	}
+
+	/**
+	 * 拉取代办通知历史 nizhja 20170831
+	 * @param {Object} arg
+	 */
+	function getHistoryTodo(arg) {
+		jQuery.ajax({
+			url: YYIMChat.getConfig().SERVLET.REST_TODO_USER + 'items',
+			type: 'get',
+			data: {
+				token: YYIMChat.getToken(),
+				userId: YYIMChat.getUserID(),
+				beforeTs: arg && Number(arg.beforeTs) || '',
+				todoState: arg && arg.todoState || '',
+				pageSize: arg && Number(arg.pageSize) || 10
+			},
+			dataType: 'json',
+			cache: false,
+			success: function(data) {
+				var result = [];
+				if(data 
+					&& data.result
+					&& data.result.length){
+						
+					result = data.result;
+				}
+				arg && arg.success && arg.success(result);
+				arg && (arg = null);
+			},
+			error: function(xhr) {
+				try {
+					arg && arg.error && arg.error(JSON.parse(xhr.responseText));
+					arg && (arg = null);
+				} catch(e) {
+					arg && arg.error && arg.error();
+					arg && (arg = null);
+				}
+			}
+		});
+	}
+
+	return {
+		getTodoDigset: getTodoDigset,
+		getHistoryTodo: getHistoryTodo,
+		sendToDoReceipts: sendToDoReceipts
+	};
+})();
+
+/**
+ * 拉取代办通知摘要 rongqb 20170831
+ * @param {Object} arg {
+ * 	success: function,
+ *  error: function
+ * }
+ */
+YYIMManager.prototype.getTodoDigset = function(arg) {
+    Manager.getTodoDigset(arg);
+};
+
+/**
+ * 发送代办回执 rongqb 20171114
+ * @param {Object} arg
+ */
+YYIMManager.prototype.sendToDoReceipts = function(arg) {
+    Manager.sendToDoReceipts(arg);
+};
+
+/**
+ * 拉取代办通知历史 nizhja 20170831
+ * @param {Object} arg {
+ *  success: function,
+ *  error: function,
+ *  beforeTs: Number, //历史结束时间，不填时取当前时间
+ *  todoState: 0/1 //0: 未处理待办 1:已处理待办
+ *  pageSize：Number //default: 10
+ * }
+ */
+YYIMManager.prototype.getHistoryTodo = function(arg) {
+	Manager.getHistoryTodo(arg);
+};
+
+ 	return YYIMManager.getInstance();
+})(YYIMChat);
+
+YYIMChat = (function(YYIMChat){
+	var YYIMManager = YYIMChat.constructor;
+	
+function FileUpload(){
+}
+
+FileUpload.prototype = new BaseList();
+
+FileUpload.getInstance = function(){
+	if(!this._instance){
+		this._instance = new FileUpload();
+	}
+	return this._instance;
+};
+
+FileUpload.prototype.init = function(options,events){
+	var settings = {
+		browse_button: 'fileUpload',
+		file_data_name: 'file',
+		url: this.getBaseUrl(),
+		filters : {
+			max_file_size : '100mb',   //文件限制大小
+			prevent_duplicates: !!YYIMChat.getConfig().UPLOAD.PREVENT_DUPLICATES //重复上传
+		},
+		flash_swf_url: YYIMChat.getConfig().UPLOAD.FLASH_SWF_URL,
+        silverlight_xap_url: YYIMChat.getConfig().UPLOAD.SILVERLIGHT_XAP_URL,
+        multi_selection: !!YYIMChat.getConfig().UPLOAD.MULTI_SELECTION, //是否可以在文件浏览对话框中选择多个文件
+        multipart: true,
+        max_retries: 1, //当发生plupload.HTTP_ERROR错误时的重试次数，为0时表示不重试
+        chunk_size: 0,
+        runtimes : 'gears,html5,flash,silverlight,browserplus'
+	};
+	
+	if(options['mediaType'] == YYIMChat.getConfig().UPLOAD.MEDIATYPE.IMAGE){
+		settings['filters']['mime_types'] = [{title : "Image files", extensions : "jpg,gif,png,jpeg,bmp"}];
+	}else{
+		settings['filters']['mime_types'] = undefined;
+	}
+	
+	jQuery.extend(settings,options);
+	var id = settings['browse_button'];
+	var uploader = new plupload.Uploader(settings);
+	uploader.init();
+	uploader.refresh();
+	this.bindEvents(uploader,events);
+};
+
+FileUpload.prototype.getBaseUrl = function(){
+	return YYIMChat.getServletPath().REST_RESOURCE_SERVLET + YYIMChat.getTenancy().ETP_KEY + '/' + YYIMChat.getTenancy().APP_KEY + '/upload';
+};
+
+FileUpload.prototype.getUploadingSize = function(){
+	var size = 0;
+	for(var x in this.list){
+		if(this.list.hasOwnProperty(x)){
+			var uploader = this.list[x];
+			if(uploader){
+				var file = uploader.getFile(x);
+				
+				if(file.status != plupload.FAILED 
+				&& file.status != plupload.STOPPED){
+					size++;
+				}
+			}
+		}
+	}
+	return size;
+};
+
+FileUpload.prototype.start = function(file){
+	var uploader;
+	if(file){
+		uploader = this.get(file.id || file);
+		if(uploader){
+			file = uploader.getFile(file.id || file);
+			if(file){
+				file.status = 1;
+			}
+			uploader.start();
+		}
+	}
+};
+
+FileUpload.prototype.end = function(file){
+	var uploader;
+	if(file){
+		var fileId = file.id || file;
+		uploader = this.get(fileId);
+		if(uploader){
+			file = uploader.getFile(fileId);
+			if(file){
+				uploader.removeFile(file);
+			}
+			this.remove(fileId);
+		}
+	}else{
+		this.forEach(function(uploader){
+			uploader.splice(0);
+			uploader.destroy();
+		});
+		this.clear();
+	}
+};
+
+FileUpload.prototype.bindEvents = function(uploader,arg){
+	var that = this;
+	//当Plupload初始化完成后触发
+	uploader.bind('init',function(uploader){ 
+		arg && arg.init && arg.init(uploader);		
+    });
+    
+    //当Init事件发生后触发
+	uploader.bind('PostInit',function(uploader){
+		arg && arg.PostInit && arg.PostInit(uploader);	
+    });
+    
+    //当调用plupload实例的refresh()方法后会触发该事件
+	uploader.bind('Refresh',function(uploader){ 
+		arg && arg.Refresh && arg.Refresh(uploader);
+    });
+    
+    //当上传队列的状态发生改变时触发
+	uploader.bind('StateChanged',function(uploader){ 
+		arg && arg.StateChanged && arg.StateChanged(uploader);
+    });
+    
+    //当上传队列中某一个文件开始上传后触发
+	uploader.bind('UploadFile',function(uploader,file){ 
+		arg && arg.StateChanged && arg.UploadFile(uploader,file);
+    });
+    
+    //当队列中的某一个文件正要开始上传前触发
+	uploader.bind('BeforeUpload',function(uploader,file){ 
+		arg && arg.BeforeUpload && arg.BeforeUpload(uploader,file);
+    });
+    
+    //当队列中的某一个文件正要开始上传前触发
+	uploader.bind('QueueChanged',function(uploader){ 
+		arg && arg.QueueChanged && arg.QueueChanged(uploader);
+    });
+    
+    //当使用Plupload实例的setOption()方法改变当前配置参数后触发
+	uploader.bind('OptionChanged',function(uploader,option_name,new_value,old_value){
+		arg && arg.OptionChanged && arg.OptionChanged(uploader,option_name,new_value,old_value);
+    });
+    
+    //会在文件上传过程中不断触发，可以用此事件来显示上传进度
+    /**
+     *  size	上传队列中所有文件加起来的总大小，单位为字节
+		loaded	队列中当前已上传文件加起来的总大小,单位为字节
+		uploaded	已完成上传的文件的数量
+		failed	上传失败的文件数量
+		queued	队列中剩下的(也就是除开已经完成上传的文件)需要上传的文件数量
+		percent	整个队列的已上传百分比，如50就代表50%
+		bytesPerSec	上传速率，单位为 byte/s，也就是 字节/秒
+     */
+    uploader.bind('UploadProgress',function(uploader,file){
+    		arg && arg.UploadProgress && arg.UploadProgress(uploader,file);
+    });
+    
+    //当文件添加到上传队列后触发
+	uploader.bind('FilesAdded',function(uploader,files){
+		arg && arg.FilesAdded && arg.FilesAdded(uploader,files);
+    });
+    
+    //当文件从上传队列移除后触发
+	uploader.bind('FilesRemoved',function(uploader,files){
+		files.forEach(function(file,index){
+			that.remove(file.id);
+		});
+		arg && arg.FilesRemoved && arg.FilesRemoved(uploader,files);
+    });
+    
+    //每一个文件被添加到上传队列前触发
+	uploader.bind('FileFiltered',function(uploader,file){
+		that.set(file.id,uploader);
+		arg && arg.FileFiltered && arg.FileFiltered(uploader,file);
+    });
+    
+    //当队列中的某一个文件上传完成后触发
+	uploader.bind('FileUploaded',function(uploader,file,responseObject){
+		arg && arg.FileUploaded && arg.FileUploaded(uploader,file,responseObject);
+    });
+    
+    //当使用文件小片上传功能时，每一个小片上传完成后触发
+	uploader.bind('ChunkUploaded',function(uploader,file,responseObject){
+		arg && arg.ChunkUploaded && arg.ChunkUploaded(uploader,file,responseObject);
+    });
+    
+    //当上传队列中所有文件都上传完成后触发
+	uploader.bind('UploadComplete',function(uploader,files){
+		arg && arg.UploadComplete && arg.UploadComplete(uploader,files);
+    });
+    
+    //当发生错误时触发
+	uploader.bind('Error',function(uploader,errObject){
+		arg && arg.Error && arg.Error(uploader,errObject);
+    });
+    
+    //当发生错误时触发
+	uploader.bind('Destroy',function(uploader){
+		arg && arg.Destroy && arg.Destroy(uploader);
+    });
+};
+
+/**
+ * 文件上传 rongqb 20160811
+ * @param {Object} 
+ * arg {
+ *  mediaType: 1/2/3, //1: image,2: file,3: doc
+ *  chatInfo: function, //返回to,type
+ *  drop_element: //上传文件时的拖拽区域,目前只有html5上传方式才支持拖拽上传
+ *  fileFiltered: function, //文件被添加到上传队列
+ *  beforeUpload: function, //文件上传之前
+ *  success: function,
+ *  error: function,
+ *  progress: function
+ * }
+ */
+YYIMManager.getInstance().uploader = function(obj, arg){
+	arg = arg || {};
+	
+	if(typeof obj == 'string'){
+		obj = document.getElementById(obj);
+	}
+	
+	if(!YYIMUtil['isWhateType'](arg.chatInfo,'Function')){
+		arg.error && arg.error('chatInfo isn`t Function.');
+		return;
+	}
+	
+	FileUpload.getInstance().init({
+		 'mediaType': arg.mediaType || YYIMChat.getConfig().UPLOAD.MEDIATYPE.DOC,
+		 'browse_button': obj.id,
+		 'drop_element': arg.drop_element
+	},{
+		'init': function(uploader){ 
+			uploader.addFile(obj);
+			obj = null;
+	    },
+	    
+	    //当Init事件发生后触发
+		'PostInit': function(uploader){
+	    },
+	    
+	    //当调用plupload实例的refresh()方法后会触发该事件
+		'Refresh': function(uploader){ 
+	    },
+	    
+	    //当上传队列的状态发生改变时触发
+		'StateChanged': function(uploader){
+	    },
+	    
+	    //当上传队列中某一个文件开始上传后触发
+		'UploadFile': function(uploader,file){
+	    },
+	    
+	    //当队列中的某一个文件正要开始上传前触发
+		'BeforeUpload': function(uploader,file){
+			var chatInfo = uploader.getOption('chatInfo');
+			if(chatInfo){
+				var info = chatInfo[file.id];
+				if(info){
+					try{
+						arg.beforeUpload && arg.beforeUpload({
+							file: file,
+							chatInfo: info
+						});
+					}catch(e){}
+					
+					var mediaType = uploader.getOption('mediaType');
+					
+					if(YYIMChat.getConfig().UPLOAD.IMAGE_TYPES.test(file.name)){
+						mediaType = 1;
+					}
+					
+					if(info['file_data_name']){
+						uploader.setOption('file_data_name',info['file_data_name']);
+					}
+					
+					if(info['required_features']){
+						uploader.setOption('required_features',info['required_features']);
+					}
+					
+					if(mediaType === 1 || !info.uploadUrl){
+						var to = YYIMChat.getJIDUtil().buildUserJID(YYIMChat.getJIDUtil().getNode(info.to));
+						if(info.type 
+						&& info.type == YYIMChat.getConstants().CHAT_TYPE.GROUP_CHAT){
+							to = YYIMChat.getJIDUtil().buildChatGroupJID(YYIMChat.getJIDUtil().getNode(info.to));
+						}
+						uploader.setOption('url', FileUpload.getInstance().getBaseUrl() + '?' + jQuery.param({
+							token: YYIMChat.getToken(),	
+							name: file.name,
+							mediaType: mediaType,
+							creator: YYIMChat.getUserNode(),
+							receiver: to,
+							type: file.type,
+							size: file.size,
+							original: 1
+						}));
+					}else{
+						uploader.setOption('url', info.uploadUrl); // web: '/file/act/swfupload/fileFrom/40/gid/0'
+					}
+				}
+			}
+	    },
+	    
+	    //当队列中的某一个文件正要开始上传前触发
+		'QueueChanged': function(uploader){ 
+	    },
+	    
+	    //当使用Plupload实例的setOption()方法改变当前配置参数后触发
+		'OptionChanged': function(uploader,option_name,new_value,old_value){
+	    },
+	    
+	    //会在文件上传过程中不断触发，可以用此事件来显示上传进度
+	    /**
+	     *  size	上传队列中所有文件加起来的总大小，单位为字节
+			loaded	队列中当前已上传文件加起来的总大小,单位为字节
+			uploaded	已完成上传的文件的数量
+			failed	上传失败的文件数量
+			queued	队列中剩下的(也就是除开已经完成上传的文件)需要上传的文件数量
+			percent	整个队列的已上传百分比，如50就代表50%
+			bytesPerSec	上传速率，单位为 byte/s，也就是 字节/秒
+	     */
+	    'UploadProgress': function(uploader,file){
+	   	 	var chatInfo = uploader.getOption('chatInfo'),info;
+			if(chatInfo){
+				info = chatInfo[file.id];
+			}
+			
+		    	arg && arg.progress && arg.progress({
+	    			uploaded: uploader.total.uploaded,
+				queued: uploader.total.queued,
+				bytesPerSec: uploader.total.bytesPerSec,
+		    		percent: uploader.total.percent,
+		    		size: uploader.total.size,
+		    		loaded: uploader.total.loaded,
+		    		file: file,
+		    		chatInfo: info
+		    	});
+	    },
+	    
+	    //当文件添加到上传队列后触发
+		'FilesAdded': function(uploader,files){
+			if(YYIMChat.getConfig().UPLOAD.AUTO_SEND){
+				uploader.start();
+			}
+	    },
+	    
+	    //当文件从上传队列移除后触发
+		'FilesRemoved': function(uploader,files){
+	    },
+	    
+	    //每一个文件被添加到上传队列前触发
+		'FileFiltered': function(uploader,file){
+			var info = arg.chatInfo({
+				fileName: file.name
+			});
+			if(info && info.to){
+				if((!YYIMUtil['isWhateType'](info.checkType,'Function') || info.checkType(file.getSource().type))){
+					var chatInfo = uploader.getOption('chatInfo') || {};
+					chatInfo[file.id] = info;
+					uploader.setOption('chatInfo', chatInfo);
+					
+					arg && arg.fileFiltered && arg.fileFiltered({
+						file: file,
+						chatInfo: info
+					});
+				}else{
+					uploader.removeFile(file);
+					arg && arg.error && arg.error({
+						file: file,
+						chatInfo: info,
+						error: '格式不支持'
+					});
+				}
+			}else{
+				uploader.removeFile(file); //拿不到上传的必要信息，任务此次上传失败
+				arg && arg.error && arg.error({
+					file: file,
+					chatInfo: info,
+					error: '请指定接收方'
+				});
+			}
+	    },
+	    
+	    //当队列中的某一个文件上传完成后触发
+		'FileUploaded': function(uploader,file,responseObject){
+			if(responseObject.status === 200){
+				var chatInfo = uploader.getOption('chatInfo');
+				if(file && file.getNative()){
+					file.path = file.getNative().path;
+				}
+				var info = chatInfo[file.id];
+				try{
+					var response = JSON.parse(responseObject.response);
+					if(response.code === 0 || response.attachId || response[0]){
+						delete chatInfo[file.id];
+						uploader.setOption('chatInfo',chatInfo);
+						uploader.removeFile(file);
+						FileUpload.getInstance().remove(file.id);
+						arg && arg.success && arg.success({
+							data: response,
+							file: file,
+							chatInfo: info
+						});
+					}else{
+						arg && arg.error && arg.error({
+							data: response,
+							file: file,
+							chatInfo: info
+						});
+					}
+				}catch(e){
+					arg && arg.error && arg.error({
+						data: e.message,
+						file: file,
+						chatInfo: info
+					});
+				}
+			}
+	    },
+	    
+	    //当使用文件小片上传功能时，每一个小片上传完成后触发
+		'ChunkUploaded': function(uploader,file,responseObject){
+	    },
+	    
+	    //当上传队列中所有文件都上传完成后触发
+		'UploadComplete': function(uploader,files){
+	    },
+	    
+	    //当发生错误时触发
+		'Error': function(uploader,errObject){
+			var file = errObject.file;
+			var chatInfo = uploader.getOption('chatInfo');
+			if(chatInfo){
+				errObject.chatInfo = chatInfo[file.id];
+			}
+			arg && arg.error && arg.error(errObject);
+	    },
+	    
+	    //当发生错误时触发
+		'Destroy': function(uploader){
+	    }
+	});
+};
+
+/**
+ * 手动开始上传 rongqb 20160816
+ * file: //预发送文件的id 或者 文件对象（上文返回的）
+ */
+YYIMManager.prototype.startUpload = function(file){
+	FileUpload.getInstance().start(file);
+};
+
+/**
+ * 取消上传  rongqb 20160816
+ * file: //预取消文件的id 或者 文件对象（上文返回的），非必需
+ */
+YYIMManager.prototype.cancelUpload = function(file){
+	FileUpload.getInstance().end(file);
+};
+
+/**
+ * 文件正在上传的数量
+ */
+YYIMManager.prototype.getUploadingSize = function(){
+	return FileUpload.getInstance().getUploadingSize();
+};
+
+/**
+ * 本地图片预览
+ * @param {Object} 
+ * arg {
+ * 	file: file,
+ *  success: function,
+ *  error: funciton
+ * }
+ */
+YYIMManager.prototype.previewLocalImage = function(arg) {
+	arg = arg || {};
+	var file = arg.file;
+	if(file && /image\//.test(file.type)){ //确保文件是图片
+		var that = this;
+		try {
+			if(file.type == 'image/gif') { //gif使用FileReader进行预览,因为moxie.Image只支持jpg和png
+				var fr = new moxie.file.FileReader();
+				fr.onload = function() {
+					arg.success && arg.success(fr.result);
+					fr.destroy();
+					fr = null;
+				}
+				fr.readAsDataURL(file.getSource());
+			} else {
+				var preloader = new moxie.image.Image();
+				preloader.onload = function() {
+//					preloader.downsize(that.getConfig().UPLOAD.PREVIEW_SIZE.WIDTH, that.getConfig().UPLOAD.PREVIEW_SIZE.HEIGHT); //先压缩一下要预览的图片,宽300，高300
+					var imgsrc = preloader.type == 'image/jpeg' ? preloader.getAsDataURL('image/jpeg', 80) : preloader.getAsDataURL(); //得到图片src,实质为一个base64编码的数据
+					arg.success && arg.success(imgsrc); //callback传入的参数为预览图片的url
+					preloader.destroy();
+					preloader = null;
+				};
+				preloader.load(file.getSource());
+			}
+		} catch(e) {
+			arg.error && arg.error('Local address parsing errors.');
+		}
+	}else{
+		arg.error && arg.error('The file isn`t Image.');
+	}
+};
+ 	return YYIMManager.getInstance();
+})(YYIMChat);

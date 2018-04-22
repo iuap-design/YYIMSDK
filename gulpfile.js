@@ -76,7 +76,12 @@ gulp.task('YYIMSDKWatcher', function() {
 /**
  * module digest
  */
-var digestModuleFileList = ['./src/core/sdkExtend.prefix', './src/module/digest/Manager.js', './src/module/digest/Extender.js', './src/core/sdkExtend.suffix'];
+var digestModuleFileList = [
+    './src/core/sdkExtend.prefix',
+    './src/module/digest/Manager.js',
+    './src/module/digest/Extender.js',
+    './src/core/sdkExtend.suffix'
+];
 
 gulp.task('digest', function() {
     gulp.src(digestModuleFileList)
@@ -94,7 +99,12 @@ gulp.task('digestWatcher', function() {
 /**
  * module roster
  */
-var rosterModuleFileList = ['./src/core/sdkExtend.prefix', './src/module/roster/Manager.js', './src/module/roster/Extender.js', './src/core/sdkExtend.suffix'];
+var rosterModuleFileList = [
+    './src/core/sdkExtend.prefix', 
+    './src/module/roster/Manager.js', 
+    './src/module/roster/Extender.js', 
+    './src/core/sdkExtend.suffix'
+];
 
 gulp.task('roster', function() {
     gulp.src(rosterModuleFileList)
@@ -112,7 +122,12 @@ gulp.task('rosterWatcher', function() {
 /**
  * module group
  */
-var groupModuleFileList = ['./src/core/sdkExtend.prefix', './src/module/group/Manager.js', './src/module/group/Extender.js', './src/core/sdkExtend.suffix'];
+var groupModuleFileList = [
+    './src/core/sdkExtend.prefix', 
+    './src/module/group/Manager.js', 
+    './src/module/group/Extender.js', 
+    './src/core/sdkExtend.suffix'
+];
 
 gulp.task('group', function() {
     gulp.src(groupModuleFileList)
@@ -130,7 +145,12 @@ gulp.task('groupWatcher', function() {
 /**
  * module pubaccount
  */
-var pubaccountModuleFileList = ['./src/core/sdkExtend.prefix', './src/module/pubaccount/Manager.js', './src/module/pubaccount/Extender.js', './src/core/sdkExtend.suffix'];
+var pubaccountModuleFileList = [
+    './src/core/sdkExtend.prefix', 
+    './src/module/pubaccount/Manager.js', 
+    './src/module/pubaccount/Extender.js', 
+    './src/core/sdkExtend.suffix'
+];
 
 gulp.task('pubaccount', function() {
     gulp.src(pubaccountModuleFileList)
@@ -148,7 +168,12 @@ gulp.task('pubaccountWatcher', function() {
 /**
  * module extend
  */
-var extendModuleFileList = ['./src/core/sdkExtend.prefix', './src/module/extend/Manager.js', './src/module/extend/Extender.js', './src/core/sdkExtend.suffix'];
+var extendModuleFileList = [
+    './src/core/sdkExtend.prefix', 
+    './src/module/extend/Manager.js', 
+    './src/module/extend/Extender.js', 
+    './src/core/sdkExtend.suffix'
+];
 
 gulp.task('extend', function() {
     gulp.src(extendModuleFileList)
@@ -166,7 +191,12 @@ gulp.task('extendWatcher', function() {
 /**
  * module profile
  */
-var profileModuleFileList = ['./src/core/sdkExtend.prefix', './src/module/profile/Manager.js', './src/module/profile/Extender.js', './src/core/sdkExtend.suffix'];
+var profileModuleFileList = [
+    './src/core/sdkExtend.prefix', 
+    './src/module/profile/Manager.js', 
+    './src/module/profile/Extender.js', 
+    './src/core/sdkExtend.suffix'
+];
 
 gulp.task('profile', function() {
     gulp.src(profileModuleFileList)
@@ -184,7 +214,12 @@ gulp.task('profileWatcher', function() {
 /**
  * module message
  */
-var messageModuleFileList = ['./src/core/sdkExtend.prefix', './src/module/message/Manager.js', './src/module/message/Extender.js', './src/core/sdkExtend.suffix'];
+var messageModuleFileList = [
+    './src/core/sdkExtend.prefix', 
+    './src/module/message/Manager.js', 
+    './src/module/message/Extender.js', 
+    './src/core/sdkExtend.suffix'
+];
 
 gulp.task('message', function() {
     gulp.src(messageModuleFileList)
@@ -345,7 +380,8 @@ gulp.task('build', [
     'extend',
     'todo',
     'profile',
-    'aiability'
+    'aiability',
+    'YYIMSDK'
 ], function() {
     // gulp.run('YYIMSDK', 'YYIMSDKWatcher');
 });
