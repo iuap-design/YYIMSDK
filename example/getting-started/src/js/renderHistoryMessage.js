@@ -1,5 +1,6 @@
 //dom元素
 import {
+    $chats,
     $j_bq_box,
     $chats_list
 } from './jqelements';
@@ -22,14 +23,22 @@ const replaceEmoji = (str) => {
 };
 
 //渲染聊天记录,直接传入聊天记录列表即可
-export default (chats) => {
+export default (arg) => {
+    let historychats = localStorage.getItem('historychats') || "[]";
+    historychats = JSON.parse(historychats);
+    if(arg){
+        historychats.unshift(arg);
+        localStorage.setItem('historychats',JSON.stringify(historychats));
+    };
+    historychats.reverse();
     let chatsStr = '';
     let myid = JSON.parse(localStorage.getItem('currentuserinfo')).id;
-    chats.forEach(function(chat, i){
+
+    historychats.forEach(function(chat, i){
         let isfromme = myid === chat.from;
         if(chat.data.contentType === 2){
             chatsStr += `<li>
-                            <div class="chat-tip">${new Date(chat.dateline).toLocaleTimeString()}</div>
+                            <div class="chat-tip">${new Date(chat.data.dateline).toLocaleTimeString()}</div>
                             <div class="chat-content">
                                 <div class="${ isfromme? 'chat-avatar chat-avatar-send' :'chat-avatar'}">
                                     <img src="./imgs/avatar.jpg" alt="">
@@ -43,4 +52,5 @@ export default (chats) => {
         }
     });
     $chats_list.html(chatsStr);
+    $chats.scrollTop($chats[0].scrollHeight);
 };

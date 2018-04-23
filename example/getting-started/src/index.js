@@ -4,25 +4,42 @@ import './js/controlEvent';
 //获取最近联系人
 import getRecentDigset from './js/getRecentDigset';
 
-//初始化SDK
+//渲染历史聊天记录
+import renderHistoryMessage from './js/renderHistoryMessage';
+
+//初始化SDK，正式环境
 YYIMChat.initSDK({
-    app: 'im_pre', //appId
+    app: 'udn', //appId
     etp: 'yonyou', //etpId
-    wsurl: '172.20.15.60', //websocket Url
+    wsurl: 'stellar.yyuap.com', //websocket Url
     wsport: 5227, //websocket port 5227/5222/5225
     hbport: 7075, //httpbind  port 7075/7070
-    servlet: 'https://172.20.15.60/', //rest Url
+    servlet: 'https://im.yyuap.com/', //rest Url
     flash_swf_url: 'xxx/x/Moxie.swf', //flash 上传 swf文件位置
     logEnable: true, //client log
     clientMark: 'web', //client mark 'web' or 'pc'
     apiKey: "85de79b9f7e34c37a99accaddb256990"
 });
+//初始化SDK，测试环境
+// YYIMChat.initSDK({
+//     app: 'im_pre', //appId
+//     etp: 'yonyou', //etpId
+//     wsurl: '172.20.15.60', //websocket Url
+//     wsport: 5227, //websocket port 5227/5222/5225
+//     hbport: 7075, //httpbind  port 7075/7070
+//     servlet: 'http://172.20.15.60/', //rest Url
+//     flash_swf_url: 'xxx/x/Moxie.swf', //flash 上传 swf文件位置
+//     logEnable: true, //client log
+//     clientMark: 'web', //client mark 'web' or 'pc'
+//     apiKey: "85de79b9f7e34c37a99accaddb256990"
+// });
 
 //初始化回调方法
 YYIMChat.init({
     onOpened: function() {
         // 登录成功
         YYIMChat.setPresence();
+        localStorage.removeItem('targetuserid');
         // 获取自己信息
         YYIMChat.getVCard({
             success: function (res) {
@@ -68,8 +85,13 @@ YYIMChat.init({
         //好友信息更改
     },
     onMessage: function(arg) {
-        //收到消息
-        console.log('收到消息了：', arg);
+        //收到消息后更新最近联系人列表
+        getRecentDigset();
+        //更新聊天信息，如果我正在和别人聊天，那么不跟新
+        let target = localStorage.getItem('targetuserid');
+        if(target && target === arg.from) {
+            renderHistoryMessage(arg);
+        }
     },
     onGroupUpdate: function(arg) {
         //群组更新

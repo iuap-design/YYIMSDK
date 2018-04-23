@@ -7,7 +7,7 @@ import {
 //渲染聊天记录
 import renderHistoryMessage from './renderHistoryMessage';
 
-//获取聊天历史,传入sessionVersion,id和type参数
+//获取聊天历史,传入sessionVersion,对方id和type参数
 export default (sessionVersion, id, type) => {
     let endVersion = sessionVersion;
     let start = endVersion > 20 ? endVersion - 20 : 0;
@@ -20,7 +20,9 @@ export default (sessionVersion, id, type) => {
             $chats_list.html('');
             $chat_box.show();
             if (res.result.length > 0) {
-                renderHistoryMessage(res.result);
+                //把聊天记录缓存到本地
+                localStorage.setItem('historychats', JSON.stringify(res.result));
+                renderHistoryMessage();
             }
         }
     });

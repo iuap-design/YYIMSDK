@@ -8,13 +8,22 @@ import {
     $yyim_editor,
     $btn_send,
     $login_username,
+    $login_pass,
     $login_btn,
     $hcontacts
 } from './jqelements';
+
 //用户登陆
 import userLogin from './userLogin';
+
+//获取获取最近联系人
+import getRecentDigset from './getRecentDigset';
+
 //获取历史聊天记录
 import getHistoryMessage from './getHistoryMessage';
+
+//渲染历史聊天记录
+import renderHistoryMessage from './renderHistoryMessage';
 
 
 //临时自动登录的
@@ -24,8 +33,9 @@ if(localStorage.getItem('currentuserinfo')){
 //用户登陆
 $login_btn.click(function () {
     let username = $login_username.val();
+    let password = $login_pass.val();
     if(/^[a-z][a-z_0-9]*$/.test(username)){
-        userLogin(username);
+        userLogin(username, password);
     }
 });
 
@@ -44,14 +54,14 @@ $('.closechat').click(function () {
 
 //移动事件
 $j_move.on('mousedown', function (e) {
-    let originX = e.pageX;
-    let originY = e.pageY;
+    let originX = e.clientX;
+    let originY = e.clientY;
     let boxPos = $yyim_main.position();
-    $j_move.on('mousemove', function (e) {
-        $yyim_main.css({left: (boxPos.left + e.pageX - originX) + 'px', top: (boxPos.top + e.pageY - originY) + 'px'});
+    $yyim_box.on('mousemove', function (e) {
+        $yyim_main.css({left: (boxPos.left + e.clientX - originX) + 'px', top: (boxPos.top + e.clientY - originY) + 'px'});
     });
 });
-$j_move.on('mouseup', function () {
+$yyim_box.on('mouseup', function () {
     $(this).off('mousemove');
 });
 
@@ -73,17 +83,19 @@ $('.yyim-search').on('keydown',function (e) {
 //联系人点击
 $hcontacts.on('click','li',function () {
     $(this).addClass('active');
-    localStorage.setItem('targetuserid', $(this).attr('data-id'));//保存聊天对方id，用于发送消息
+    $(this).siblings().removeClass('active');
+    $j_move.html($(this).attr('data-id'));
+    localStorage.setItem('targetuserid', $(this).attr('data-id'));//保存聊天对方id，用于给他发送消息
     getHistoryMessage($(this).attr('data-sessionVersion'), $(this).attr('data-id'), $(this).attr('data-type'));
 });
 
 //关闭联系人点击
 $hcontacts.on('click','.close',function () {
-    console.log('关闭');
+    console.log('关闭'+ $(this).attr('data-id'));
     return false;
 });
 
-//除了自己点击其他部分隐藏表情框
+//除了自己,点击其他部分隐藏表情框
 $('body').click(function () {
     $j_bq_box.hide();
 });
@@ -153,8 +165,29 @@ $btn_send.on('click',function () {
             extend: '',  //扩展字段
             success: function (msg) {
                 $yyim_editor.val('');
-                console.log(msg)
+                $btn_send.addClass('adit-btn-send-disabled');
+                getRecentDigset();
+                renderHistoryMessage(msg);
             }
         });
     }
 });
+
+//按下enter也可以发送
+$yyim_editor.on('keydown',function(e){
+    if(e.keyCode === 13 && $yyim_editor.val()){
+        let to = localStorage.getItem('targetuserid');
+        YYIMChat.sendTextMessage({
+            to: to, //对话人id
+            type: "chat",  //chat:单聊，groupcgat:群聊,pubaccount:公众号
+            content:$yyim_editor.val(), //消息文本
+            extend: '',  //扩展字段
+            success: function (msg) {
+                $yyim_editor.val('');
+                $btn_send.addClass('adit-btn-send-disabled');
+                getRecentDigset();
+                renderHistoryMessage(msg);
+            }
+        });
+    }
+})
