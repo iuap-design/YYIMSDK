@@ -41,16 +41,16 @@
 ```js
     //通过一些配置信息去初始化YYIMSDK。
     YYIMChat.initSDK({
-        app: 'im_pre', //appId应用id
-        etp: 'yonyou', //etpId企业id
-        wsurl: '172.20.15.60', //websocket Url
+        app: '', //appId应用id
+        etp: '', //etpId企业id
+        wsurl: '', //websocket Url
         wsport: 5227, //websocket port 5227/5222/5225
-        servlet: 'https://172.20.15.60/', //rest Url
+        servlet: '', //rest Url
         hbport: 7075, //httpbind  port 7075/7070
         flash_swf_url: 'xxx/x/Moxie.swf', //flash 上传 swf文件位置
         logEnable: true, //client log
         clientMark: 'web', //client mark 'web' or 'pc'
-        apiKey: "85de79b9f7e34c37a99accaddb256990"
+        apiKey: ''
     });
 ```
 
@@ -126,9 +126,9 @@
 ```js
     //通过企业应用登陆接口，获得相关配置信息后，再通过下面的方式登陆YYIM，成功登陆后才能正常使用YYIMSDK。
     YYIMChat.login({
-        "username": 'zongtf', //用户名
-        "token": result.token, //用户token
-        "expiration": result.expiration, //时间戳
+        "username": '', //用户名
+        "token": '', //用户token
+        "expiration": '', //时间戳
         "appType": 4, //企业应用类型
         "identify": '' //鉴定信息，如这样生成：var clientIdentify = "pc" + String(new Date().getTime());
     });
