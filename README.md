@@ -24,38 +24,130 @@
 - [设置置顶](https://iuap-design.github.io/YYIMSDK/profile.html)
 - [登录和退出](https://iuap-design.github.io/YYIMSDK/%E7%99%BB%E9%99%86%E9%80%80%E5%87%BA.html)
 
-## 一分钟快速接入 IMSDK-WEB
+## YYIM 接入指南
 
-```
-<script type="text/javascript" src="./jquery-1.11.1.min.js"></script>
-<script type="text/javascript" src="./YYIMSDK.js"></script>
+### 第一步：在html文件头部先后引入 jquery.js 和 YYIMSDK.js(或者YYIMSDK.min.js)。
+```html
+    <!-- 因为 YYIMSDK依赖于jQuery -->
+    <head>
+        <meta charset="UTF-8">
+        <title>YYIM</title>
+        <script src="http://design.yonyoucloud.com/static/jquery/3.2.1/jquery.min.js"></script>
+        <script src="http://design.yyuap.com/static/imsdk-web/1.0.3/YYIMSDK.js"></script>
+    </head>
 ```
 
+### 第二步：初始化SDK
+```js
+    //通过一些配置信息去初始化YYIMSDK。
+    YYIMChat.initSDK({
+        app: 'im_pre', //appId应用id
+        etp: 'yonyou', //etpId企业id
+        wsurl: '172.20.15.60', //websocket Url
+        wsport: 5227, //websocket port 5227/5222/5225
+        servlet: 'https://172.20.15.60/', //rest Url
+        hbport: 7075, //httpbind  port 7075/7070
+        flash_swf_url: 'xxx/x/Moxie.swf', //flash 上传 swf文件位置
+        logEnable: true, //client log
+        clientMark: 'web', //client mark 'web' or 'pc'
+        apiKey: "85de79b9f7e34c37a99accaddb256990"
+    });
 ```
-YYIMChat.initSDK('{appId}', '{etpId}'); 
 
-YYIMChat.init({
-            onOpened :  onOpened, // 登录成功
-            onClosed : onClosed, // 连接关闭
-            onAuthError : onAuthError, // 认证失败
-            onStatusChanged : onStatusChanged, //连接状态改变
-            onConnectError : onConnectError, // 连接错误
-            onPresence : onPresence, // 好友状态改变
-            onSubscribe : onSubscribe, // 订阅处理
-            onRosterUpdateded : onRosterUpdateded, //联系人信息更新
-            onRosterDeleted : onRosterDeleted, //被联系人删除
-            onReceipts : onReceipts, // 接收到消息回执
-            onTextMessage : onTextMessage, // 接收到文本(表情)消息
-            onPictureMessage : onPictureMessage, // 接收到图片
-            onFileMessage : onFileMessage // 接收到文件
-            onShareMessage : onShareMessage, //接收到分享消息
-            onSystemMessage: onSystemMessage, //接收到单图文消息
-            onPublicMessage: onPublicMessage, //接收到多图文消息
-            onLocationMessage: onLocationMessage, //接收到位置共享消息
-            onAudoMessage : onAudoMessage, //接收到语音消息
-            onGroupUpdate :  onGroupUpdate, //群组信息及成员信息更新
-            onKickedOutGroup : onKickedOutGroup //被群组踢出
-        });
+### 第三步：初始化回调方法
+```js
+    //把YYIM相关的事件逻辑都写在相应的事件回调函数中。
+    YYIMChat.init({
+        onOpened: function() {
+            // 登录成功后的回调，可以把登陆成功后需要处理的逻辑放这里。
+        },
+        onExpiration: function(callback) {
+            //自动更新token
+        },
+        onClosed: function(arg) {
+            //连接关闭
+        },
+        onConflicted: function(arg) {
+            //登陆冲突
+        },
+        onClientKickout: function(arg) {
+            //被他端踢掉
+        },
+        onUpdatePassword: function(arg) {
+            //更改密码，被踢掉
+        },
+        onAuthError: function(arg) {
+            //登陆认证失败
+        },
+        onConnectError: function(arg) {
+            //连接失败
+        },
+        onReceipts: function(arg) {
+            //消息回执
+        },
+        onSubscribe: function(arg) {
+            //发生订阅
+        },
+        onRosterFavorited: function(arg) {
+            //被收藏
+        },
+        onRosterUpdateded: function(arg) {
+            //好友信息更改
+        },
+        onMessage: function(arg) {
+            //收到消息
+            console.log('收到消息了：', arg);
+        },
+        onGroupUpdate: function(arg) {
+            //群组更新
+        },
+        onKickedOutGroup: function(arg) {
+            //群成员被群主提出
+        },
+        onTransferGroupOwner: function(arg){
+            //群主转让
+        },
+        onPresence: function(arg) {
+            //好友presence改变
+        },
+        onRosterDeleted: function(arg) {
+            //好友被删除
+        },
+        onPubaccountUpdate: function(pubaccounts) {
+            //公共号信息更新
+        },
+        onTransparentMessage: function(arg) {
+            //透传业务消息
+        }
+    });
+```
+
+### 第四步：登陆YYIMSDK
+```js
+    //通过企业应用登陆接口，获得相关配置信息后，再通过下面的方式登陆YYIM，成功登陆后才能正常使用YYIMSDK。
+    YYIMChat.login({
+        "username": 'zongtf', //用户名
+        "token": result.token, //用户token
+        "expiration": result.expiration, //时间戳
+        "appType": 4, //企业应用类型
+        "identify": '' //鉴定信息，如这样生成：var clientIdentify = "pc" + String(new Date().getTime());
+    });
+```
+
+### 第五步：使用YYIMSDK
+```js
+    //这里以获取最近联系人YYIMSDK为例。
+    YYIMChat.getRecentDigset({
+        success: function (result) {
+            console.log(result);
+        },
+        error: function (err) {
+            console.log(err);
+        },
+        complete: function () {
+            //无论成功失败，请求完成之后执行
+        }
+    });
 ```
 
 ## Contribute 如何参与IMSDK的修改
