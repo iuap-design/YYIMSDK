@@ -215,6 +215,10 @@ body{
     line-height: 18px;
     color: #9e9e9e;
 }
+.history-contacts .detail .emoji{
+    height: 18px;
+    width: 18px;
+}
 .hcontacts .newtip{
     display: none;
     position: absolute;
@@ -351,15 +355,47 @@ body{
     word-break: break-all;
     word-wrap: break-word;
 }
-.chats-list .chat-msg img{
+.chats-list .chat-txt-send .chat-msg{
+    background-color: #bbeaff;
+}
+.chats-list .chat-msg .emoji{
     display: inline-block;
     width: 22px;
     margin: 0 2px;
     vertical-align: middle;
 }
-.chats-list .chat-txt-send .chat-msg{
-    background-color: #bbeaff;
+.chats-list .chat-msg .chatpic{
+    width: 200px;
+    cursor: pointer;
 }
+.chats-list .chat-msg .chatfile{
+    position: relative;
+    display: block;
+    padding: 10px 60px 10px 10px;
+    width: 130px;
+    height: 40px;
+    line-height: 1.2;
+    color: #333;
+    background-color: #fff;
+    cursor: pointer;
+    border-radius: 4px;
+}
+.chats-list .chat-msg .chatfile::after{
+    content: " ";
+    display: block;
+    position: absolute;
+    right: 10px;
+    top: 10px;
+    width: 40px;
+    height: 40px;
+    background: url(../imgs/icon-file.png) no-repeat center #dedede;
+    background-size: 24px 20px;
+}
+.chats-list .chat-msg .chatfile .filesize{
+    display: block;
+    color: #999;
+}
+
 
 
 
