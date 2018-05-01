@@ -218,9 +218,9 @@ body{
 .history-contacts .detail .emoji{
     height: 18px;
     width: 18px;
+    vertical-align: middle;
 }
 .hcontacts .newtip{
-    display: none;
     position: absolute;
     top: 12px;
     right: 5px;
