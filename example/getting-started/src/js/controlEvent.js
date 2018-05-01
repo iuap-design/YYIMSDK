@@ -10,14 +10,17 @@ import {
     $login_username,
     $login_pass,
     $login_btn,
-    $hcontacts
+    $hcontacts,
+    $chats_list,
+    $picviewer,
+    picviewer
 } from './jqelements';
+
+//表情数据
+import { expressionList } from './constants';
 
 //用户登陆
 import userLogin from './userLogin';
-
-//获取获取最近联系人
-import getRecentDigset from './getRecentDigset';
 
 //获取历史聊天记录
 import getHistoryMessage from './getHistoryMessage';
@@ -25,6 +28,10 @@ import getHistoryMessage from './getHistoryMessage';
 //渲染历史聊天记录
 import renderHistoryMessage from './renderHistoryMessage';
 
+//放置表情列表
+$j_bq_box.html(expressionList.data.map((t) => {
+    return `<li data-code="${t.actionData}"><img src="${expressionList.path+t.url}" title="${t.actionData}" alt=""></li>`;
+}));
 
 //临时自动登录的
 if(localStorage.getItem('currentuserinfo')){
@@ -70,22 +77,26 @@ $yyim_box.on('mouseup', function () {
 $('.yyim-search').on('keydown',function (e) {
     let keyword = $(this).val();
     if(e.keyCode === 13 && keyword){
-        //搜索联系人
-        YYIMChat.queryRosterItem({
-            keyword: keyword,
+        //
+        YYIMChat.getRosterItems({
             success: function (res) {
-                console.log(res);
+                console.log(JSON.parse(res));
             }
         });
     }
 });
 
-//联系人点击
+//点击最近联系人
 $hcontacts.on('click','li',function () {
+    $chats_list.html('');
     $(this).addClass('active');
     $(this).siblings().removeClass('active');
-    $j_move.html($(this).attr('data-id'));
-    localStorage.setItem('targetuserid', $(this).attr('data-id'));//保存聊天对方id，用于给他发送消息
+    $j_move.html($(this).attr('data-nickname'));
+    //把选择的聊天对方id保存起来,用于给他发送消息
+    localStorage.setItem('targetuserid', $(this).attr('data-id'));
+    //删除保存的聊天历史
+    localStorage.removeItem('historychats');
+    //获取历史聊天信息
     getHistoryMessage($(this).attr('data-sessionVersion'), $(this).attr('data-id'), $(this).attr('data-type'));
 });
 
@@ -95,10 +106,14 @@ $hcontacts.on('click','.close',function () {
     return false;
 });
 
-//除了自己,点击其他部分隐藏表情框
-$('body').click(function () {
-    $j_bq_box.hide();
+//查看聊天消息图片
+$chats_list.on('click', '.chatpic', function(){
+    let picurl = $(this).attr('data-url');
+    $picviewer.html('<li><img data-original="'+ picurl +'" src="'+ picurl +'" alt=""></li>')
+    picviewer.show({url: picurl});
 });
+
+
 
 //表情按钮点击
 $('.j_menu_bq').hover(function () {
@@ -123,7 +138,10 @@ $j_bq_box.on('click', 'li', function () {
     return false;
 });
 
-//图片按钮点击
+//按要求隐藏表情框
+$j_bq_box.hover(function (e) {},function(){$(this).hide()});
+
+//发送图片按钮点击
 $('.j_menu_tp').hover(function () {
     $(this).addClass('hover');
     $('.tp_tip').css('display', 'block');
@@ -131,16 +149,37 @@ $('.j_menu_tp').hover(function () {
     $(this).removeClass('hover');
     $('.tp_tip').css('display', 'none');
 }).click(function () {
-    $('#uploadfile').click();
+    $('#uploadPic').click();
 });
 
-//控制是否可以发送
-$yyim_editor.on('input propertychange', function () {
-    if($(this).val()){
-        $btn_send.removeClass('adit-btn-send-disabled');
-    }else {
-        $btn_send.addClass('adit-btn-send-disabled');
-    }
+$('#uploadPic').on('change', function(){
+    //获取对话人id
+    let to = localStorage.getItem('targetuserid');
+    YYIMChat.sendPic({
+        fileInputId:'uploadPic', //文件域id 
+        // drop_element: [dropID], //拖拽上传元素id，或者数组
+        chatInfo: function(){ //用户发送消息时获取对话人信息
+            return {
+                to: to, //对话人id
+                type: 'chat', //chat/groupchat/pubaccount
+                extend: '' //扩展字段
+            };
+        },
+        fileFiltered: function(){}, //文件被添加到上传队列
+        fileUploaded: function(){}, //上传队列某一个文件上传完毕
+        beforeUpload: function(){}, //文件上传之前触发
+        success:function(msg){
+            //渲染历史信息
+            renderHistoryMessage(msg);
+        },
+        error: function(err){
+            console.log(err);
+        },
+        progress: function(pro){
+            //上传进度
+            console.log(pro);
+        }
+    })
 });
 
 //文件按钮点击
@@ -151,22 +190,65 @@ $('.j_menu_wj').hover(function () {
     $(this).removeClass('hover');
     $('.wj_tip').css('display', 'none');
 }).click(function () {
-    console.log('发送文件');
+    $('#uploadFile').click();
+});
+
+$('#uploadFile').on('change', function(){
+    //获取对话人id
+    let to = localStorage.getItem('targetuserid');
+    YYIMChat.sendFile({
+        fileInputId:'uploadFile', //文件域id 
+        // drop_element: [dropID], //拖拽上传元素id，或者数组
+        chatInfo: function(){ //用户发送消息时获取对话人信息
+            return {
+                to: to, //对话人id
+                type: 'chat', //chat/groupchat/pubaccount
+                extend: '' //扩展字段
+            };
+        },
+        fileFiltered: function(){}, //文件被添加到上传队列
+        fileUploaded: function(){}, //上传队列某一个文件上传完毕
+        beforeUpload: function(){}, //文件上传之前触发
+        success:function(msg){
+            //渲染历史信息
+            renderHistoryMessage(msg);
+        },
+        error: function(err){
+            console.log(err);
+        },
+        progress: function(pro){
+            //上传进度
+            console.log(pro);
+        }
+    })
+});
+
+
+//控制是否可以发送
+$yyim_editor.on('input propertychange', function () {
+    if($(this).val()){
+        $btn_send.removeClass('adit-btn-send-disabled');
+    }else {
+        $btn_send.addClass('adit-btn-send-disabled');
+    }
 });
 
 //发送按钮点击
 $btn_send.on('click',function () {
-    let to = localStorage.getItem('targetuserid');
     if($yyim_editor.val()){
+        //从本地拿取聊天对方id
+        let to = localStorage.getItem('targetuserid');
+        //调用发送文本消息接口
         YYIMChat.sendTextMessage({
             to: to, //对话人id
             type: "chat",  //chat:单聊，groupcgat:群聊,pubaccount:公众号
             content:$yyim_editor.val(), //消息文本
             extend: '',  //扩展字段
             success: function (msg) {
+                //发送成功之后清空输入框
                 $yyim_editor.val('');
                 $btn_send.addClass('adit-btn-send-disabled');
-                getRecentDigset();
+                //渲染历史信息
                 renderHistoryMessage(msg);
             }
         });
@@ -176,16 +258,19 @@ $btn_send.on('click',function () {
 //按下enter也可以发送
 $yyim_editor.on('keydown',function(e){
     if(e.keyCode === 13 && $yyim_editor.val()){
+        //从本地拿取聊天对方id
         let to = localStorage.getItem('targetuserid');
+        //调用发送文本消息接口
         YYIMChat.sendTextMessage({
             to: to, //对话人id
             type: "chat",  //chat:单聊，groupcgat:群聊,pubaccount:公众号
             content:$yyim_editor.val(), //消息文本
             extend: '',  //扩展字段
             success: function (msg) {
+                //发送成功之后清空输入框
                 $yyim_editor.val('');
                 $btn_send.addClass('adit-btn-send-disabled');
-                getRecentDigset();
+                //渲染历史信息
                 renderHistoryMessage(msg);
             }
         });

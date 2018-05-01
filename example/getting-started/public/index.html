@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -6,10 +6,12 @@
     <link rel="shortcut icon" href="./imgs/logo.ico">
     <link rel="stylesheet" href="./css/reset.css">
     <link rel="stylesheet" href="./css/ifont/iconfont.css">
+    <link rel="stylesheet" href="./css/viewer/viewer.min.css">
     <link rel="stylesheet" href="./css/index.css">
     <!--<script src="http://design.yonyoucloud.com/static/jquery/3.2.1/jquery.min.js"></script>-->
     <!--<script src="http://design.yyuap.com/static/imsdk-web/1.0.3/YYIMSDK.js"></script>-->
     <script src="./css/jquery-3.2.1.min.js"></script>
+    <script src="./css/viewer/viewer.min.js"></script>
     <script src="./css/YYIMSDK.js"></script>
 </head>
 <body>
@@ -121,13 +123,16 @@
                             <li>
                                 <span class="j_menu_tp iconfont icon-icon--"></span>
                                 <i class="typetip tp_tip">图片</i>
-                                <form enctype="multipart/form-data" id="oForm" style="display: none">
-                                    <input type="file" name="file" id="uploadfile" />
+                                <form enctype="multipart/form-data" id="oFormPic" style="display: none">
+                                    <input type="file" name="file" accept = "image/*" id="uploadPic" />
                                 </form>
                             </li>
                             <li>
                                 <span class="j_menu_wj iconfont icon-icon--1"></span>
                                 <i class="typetip wj_tip">文件</i>
+                                <form enctype="multipart/form-data" id="oFormFile" style="display: none">
+                                    <input type="file" name="file" id="uploadFile" />
+                                </form>
                             </li>
                         </ul>
                         <textarea class="yyim-editor" title=""></textarea>
@@ -140,4 +145,8 @@
         </div>
     </div>
 </div>
+<!-- picviewer -->
+<ul id="picviewer" style="display: none;">
+        <li><img data-original="" src="" alt=""></li>
+</ul>
 <script type="text/javascript" src="main.bundle.js"></script></body>

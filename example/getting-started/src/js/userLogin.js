@@ -1,7 +1,7 @@
 //元素
 import { $yyim_iogin, $yyim_box } from './jqelements';
 
-//用户登陆，传入用户名(暂时写死为zongtf，因为其他的注册不成功)
+//用户登陆
 export default (username, password) => {
     //正式环境
     $.ajax({

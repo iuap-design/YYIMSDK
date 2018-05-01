@@ -37,8 +37,9 @@ YYIMChat.initSDK({
 //初始化回调方法
 YYIMChat.init({
     onOpened: function() {
-        // 登录成功
+        // 登录成功设置在线状态
         YYIMChat.setPresence();
+        //移除保存的通讯对方id，避免页面刷新后最近联系人联系状态还记录着
         localStorage.removeItem('targetuserid');
         // 获取自己信息
         YYIMChat.getVCard({
@@ -84,14 +85,9 @@ YYIMChat.init({
     onRosterUpdateded: function(arg) {
         //好友信息更改
     },
-    onMessage: function(arg) {
-        //收到消息后更新最近联系人列表
-        getRecentDigset();
-        //更新聊天信息，如果我正在和别人聊天，那么不跟新
-        let target = localStorage.getItem('targetuserid');
-        if(target && target === arg.from) {
-            renderHistoryMessage(arg);
-        }
+    onMessage: function(msg) {
+        //渲染历史聊天记录
+        renderHistoryMessage(msg);
     },
     onGroupUpdate: function(arg) {
         //群组更新

@@ -9,21 +9,21 @@ import renderHistoryMessage from './renderHistoryMessage';
 
 //获取聊天历史,传入sessionVersion,对方id和type参数
 export default (sessionVersion, id, type) => {
-    let endVersion = sessionVersion;
-    let start = endVersion > 20 ? endVersion - 20 : 0;
+    let start = sessionVersion > 20 ? sessionVersion - 20 : 0;
+    //获取历史聊天信息
     YYIMChat.getHistoryMessage({
         id: id,
         type: type,
         startVersion: start,
-        endVersion: endVersion,
+        endVersion: sessionVersion,
         success: function (res) {
-            $chats_list.html('');
+            let historychats = res.result || [];
             $chat_box.show();
-            if (res.result.length > 0) {
-                //把聊天记录缓存到本地
-                localStorage.setItem('historychats', JSON.stringify(res.result));
-                renderHistoryMessage();
-            }
+            historychats.reverse();
+            //把聊天记录缓存到本地
+            localStorage.setItem('historychats', JSON.stringify(historychats));
+            //渲染聊天信息
+            renderHistoryMessage();
         }
     });
 };

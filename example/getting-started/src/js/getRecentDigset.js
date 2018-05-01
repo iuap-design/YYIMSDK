@@ -1,34 +1,37 @@
-//dom元素
-import {
-    $hcontacts
-} from './jqelements';
+
+//导入最近联系人渲染函数
+import renderRecentDigset from './renderRecentDigset';
 
 //获取最近联系人
 export default () => {
-    $hcontacts.html('');
-    // 拉取摘要
+    // 获取最近联系人API
     YYIMChat.getRecentDigset({
         success: function (result) {
-            let targetuserid = localStorage.getItem('targetuserid');
-            //result.list是最近联系人
             if (result.list.length) {
-                let contactStr = '';
+                let recentDigset = [];
                 result.list.forEach(function(e, i){
-                    //目前测试只显示个人聊天，不显示群或其他
+                    //目前测试只显示个人聊天，不显示群或其他 
                     if(e.type !== 'chat'){return;}
-                    $hcontacts.html('');
-                    contactStr += `<li class="${targetuserid && targetuserid === e.id ? 'active' : ''}" data-sessionVersion="${e.sessionVersion}" data-id="${e.id}" data-type="${e.type}">
-                                        <i data-id="${e.id}" class="close">×</i>
-                                        <div class="avatar">
-                                            <img src="./imgs/avatar.jpg" alt="">
-                                        </div>
-                                        <div class="detail">
-                                            <h3 class="name cuttxt">${e.name || e.id}</h3>
-                                            <p class="msg cuttxt">${e.lastMessage && e.lastMessage.data.contentType === 2 ? e.lastMessage.data.content : ''}</p>
-                                        </div>
-                                        <i class="newtip cuttxt">2</i>
-                                    </li>`;
-                    $hcontacts.html(contactStr);
+                    //通过id获取个人信息
+                    YYIMChat.getVCard({
+                        id: e.id,
+                        success: function(res){
+                            //整理最近联系人列表到一个新数组
+                            recentDigset.push({
+                                id: res.id,
+                                readedVersion: e.readedVersion,
+                                sessionVersion: e.sessionVersion,
+                                type: e.type,
+                                photo: res.photo || '',
+                                nickname: res.nickname,
+                                lastMessage: e.lastMessage,
+                                lastContactTime: e.lastContactTime
+                            });
+                            //把最近联系人列表保存到本地
+                            localStorage.setItem('recentdigset', JSON.stringify(recentDigset));
+                            renderRecentDigset(recentDigset);
+                        }
+                    });
                 });
             }
         },
