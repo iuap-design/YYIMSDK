@@ -1,4 +1,5 @@
-var Manager = (function(){
+import { YYIMManager, YYIMChat } from '../../core/manager';
+	
 	/**
 	 * 多方通话 rongqb 20160104
 	 * @param arg {
@@ -143,8 +144,7 @@ var Manager = (function(){
 		}
 	}
 	
-	return {
-		multiPartyCall: multiPartyCall,
-		getTimeCorrection: getTimeCorrection
+	export {
+		multiPartyCall,
+		getTimeCorrection
 	};
-})();

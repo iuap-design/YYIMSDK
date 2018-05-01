@@ -1,3 +1,10 @@
+import { YYIMManager } from '../../core/manager';
+import {
+    getTransformFileList,
+    getFileUrl
+
+} from './Manager';
+
 /**
  * 根据附件id获取 文档转换（图片）后的信息
  * @param {Object} arg
@@ -10,7 +17,7 @@
  */
 YYIMManager.prototype.getTransformFileList = function(arg){
 	if(arg && arg.attachId) {
-		Manager.getTransformFileList(arg);
+		getTransformFileList(arg);
 	} else {
 		arg && arg.error && arg.error();
 	}
@@ -18,6 +25,6 @@ YYIMManager.prototype.getTransformFileList = function(arg){
 
 YYIMManager.prototype.getFileUrl = function(attachId,mediaType){
 	if(attachId){
-		return Manager.getFileUrl(attachId,mediaType);
+		return getFileUrl(attachId,mediaType);
 	}
 };

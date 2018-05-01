@@ -1,3 +1,5 @@
+import { YYIMChat } from '../../core/manager';
+
 function FileUpload(){
 }
 
@@ -199,3 +201,5 @@ FileUpload.prototype.bindEvents = function(uploader,arg){
 		arg && arg.Destroy && arg.Destroy(uploader);
     });
 };
+
+export { FileUpload };

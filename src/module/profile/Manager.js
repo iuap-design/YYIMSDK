@@ -1,4 +1,5 @@
-var Manager = (function(){
+import { YYIMManager, YYIMChat } from '../../core/manager';
+
 	/**
 	 * 获取用户Profile信息包括静音和置顶信息 rongqb 20160719
 	 * arg {
@@ -281,13 +282,12 @@ var Manager = (function(){
 		});
 	}
 
-	return {
-		getProfile: getProfile,
-		muteStick: muteStick,
-		cancelMuteStick: cancelMuteStick,
-		createProfile: createProfile,
-		removeProfile: removeProfile,
-		clearProfile: clearProfile,
-		removeGroupAssistant: removeGroupAssistant
+	export {
+		getProfile,
+		muteStick,
+		cancelMuteStick,
+		createProfile,
+		removeProfile,
+		clearProfile,
+		removeGroupAssistant
 	};
-})();

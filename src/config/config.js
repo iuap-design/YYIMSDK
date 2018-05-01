@@ -1,18 +1,18 @@
 jQuery.support.cors = true; //ie浏览器跨域支持
 
-var YYIMConfiguration;
+let YYIMConfiguration = {};
 
-var ConfigSetting = (function(){
+const ConfigSetting = (() => {
 
-	var YY_IM_DOMAIN = 'im.yyuap.com';
-	var YY_IM_ADDRESS = 'stellar.yyuap.com'; //websocket url
-	var YY_IM_WSPORT = 5227; 				 //websocket port
-	var YY_IM_HTTPBIND_PORT = 7075;          //httpbind port
-	var YY_IM_SERVLET_ADDRESS = 'http://im.yyuap.com/';
-	var YY_IM_CLIENT_MARK = 'web';
+	let YY_IM_DOMAIN = 'im.yyuap.com';
+	let YY_IM_ADDRESS = 'stellar.yyuap.com'; //websocket url
+	let YY_IM_WSPORT = 5227; 				 //websocket port
+	let YY_IM_HTTPBIND_PORT = 7075;          //httpbind port
+	let YY_IM_SERVLET_ADDRESS = 'http://im.yyuap.com/';
+	let YY_IM_CLIENT_MARK = 'web';
 
 	//for esn todo 20170831
-	var TODO_SERVLET_ADDRESS = 'https://pubaccount.yonyoucloud.com/';
+	let TODO_SERVLET_ADDRESS = 'https://pubaccount.yonyoucloud.com/';
 
 	/**
 	 * @param {Object} options {
@@ -25,7 +25,7 @@ var ConfigSetting = (function(){
 	 *  logEnable: Boolean
 	 * }
 	 */
-	function init(options){
+	const init = (options) => {
 		options = options || {};
 
 		YY_IM_CLIENT_MARK = options.clientMark || YY_IM_CLIENT_MARK;
@@ -36,11 +36,36 @@ var ConfigSetting = (function(){
 
 		TODO_SERVLET_ADDRESS = options.todoServlet || TODO_SERVLET_ADDRESS;
 
-		if(isMsielt10()){ // add for ie < 10 rongqb 20170412
-			YY_IM_SERVLET_ADDRESS = YY_IM_SERVLET_ADDRESS.replace(/^https?:\/\//,location.protocol + '//');
+		const getBrowser = () => {
+			let userAgent = navigator.userAgent.toLowerCase();
+			// Figure out what browser is being used
+			return {
+				version: (userAgent.match(/.+(?:rv|it|ra|ie)[\/: ]([\d.]+)/) || [])[1],
+				webkit: /webkit/.test(userAgent),
+				opera: /opera/.test(userAgent),
+				msie: /msie/.test(userAgent) && !/opera/.test(userAgent),
+				mozilla: /mozilla/.test(userAgent) && !/(compatible|webkit)/.test(userAgent)
+			};
+		}
+	
+		const isMsielt10 = () => {
+			let browser = getBrowser();
+			if (browser.msie &&
+				window.parseInt(browser.version) < 10) {
+				return true;
+			}
+			return false;
+		}
+	
+		const getClientMark = () =>{
+			return YY_IM_CLIENT_MARK;
 		}
 
-		if(/https/.test(location.protocol) || (options.useHttps === true)){//add for https location rongqb 20170412
+		if(isMsielt10()){ // add for ie < 10 rongqb 20170412
+			YY_IM_SERVLET_ADDRESS = YY_IM_SERVLET_ADDRESS.replace(/^https?:\/\//,window.location.protocol + '//');
+		}
+
+		if(/https/.test(window.location.protocol) || (options.useHttps === true)){//add for https location rongqb 20170412
 			YY_IM_WSPORT = 5225;
 		}
 
@@ -118,7 +143,7 @@ var ConfigSetting = (function(){
 			},
 
 			SUPPORT: {
-				isWebSocketSupport: (function() {
+				isWebSocketSupport: (() => {
 					window.WebSocket = window.WebSocket || window.MozWebSocket;
 					if(window.WebSocket) {
 						return true;
@@ -134,8 +159,8 @@ var ConfigSetting = (function(){
 				ALLOW_PLAIN: true,
 				ENABLE_WEBSOCKET: true,
 				ENABLE_LOCAL_CONNECTION: true,
-				USE_HTTPS: (function(){
-					if(/https/.test(location.protocol) || (options.useHttps === true)){
+				USE_HTTPS: (() => {
+					if(/https/.test(window.location.protocol) || (options.useHttps === true)){
 						return true;
 					}
 					return false;
@@ -185,65 +210,44 @@ var ConfigSetting = (function(){
 			BROWSER: getBrowser()
 		};
 
-		YYIMConfiguration.getHttpBindUrl = function() {
-			var prefix = this.CONNECTION.USE_HTTPS ? 'https://' : 'http://';
-			return prefix + this.CONNECTION.HTTP_BASE + ':' + this.CONNECTION.HTTP_BIND_PORT + '/http-bind/';
+		YYIMConfiguration.getHttpBindUrl = () => {
+			let prefix = YYIMConfiguration.CONNECTION.USE_HTTPS ? 'https://' : 'http://';
+			return prefix + YYIMConfiguration.CONNECTION.HTTP_BASE + ':' + YYIMConfiguration.CONNECTION.HTTP_BIND_PORT + '/http-bind/';
 		};
 
-		YYIMConfiguration.getWebSocketUrl = function() {
-			var prefix = this.CONNECTION.USE_HTTPS ? 'wss://' : 'ws://';
-			return prefix + this.CONNECTION.HTTP_BASE + ':' + this.CONNECTION.WS_PORT;
+		YYIMConfiguration.getWebSocketUrl = () => {
+			let prefix = YYIMConfiguration.CONNECTION.USE_HTTPS ? 'wss://' : 'ws://';
+			return prefix + YYIMConfiguration.CONNECTION.HTTP_BASE + ':' + YYIMConfiguration.CONNECTION.WS_PORT;
 		};
 
-		YYIMConfiguration.useWebSocket = function() {
-			return this.SUPPORT.isWebSocketSupport && this.CONNECTION.ENABLE_WEBSOCKET;
+		YYIMConfiguration.useWebSocket = () => {
+			return YYIMConfiguration.SUPPORT.isWebSocketSupport && YYIMConfiguration.CONNECTION.ENABLE_WEBSOCKET;
 		};
 
-		YYIMConfiguration.getConnectionArgObj = function() {
+		YYIMConfiguration.getConnectionArgObj = () => {
 			return {
-				domain: this.CONNECTION.SERVER_NAME,
-				resource: this.RESOURCE,
-				allow_plain: this.CONNECTION.ALLOW_PLAIN,
-				secure: this.CONNECTION.SECURE,
+				domain: YYIMConfiguration.CONNECTION.SERVER_NAME,
+				resource: YYIMConfiguration.RESOURCE,
+				allow_plain: YYIMConfiguration.CONNECTION.ALLOW_PLAIN,
+				secure: YYIMConfiguration.CONNECTION.SECURE,
 				register: false
 			};
 		};
 
-		YYIMConfiguration.getLocationOrigin = function(){
-			return location.origin? location.origin: (location.protocol + '//'+ location.host);
+		YYIMConfiguration.getLocationOrigin = () => {
+			return window.location.origin? window.location.origin: (window.location.protocol + '//'+ window.location.host);
 		};
 
 		YYIMConfiguration.getClientMark = getClientMark;
 	}
 
-	function getBrowser() {
-		var userAgent = navigator.userAgent.toLowerCase();
-		// Figure out what browser is being used
-		return {
-			version: (userAgent.match(/.+(?:rv|it|ra|ie)[\/: ]([\d.]+)/) || [])[1],
-			webkit: /webkit/.test(userAgent),
-			opera: /opera/.test(userAgent),
-			msie: /msie/.test(userAgent) && !/opera/.test(userAgent),
-			mozilla: /mozilla/.test(userAgent) && !/(compatible|webkit)/.test(userAgent)
-		};
-	}
 
-    function isMsielt10() {
-        var browser = getBrowser();
-        if (browser.msie &&
-            parseInt(browser.version) < 10) {
-            return true;
-        }
-        return false;
-    }
-
-	function getClientMark(){
-		return YY_IM_CLIENT_MARK;
-	}
-
-	return {
-		init: init
-	};
+	return { init };
 })();
 
 ConfigSetting.init();
+
+export {
+	YYIMConfiguration,
+	ConfigSetting
+}

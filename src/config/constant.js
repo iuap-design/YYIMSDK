@@ -1,4 +1,4 @@
-var CONNECT_STATUS = {
+export const CONNECT_STATUS = {
 	INIT: 'init',
 	OFFLINE: 'offline',
 	CONNECTING: 'connecting',
@@ -11,13 +11,13 @@ var CONNECT_STATUS = {
 	ONUPDATEPASSWORD: 'onUpdatePassword'
 };
 
-var FAVORITE_TYPE = {
+export const FAVORITE_TYPE = {
 	FAVORITE: 'favorite',
 	REMOVE: 'remove',
 	NONE: 'none'
 };
 
-var STATUS = {
+export const STATUS = {
 	CHAT: 'chat', //该实体或资源活跃并想聊天
 	AWAY: 'away', //该实体或资源临时离开
 	XA: 'xa', //该实体或资源要离开相当长时间(xa = 'eXtended Away'，长时间离开)
@@ -25,7 +25,7 @@ var STATUS = {
 	UNAVAILABLE: 'unavailable' // 隐身(自定义,RFC6121未定义)
 };
 
-var TYPE = {
+export const TYPE = {
 	SET: 'set',
 	RESULT: 'result',
 	GET: 'get',
@@ -33,7 +33,7 @@ var TYPE = {
 	UNAVAILABLE: 'unavailable'
 };
 
-var PRESENCE_TYPE = {
+export const PRESENCE_TYPE = {
 	SUBSCRIBE: 'subscribe',
 	UNSUBSCRIBE: 'unsubscribe',
 	SUBSCRIBED: 'subscribed',
@@ -43,19 +43,19 @@ var PRESENCE_TYPE = {
 	COLLECT: 'collect' //收藏好友
 };
 
-var COLLECT_TYPE = {
+export const COLLECT_TYPE = {
 	ADD: 'add',
 	REMOVE: 'remove'
 };
 
-var CHAT_TYPE = {
+export const CHAT_TYPE = {
 	CHAT: 'chat',
 	GROUP_CHAT: 'groupchat',
 	PUB_ACCOUNT: 'pubaccount'
 };
 
 //消息内容类型
-var MESSAGE_CONTENT_TYPE = {
+export const MESSAGE_CONTENT_TYPE = {
 	TEXT: 2,
 	FILE: 4,
 	IMAGE: 8,

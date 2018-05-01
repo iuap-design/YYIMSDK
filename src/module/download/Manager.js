@@ -1,4 +1,4 @@
-var Manager = (function() {
+import { YYIMChat } from '../../core/manager';
 	
 	/**
 	 * 获取缩略图列表
@@ -53,8 +53,7 @@ var Manager = (function() {
 		}
 	}
 
-	return {
-		getTransformFileList: getTransformFileList,
-		getFileUrl: getFileUrl
+	export {
+		getTransformFileList,
+		getFileUrl
 	};
-})();

@@ -1,3 +1,10 @@
+import { YYIMManager, YYIMChat } from '../../core/manager';
+import {
+    multiPartyCall,
+    getTimeCorrection
+
+} from './Manager';
+
 /**
  * 多方通话 rongqb 20160104
  * @param arg {
@@ -55,10 +62,10 @@ YYIMManager.prototype.multiPartyCall = function(arg){
 		}
 	}
 	
-	Manager.multiPartyCall(arg);
+	multiPartyCall(arg);
 }; 
 
 YYIMManager.prototype.getTimeCorrection = function(callback) {
-	Manager.getTimeCorrection(callback);
+	getTimeCorrection(callback);
 };
 

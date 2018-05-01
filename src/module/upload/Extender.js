@@ -1,3 +1,7 @@
+import { YYIMManager } from '../../core/manager';
+import { FileUpload } from './FileUpload';
+import './YYIMUploader';
+
 /**
  * 手动开始上传 rongqb 20160816
  * file: //预发送文件的id 或者 文件对象（上文返回的）

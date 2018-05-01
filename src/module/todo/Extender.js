@@ -1,3 +1,10 @@
+import { YYIMManager } from '../../core/manager';
+import {
+    getTodoDigset,
+    getHistoryTodo,
+    sendToDoReceipts
+} from './Manager';
+
 /**
  * 拉取代办通知摘要 rongqb 20170831
  * @param {Object} arg {
@@ -6,7 +13,7 @@
  * }
  */
 YYIMManager.prototype.getTodoDigset = function(arg) {
-    Manager.getTodoDigset(arg);
+    getTodoDigset(arg);
 };
 
 /**
@@ -14,7 +21,7 @@ YYIMManager.prototype.getTodoDigset = function(arg) {
  * @param {Object} arg
  */
 YYIMManager.prototype.sendToDoReceipts = function(arg) {
-    Manager.sendToDoReceipts(arg);
+    sendToDoReceipts(arg);
 };
 
 /**
@@ -28,5 +35,5 @@ YYIMManager.prototype.sendToDoReceipts = function(arg) {
  * }
  */
 YYIMManager.prototype.getHistoryTodo = function(arg) {
-	Manager.getHistoryTodo(arg);
+	getHistoryTodo(arg);
 };

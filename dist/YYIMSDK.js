@@ -1529,7 +1529,6 @@ var SERVICE_OPCODE = {
 	 */
 	SERVICE_RECEIPTS : new _Opcode('ServiceReceipts', 0x1802)
 };
-
 YYIMUtil.extend(OPCODE,SERVICE_OPCODE);
 
 /**
@@ -8285,1801 +8284,752 @@ JSJaCWebSocketConnection.prototype._parseUint8Array = function(opcodeArr, bodyAr
 		} catch(e) {}
 	}
 };
-var YYAIAbility = (function () {
-    function YYAIAbility() {
-        this.dicts = [];
-        this.stopKeyword = {"的": 1};
-
-        // 是否启用过滤
-        this.isOpenFilter = false;
-
-        // AI分析开关是否启用
-        this.isAIAbility = true;
-
-        // 服务器获取最新热词
-        // 开关、时间戳
-        // 行业
-    }
-
-    /**
-    * 设置AI分析开关是否启用
-    * @param isAIAbility
-    */
-    YYAIAbility.prototype.openAIAbility = function openAIAbility(isAIAbility) {
-        this.isAIAbility = isAIAbility;
-    };
-
-    /**
-     * 设置是否启用热词过滤
-     * @param isOpenFilter
-     */
-    YYAIAbility.prototype.openFilterWords = function openFilterWords(isOpenFilter) {
-        this.isOpenFilter = isOpenFilter;
-    };
-
-    /**
-     * 设置热词字典
-     * @param dicts
-     */
-    YYAIAbility.prototype.setDictionaries = function setDictionaries(dictArray) {
-        if (dictArray) {
-            for (var i=0; i < dictArray.length; i++){
-                this.dicts.push(dictArray[i]);
-            }
-        }
-    };
-
-    /**
-     * 判断消息是否传递给AI分析
-     * @returns {boolean}
-     */
-    YYAIAbility.prototype.intelligentAnalysis = function intelligentAnalysis(keyword) {
-        if(!this.isOpenFilter){
-            return true;
-        }
-        if (keyword && this.isAIAbility) {
-            var trie = new YYIMAITrie();
-            trie.init(this.dicts);
-            var result = trie.splitWords(keyword);
-            return result.length > 0;
-        }
-        return false;
-    };
-
-    return new YYAIAbility();
-})();
-
-var YYIMAITrie = function () {
-    function YYIMAITrie() {
-        this.root = new YYIMAINode(null);
-    }
-
-    /**
-     * 将Unicode转成UTF8的三字节
-     */
-    YYIMAITrie.prototype.toBytes = function toBytes(word) {
-        var result = [];
-        for (var i = 0; i < word.length; i++) {
-            var code = word.charCodeAt(i);
-            // 单字节
-            if (code < 0x80) {
-                result.push(code);
-            } else {
-                // 三字节
-                result = result.concat(this.toUTF8(code));
-            }
-        }
-
-        return result;
-    };
-
-    YYIMAITrie.prototype.toUTF8 = function toUTF8(c) {
-        // 1110xxxx 10xxxxxx 10xxxxxx
-        // 1110xxxx
-        var byte1 = 0xE0 | c >> 12 & 0x0F;
-        // 10xxxxxx
-        var byte2 = 0x80 | c >> 6 & 0x3F;
-        // 10xxxxxx
-        var byte3 = 0x80 | c & 0x3F;
-
-        return [byte1, byte2, byte3];
-    };
-
-    YYIMAITrie.prototype.toUTF16 = function toUTF16(b1, b2, b3) {
-        // 1110xxxx 10xxxxxx 10xxxxxx
-        var byte1 = b1 << 4 | b2 >> 2 & 0x0F;
-        var byte2 = (b2 & 0x03) << 6 | b3 & 0x3F;
-        var utf16 = (byte1 & 0x00FF) << 8 | byte2;
-
-        return utf16;
-    };
-
-    /**
-     * 添加每个词到YYIMAITrie树
-     */
-    YYIMAITrie.prototype.add = function add(word) {
-        var node = this.root,
-            bytes = this.toBytes(word),
-            len = bytes.length;
-        for (var i = 0; i < len; i++) {
-            var c = bytes[i];
-            // 如果不存在则添加，否则不需要再保存了，因为共用前缀
-            if (!(c in node.childs)) {
-                node.childs[c] = new YYIMAINode(c);
-            }
-            node = node.childs[c];
-        }
-        node.asWord(); // 成词边界
-    };
-
-    /**
-     * 按字节在YYIMAITrie树中搜索
-     */
-    YYIMAITrie.prototype.search = function search(bytes) {
-        var node = this.root,
-            len = bytes.length,
-            result = [];
-        var word = [],
-            j = 0;
-        for (var i = 0; i < len; i++) {
-            var c = bytes[i],
-                childs = node.childs;
-            if (!(c in childs)) {
-                return result;
-            }
-
-            if (c < 0x80) {
-                word.push(String.fromCharCode(c));
-            } else {
-                j++;
-                if (j % 3 == 0) {
-                    var b1 = bytes[i - 2];
-                    var b2 = bytes[i - 1];
-                    var b3 = c;
-                    word.push(String.fromCharCode(this.toUTF16(b1, b2, b3)));
-                }
-            }
-            // 如果是停止词，则退出
-            if (word.join('') in stop) {
-                return result;
-            }
-
-            // 成词
-            var cnode = childs[c];
-            if (cnode.isWord()) {
-                cnode.addCount(); // 用于计数判断
-                result.push(word.join(''));
-            }
-            node = cnode;
-        }
-
-        return result;
-    };
-
-    /**
-     * 分词
-     */
-    YYIMAITrie.prototype.splitWords = function splitWords(words) {
-        // 转换成单字节进行搜索
-        var bytes = this.toBytes(words);
-        var start = 0,
-            end = bytes.length - 1,
-            result = [];
-
-        while (start != end) {
-            var word = [];
-            for (var i = start; i <= end; i++) {
-                var b = bytes[i]; // 逐个取出字节
-                word.push(b);
-
-                var finds = this.search(word);
-                if (finds !== false && finds.length > 0) {
-                    // 如果在字典中，则添加到分词结果集
-                    result = result.concat(finds);
-                }
-            }
-            start++;
-        }
-
-        return result;
-    };
-
-    /**
-     * 初始化整棵YYIMAITrie树
-     */
-    YYIMAITrie.prototype.init = function init(dict) {
-        for (var i = 0; i < dict.length; i++) {
-            this.add(dict[i]);
-        }
-    };
-
-    return YYIMAITrie;
-}();
-
-var YYIMAINode = function () {
-    function YYIMAINode(_byte) {
-        this.childs = {}; // 子节点集合
-        this._byte = _byte || null; // 此节点上存储的字节
-        this._isWord = false; // 边界保存，表示是否可以组成一个词
-        this._count = 0;
-    }
-
-    YYIMAINode.prototype.isWord = function isWord() {
-        return this._isWord && this._count == 0;
-    };
-
-    YYIMAINode.prototype.asWord = function asWord() {
-        this._isWord = true;
-    };
-
-    YYIMAINode.prototype.addCount = function addCount() {
-        this._count++;
-    };
-
-    YYIMAINode.prototype.getCount = function getCount() {
-        return this._count;
-    };
-
-    return YYIMAINode;
-}();
-
-var YYIMChat = (function(){
-/**
- * jid相关的工具类，包含处理jid的相关静态方法
- * 
- * @Class YYIMJIDUtil
- */
-var YYIMJIDUtil = {};
-
-/**
- * 返回bareJid
- * 如果是设备（node同user的node），则返回全jid
- * 
- * @deprecated since version 2.0, use YYIMJIDUtil.buildUserJID or YYIMJIDUtil.buildChatGroupJID instead
- * 
- * @param {string | JSJaCJID|SNSRoster} 被处理的jid
- * @throws JSJaCJIDInvalidException Thrown if jid is not valid
- */
-YYIMJIDUtil.getBareJID = function(jid) {
-	var userBareJid = YYIMManager.getInstance().getUserBareJID();
-	var tmpJid;
-	if(jid) {
-		if(jid instanceof JSJaCJID) {
-			if(jid.getBareJID() == userBareJid)
-				return jid.toString();
-			return jid.getBareJID();
-		} else if(typeof jid == "string") {
-			tmpJid = new JSJaCJID(jid);
-			if(tmpJid.getBareJID() == userBareJid)
-				return tmpJid.toString();
-			return tmpJid.getBareJID();
-		} else if(jid.jid && jid.jid instanceof JSJaCJID) {
-			tmpJid = jid.jid;
-			if(tmpJid.getBareJID() == userBareJid)
-				return tmpJid.toString();
-			return tmpJid.getBareJID();
-		}
-	}
-	throw new JSJaCJIDInvalidException("invalid jid: " + jid);
-};
-
-/**
- * 根据id或node或jid获取id
- */
-YYIMJIDUtil.getID = function(jid) {
-	var appkey, tmp, index, id;
-	id = YYIMCommonUtil.isStringAndNotEmpty(jid) ?
-		(appkey = YYIMManager.getInstance().getAppkey(), index = jid.indexOf('@'), index != -1 ?
-			(tmp = jid.substring(0, index), tmp.indexOf(appkey) > 0 ?
-				tmp.replace(appkey, '') :
-				tmp) /*全的jid*/ :
-			(jid.indexOf(appkey) > 0 ?
-				jid.replace(appkey, '') :
-				jid) /*node或id*/ ) :
-		null;
-	return id? id.toString(): id;
-};
-
-/**
- * 根据id或node或jid获取node
- */
-YYIMJIDUtil.getNode = function(jid) {
-	jid = jid.toString();
-	if(YYIMCommonUtil.isStringAndNotEmpty(jid)) {
-		var appkey = YYIMManager.getInstance().getAppkey();
-		var node = jid;
-
-		if(node.indexOf('\@') > -1) {
-			if(node.indexOf('\@') === 0) {
-				throw "\"" + jid + "\" Can't start with  \"@\"!";
-			} else {
-				node = node.substring(0, node.indexOf('\@'));
-			}
-		}
-
-		if(node.indexOf('\.') > -1) {
-			if(node.indexOf('\.') === 0) {
-				throw "\"" + jid + "\" Can't start with \".\"!";
-			} else {
-				node = node.substring(0, node.indexOf('\.'));
-			}
-		}
-		return node ? node + appkey : node;
-	} else {
-		throw "\"" + jid + "\" Can't be Number Or Empty!";
-	}
-};
-
-/**
- * 根据jid获取resource
- */
-YYIMJIDUtil.getResource = function(jid) {
-	return YYIMCommonUtil.isStringAndNotEmpty(jid) ?
-		(jid.indexOf('/') != -1 ?
-			jid.substring(jid.indexOf('/') + 1) :
-			null) :
-		null;
-};
-
-/**
- * 根据用户的id/node/jid和resource获取新的jid
- * 
- * @param idOrJid id, node, jid (e.g. yuenoqun, yuenoqun.app.etp@server)
- * @param resource e.g. pc
- * 
- * @returns yuenoqun.app.etp@server/pc or yuenoqun.app.etp@server when resource is null
- */
-YYIMJIDUtil.buildUserJID = function(idOrJid, resource) {
-	return YYIMCommonUtil.isStringAndNotEmpty(idOrJid) ?
-		(idOrJid.indexOf('@') != -1 ?
-			idOrJid :
-			idOrJid + '@' + YYIMConfiguration.YY_IM_DOMAIN + (
-				resource ?
-				'/' + resource :
-				'')) :
-		null;
-};
-
-/**
- * 根据jid返回域
- */
-YYIMJIDUtil.getDomain = function(jid) {
-	return YYIMCommonUtil.isStringAndNotEmpty(jid) ?
-		(jid.indexOf('@') != -1 ?
-			jid.substring(jid.indexOf('@') + 1) :
-			null) :
-		null;
-};
-
-/**
- * 根据群组的id/node/jid获取新的jid
- * 
- * @param idOrJid id, node, jid (e.g. huashan, huashan.app.etp, huashan.app.etp@conference.server)
- * 
- * @returns huashan.app.etp@conference.server
- */
-YYIMJIDUtil.buildChatGroupJID = function(idOrJid) {
-	return YYIMCommonUtil.isStringAndNotEmpty(idOrJid) ?
-		(idOrJid.indexOf('@') != -1 ?
-			idOrJid :
-			idOrJid + '@' + YYIMConfiguration.DOMAIN.CHATROOM) :
-		null;
-};
-
-/**
- * 根据公共号的id/node/jid获取新的jid
- * 
- * @param idOrJid id, node, jid (e.g. huashan, huashan.app.etp, huashan.app.etp@pubaccount.server)
- * 
- * @returns huashan.app.etp@pubaccount.server
- */
-YYIMJIDUtil.buildPubAccountJID = function(idOrJid) {
-	return YYIMCommonUtil.isStringAndNotEmpty(idOrJid) ?
-		(idOrJid.indexOf('@') != -1 ?
-			idOrJid :
-			idOrJid + '@' + YYIMConfiguration.DOMAIN.PUBACCOUNT) :
-		null;
-};
-
-/**
- * 根据 jid 判断 jid chatType
- */
-YYIMJIDUtil.getChatTypeByJid = function(Jid) {
-	if(!!Jid) {
-		switch(YYIMJIDUtil.getDomain(Jid)) {
-			case YYIMConfiguration.DOMAIN.CHATROOM:
-				return CHAT_TYPE.GROUP_CHAT;
-			case YYIMConfiguration.DOMAIN.PUBACCOUNT:
-				return CHAT_TYPE.PUB_ACCOUNT;
-			default:
-				return CHAT_TYPE.CHAT;
-		}
-	}
-};
-function YYIMConsoleLogger(level) {
-
-	this.level = !level ? (level == 0 ? 0 : 3) : level;
-
-	this.start = function() {};
-	/**
-	 * 
-	 * @param {String}     groupname  将被打印出来的组名
-	 * 
-	 * @param {int} level : 0--error; 1--warn, 2--info, 3 --log, 4--debug	若设置系统过滤level = 3, 则只显示级别为1，2的日志
-	 * 
-	 * @param {Object} obj：不定参数，被调试的对象的当前状态, 采用clone方式保存当前对象状态
-	 */
-	this.log = function(groupname, level, obj1, obj2) {
-
-		if(!YYIMConfiguration.LOG.ENABLE) {
-			return;
-		}
-
-		level = !level ? (level == 0 ? 0 : 3) : level;
-
-		if(level > this.level)
-			return;
-		if(typeof(console) == 'undefined' || typeof(console.group) == 'undefined')
-			return;
-		try {
-			console.group(groupname);
-			switch(level) {
-				case 0:
-					console.error(groupname);
-					console.trace();
-					break;
-				case 1:
-					console.warn(groupname);
-					console.trace();
-					break;
-				case 2:
-					console.info(groupname);
-					break;
-				case 4:
-					console.debug(groupname);
-					break;
-				default:
-					console.log(groupname);
-					break;
-			}
-			var argLength = arguments.length;
-			if(argLength > 2) {
-				for(var i = 2; i < argLength; i++) {
-					var obj = arguments[i];
-					if(obj) {
-						if(obj instanceof JSJaCPacket) {
-							console.info(obj.doc.xml);
-						} else {
-							console.debug(obj);
-						}
-					}
-				}
-			}
-			console.groupEnd();
-		} catch(e1) {
-			try {
-				console.error(e1);
-			} catch(e2) {}
-		}
-	};
-
-	this.logParam = function(level) {
-		level = level || 3;
-		var caller = this.logParam.caller;
-		this.log("arguments:", level, caller.arguments);
-	};
-
-	this.setLevel = function(level) {
-		this.level = level;
-		return this;
-	};
-
-	this.getLevel = function() {
-		return this.level;
-	};
-}
-jQuery.support.cors = true; //ie浏览器跨域支持
-
-var YYIMConfiguration;
-
-var ConfigSetting = (function(){
-
-	var YY_IM_DOMAIN = 'im.yyuap.com';
-	var YY_IM_ADDRESS = 'stellar.yyuap.com'; //websocket url
-	var YY_IM_WSPORT = 5227; 				 //websocket port
-	var YY_IM_HTTPBIND_PORT = 7075;          //httpbind port
-	var YY_IM_SERVLET_ADDRESS = 'http://im.yyuap.com/';
-	var YY_IM_CLIENT_MARK = 'web';
-
-	//for esn todo 20170831
-	var TODO_SERVLET_ADDRESS = 'https://pubaccount.yonyoucloud.com/';
-
-	/**
-	 * @param {Object} options {
-	 *  app: String,
-	 *  etp: String,
-	 * 	wsurl: String,
-	 * 	wsport: Number,
-	 * 	wsport: Number,
-	 * 	servlet: String,
-	 *  logEnable: Boolean
-	 * }
-	 */
-	function init(options){
-		options = options || {};
-
-		YY_IM_CLIENT_MARK = options.clientMark || YY_IM_CLIENT_MARK;
-		YY_IM_ADDRESS = options.wsurl || YY_IM_ADDRESS;
-		YY_IM_WSPORT = options.wsport || YY_IM_WSPORT;
-		YY_IM_HTTPBIND_PORT = options.hbport || YY_IM_HTTPBIND_PORT;
-		YY_IM_SERVLET_ADDRESS = options.servlet || YY_IM_SERVLET_ADDRESS;
-
-		TODO_SERVLET_ADDRESS = options.todoServlet || TODO_SERVLET_ADDRESS;
-
-		if(isMsielt10()){ // add for ie < 10 rongqb 20170412
-			YY_IM_SERVLET_ADDRESS = YY_IM_SERVLET_ADDRESS.replace(/^https?:\/\//,location.protocol + '//');
-		}
-
-		if(/https/.test(location.protocol) || (options.useHttps === true)){//add for https location rongqb 20170412
-			YY_IM_WSPORT = 5225;
-		}
-
-		YYIMConfiguration = {
-			YY_IM_DOMAIN: YY_IM_DOMAIN, //固定
-
-			RESOURCE: YY_IM_CLIENT_MARK + '-v2.6',
-
-			MULTI_TENANCY: {
-				ENABLE: true,
-				ETP_KEY: options.etp || 'etp',
-				APP_KEY: options.app || 'app',
-				SEPARATOR: '.'
-			},
-
-			SENDINTERVAL: 30, //两次发送报文的时间间隔 rongqb 20151124
-
-			GROUP: {
-				MEMBERSLIMIT: 5 //默认最多拉取5个群成员
-			},
-
-            BETCH_MAXLIMIT: {
-                ROSTER: 50, //批量vcard 最大个数
-                PUBACCOUNT: 50
-            },
-
-			INPUT_STATE: {
-				INTERVAL: 2 * 1000
-			},
-
-			UPLOAD: {
-				AUTO_SEND: true, //是否自动上传
-				MULTI_SELECTION: false, //是否可以在文件浏览对话框中选择多个文件
-				PREVENT_DUPLICATES: false, //是否重复上传
-				PREVIEW_SIZE: { //预览图片的压缩尺寸
-					WIDTH: 100,
-					HEIGHT: 100
-				},
-				FLASH_SWF_URL: options.flash_swf_url || './Moxie.swf',
-				SILVERLIGHT_XAP_URL: options.silverlight_xap_url || './Moxie.xap',
-				MEDIATYPE: {
-					IMAGE: 1,
-					FILE: 2,
-					DOC: 3
-				},
-				IMAGE_TYPES: /\.(png|jpe?g|gif)$/i
-			},
-
-			TIMECORRECTION: {
-				AUTOCORRECTION: true, //自动时间校正
-				TIMES: 3, //超出误差 校正次数
-				RESIDUAL: 50, //校正误差
-				RESULT: 0,
-				LOAD: false //是否加载过此值
-			},
-
-			MULTIPARTYCALL: {
-				ADDRESS: 'http://dudu.yonyoutelecom.cn/httpIntf/createConference.do', //多端通话接口地址 20160104
-				ACCOUNT: '', //账号
-				KEY: '', //密码
-				PHONESMAXLENGTH: 200 //最大被叫字符数
-			},
-
-			SERVLET: {
-				REST_RESOURCE_SERVLET: YY_IM_SERVLET_ADDRESS + 'sysadmin/rest/resource/',
-				REST_VERSION_SERVLET: YY_IM_SERVLET_ADDRESS + 'sysadmin/rest/version/',
-				REST_USER_SERVLET: YY_IM_SERVLET_ADDRESS + 'sysadmin/rest/user/',
-				REST_UPLOAD_SERVLET: YY_IM_SERVLET_ADDRESS + 'im_upload/rest/resource/',
-				REST_DOWNLOAD_SERVLET: YY_IM_SERVLET_ADDRESS + 'im_download/rest/resource/',
-				REST_TRANSFORM_SERVLET: YY_IM_SERVLET_ADDRESS + 'im_download/rest/transform/resource/',
-				REST_SYSTEM_SERVLET: YY_IM_SERVLET_ADDRESS + 'sysadmin/rest/system/',
-				REST_SYSTEM_CUSTOMER_USER: YY_IM_SERVLET_ADDRESS + 'sysadmin/rest/customer/user/',
-
-				REST_TODO_USER: TODO_SERVLET_ADDRESS + 'todocenter/user/todo/'
-			},
-
-			SUPPORT: {
-				isWebSocketSupport: (function() {
-					window.WebSocket = window.WebSocket || window.MozWebSocket;
-					if(window.WebSocket) {
-						return true;
-					}
-					return false;
-				})()
-			},
-
-			CONNECTION: {
-				TIMERVAL: 2000,
-				WAIT: 300,
-				SECURE: false,
-				ALLOW_PLAIN: true,
-				ENABLE_WEBSOCKET: true,
-				ENABLE_LOCAL_CONNECTION: true,
-				USE_HTTPS: (function(){
-					if(/https/.test(location.protocol) || (options.useHttps === true)){
-						return true;
-					}
-					return false;
-				})(),
-				SERVER_NAME: YY_IM_DOMAIN,
-				HTTP_BASE: YY_IM_ADDRESS,
-				HTTP_BIND_PORT: YY_IM_HTTPBIND_PORT,
-				WS_PORT: YY_IM_WSPORT
-			},
-
-			PING: {
-				/**
-				 * 两个ping之间的间隔毫秒数(快节奏ping)
-				 * @Type {Number}
-				 */
-				INTERVAL: 10 * 1000,
-
-				/**
-				 * 两个ping之间的间隔毫秒数（慢节奏ping）
-				 * @Type {Number}
-				 */
-				SLOW_INTERVAL: 30 * 1000,
-
-				/**
-				 * 当指定的毫秒数内服务器没有回复报文，则认为已断开连接
-				 *  @Type {Number}
-				 */
-				TIMEOUT: 10 * 1000
-			},
-
-			DOMAIN: {
-				CHATROOM: 'conference.' + YY_IM_DOMAIN,
-				SEARCH: 'search.' + YY_IM_DOMAIN,
-				PUBACCOUNT: 'pubaccount.' + YY_IM_DOMAIN
-			},
-
-			EXPIRATION: {
-				INVALID: 6 * 60 * 60 * 1000, //token失效的最小安全期
-				INSPECTION_INTERVAL: 30 * 60 * 1000 //定时检测时长
-			},
-
-			LOG: {
-				ENABLE: !!options.logEnable,
-				FILTER_LEVEL: 3
-			},
-
-			BROWSER: getBrowser()
-		};
-
-		YYIMConfiguration.getHttpBindUrl = function() {
-			var prefix = this.CONNECTION.USE_HTTPS ? 'https://' : 'http://';
-			return prefix + this.CONNECTION.HTTP_BASE + ':' + this.CONNECTION.HTTP_BIND_PORT + '/http-bind/';
-		};
-
-		YYIMConfiguration.getWebSocketUrl = function() {
-			var prefix = this.CONNECTION.USE_HTTPS ? 'wss://' : 'ws://';
-			return prefix + this.CONNECTION.HTTP_BASE + ':' + this.CONNECTION.WS_PORT;
-		};
-
-		YYIMConfiguration.useWebSocket = function() {
-			return this.SUPPORT.isWebSocketSupport && this.CONNECTION.ENABLE_WEBSOCKET;
-		};
-
-		YYIMConfiguration.getConnectionArgObj = function() {
-			return {
-				domain: this.CONNECTION.SERVER_NAME,
-				resource: this.RESOURCE,
-				allow_plain: this.CONNECTION.ALLOW_PLAIN,
-				secure: this.CONNECTION.SECURE,
-				register: false
-			};
-		};
-
-		YYIMConfiguration.getLocationOrigin = function(){
-			return location.origin? location.origin: (location.protocol + '//'+ location.host);
-		};
-
-		YYIMConfiguration.getClientMark = getClientMark;
-	}
-
-	function getBrowser() {
-		var userAgent = navigator.userAgent.toLowerCase();
-		// Figure out what browser is being used
-		return {
-			version: (userAgent.match(/.+(?:rv|it|ra|ie)[\/: ]([\d.]+)/) || [])[1],
-			webkit: /webkit/.test(userAgent),
-			opera: /opera/.test(userAgent),
-			msie: /msie/.test(userAgent) && !/opera/.test(userAgent),
-			mozilla: /mozilla/.test(userAgent) && !/(compatible|webkit)/.test(userAgent)
-		};
-	}
-
-    function isMsielt10() {
-        var browser = getBrowser();
-        if (browser.msie &&
-            parseInt(browser.version) < 10) {
-            return true;
-        }
-        return false;
-    }
-
-	function getClientMark(){
-		return YY_IM_CLIENT_MARK;
-	}
-
-	return {
-		init: init
-	};
-})();
-
-ConfigSetting.init();
-
-var CONNECT_STATUS = {
-	INIT: 'init',
-	OFFLINE: 'offline',
-	CONNECTING: 'connecting',
-	PROCESSING: 'processing',
-	CONFLICT: 'conflict',
-	CONNECTED: 'connected',
-	ERROR: 'error',
-	AUTHERROR: 'AuthError',
-	ONCLIENTKICKOUT: 'onClientKickout',
-	ONUPDATEPASSWORD: 'onUpdatePassword'
-};
-
-var FAVORITE_TYPE = {
-	FAVORITE: 'favorite',
-	REMOVE: 'remove',
-	NONE: 'none'
-};
-
-var STATUS = {
-	CHAT: 'chat', //该实体或资源活跃并想聊天
-	AWAY: 'away', //该实体或资源临时离开
-	XA: 'xa', //该实体或资源要离开相当长时间(xa = 'eXtended Away'，长时间离开)
-	DND: 'dnd', //该实体或资源忙(dnd = 'Do Not Disturb'，免打扰)
-	UNAVAILABLE: 'unavailable' // 隐身(自定义,RFC6121未定义)
-};
-
-var TYPE = {
-	SET: 'set',
-	RESULT: 'result',
-	GET: 'get',
-	SUBMIT: 'submit',
-	UNAVAILABLE: 'unavailable'
-};
-
-var PRESENCE_TYPE = {
-	SUBSCRIBE: 'subscribe',
-	UNSUBSCRIBE: 'unsubscribe',
-	SUBSCRIBED: 'subscribed',
-	UNSUBSCRIBED: 'unsubscribed',
-	PROBE: 'probe',
-	UNAVAILABLE: 'unavailable',
-	COLLECT: 'collect' //收藏好友
-};
-
-var COLLECT_TYPE = {
-	ADD: 'add',
-	REMOVE: 'remove'
-};
-
-var CHAT_TYPE = {
-	CHAT: 'chat',
-	GROUP_CHAT: 'groupchat',
-	PUB_ACCOUNT: 'pubaccount'
-};
-
-//消息内容类型
-var MESSAGE_CONTENT_TYPE = {
-	TEXT: 2,
-	FILE: 4,
-	IMAGE: 8,
-	REDPACKET: 9,
-	SMALLVIDEO: 10,
-	REVOCATION: 13,
-	MERGEFORWARD: 15,
-	SINGLEGRAPHIC: 16,
-	MOREGRAPHIC: 32,
-	AUDO: 64,
-	LOCATION: 128,
-	SHARE: 256,
-	WHITEBOARD: 1024
-};
-function YYIMConnectDaemon(){
-	/**
-	 * 最后接收的报文的时间
-	 * @Type {Number}
-	 */
-	this.lastPongTime = Date.now();
-
-	/**
-	 * 循环发送ping包的interval
-	 * @Type {Number}
-	 */
-	this.pingInterval;
-
-	/**
-	 * 判断发送ping包是否超时的timeout
-	 * @Type {Number}
-	 */
-	this.pingTimeout;
-	
-	/**
-	 * 发ping包间隔
-	 */
-	this.interval = 0;
-
-};
-
-/**
- * 向服务器轮询发送ping包， 判断自己是否掉线
- */
-YYIMConnectDaemon.prototype.startPing = function(isOnline) {
-	if(isOnline === true){
-		this.isOnline = isOnline;
-	}
-	
-	if (YYIMConnection.getInstance().connected()) {
-		this.interval = !this.interval? YYIMConfiguration.PING.SLOW_INTERVAL: YYIMConfiguration.PING.INTERVAL;
-		this.ping();
-	}else{
-		this.stopPing();
-	}
-};
-
-/**
- * 清除发送ping包的定时器
- */
-YYIMConnectDaemon.prototype.stopPing = function(isOnline) {
-	if(isOnline === false){
-		this.isOnline = isOnline;
-	}
-	
-	clearTimeout(this.pingTimeout);
-	clearTimeout(this.pingInterval);
-};
-
-/**
- * 向服务器发送ping包，如果服务器在指定时间SNSConnectService.pingTimeout内未返回，则进行重连
- */
-YYIMConnectDaemon.prototype.ping = function() {
-	var that = this;
-	if(!this.isOnline){
-		this.stopPing();
-	}else{
-		if(!this.sending){			
-			this.stopPing();
-			this.interval = this.interval || YYIMConfiguration.PING.SLOW_INTERVAL;
-			
-			var duration = Date.now() - (this.lastPongTime + this.interval);
-			if(duration >= 0) {
-				try{
-					this.sending = true;
-					this.interval = YYIMConfiguration.PING.SLOW_INTERVAL;
-					YYIMConnection.getInstance().send(new JumpPacket(null, OPCODE.PING.SEND));
-				}catch(e){
-					that.stopPing();
-					YYIMManager.getInstance().log("Ping_Error.", 0, e);
-					YYIMManager.getInstance().onConnectError({
-						errorCode : 408,
-						message : '连接失败'
-					});
-				}
-			}else{
-				this.pingInterval = setTimeout(this.ping.bind(this), -duration);
-			}
-		}
-	}
-};
-
-/**
- * 更新最后收到的ping包的时间
- * @param packet
- */
-YYIMConnectDaemon.prototype.pong = function() {
-	this.lastPongTime = Date.now();
-	if(!this.isOnline){
-		this.stopPing();
-	}else{
-		YYIMManager.getInstance().log('【pong】\t' + (new Date(this.lastPongTime)), 3, this.lastPongTime);
-		this.sending = false;
-		this.ping();
-	}
-};
-
-YYIMConnectDaemon.prototype.setTimeout = function() {
-	if(!this.isOnline){
-		this.stopPing();
-	}else{
-		var now = Date.now();
-		YYIMManager.getInstance().log('【setPingTimeout】\t' + (new Date(now)), 3, now);
-		clearTimeout(this.pingTimeout);
-		this.pingTimeout = setTimeout(this.timeoutHandler.bind(this), YYIMConfiguration.PING.TIMEOUT);
-	}
-};
-
-YYIMConnectDaemon.prototype.timeoutHandler = function() {
-	this.sending = false;
-	this.stopPing();
-	YYIMManager.getInstance().log("Ping_Timeout.", 0);
-	YYIMManager.getInstance().onConnectError({
-		errorCode : 408,
-		message : '连接失败'
-	});
-};
-function YYIMConnectEventHandler() {
-	this._inited = false;
-};
-
-YYIMConnectEventHandler.prototype._init = function() {
-	
-	YYIMManager.getInstance().log("YYIMConnectEventHandler.prototype.registerHandler", 3);
-	
-	if(this._inited){
-		return;
-	}
-	
-	var conn = YYIMConnection.getInstance();
-
-	conn.registerHandler('onConnect', this.onConnected);
-	conn.registerHandler('onError', this.onConnectError);
-	conn.registerHandler('onDisconnect', this.onDisConnect);
-	conn.registerHandler("onStatusChanged", this.connectStatusChangeHandler);
-
-	conn.registerHandler(OPCODE.STREAM_ERROR.KEY, this.onStreamError);
-	conn.registerHandler(OPCODE.PACKET_ERROR.KEY, this.onPacketError);
-	
-	// 注册packet_in监听器， 以记录最后报文的到达时间
-	conn.registerHandler("packet_in", conn.getDaemon().pong.bind(conn.getDaemon()));
-	
-	this._inited = true;
-};
-
-/**
- * 连接成功
- */
-YYIMConnectEventHandler.prototype.onConnected = function(){
-	YYIMManager.getInstance().onOpened();
-	YYIMConnection.getInstance().getDaemon().startPing(true);
-};
-
-/**
- * 连接失败时, 触发全局事件CONNECT_FAILED， 附加参数：[errorCode, message]
- * @param e 错误信息
- */
-YYIMConnectEventHandler.prototype.onConnectError = function(e) {
-	YYIMManager.getInstance().log("YYIMConnectEventHandler.prototype.onConnectError ", 0, e);
-	errorCode = e.getAttribute("code");
-
-	YYIMConnection.getInstance().getDaemon().stopPing(false);
-	
-	if(errorCode == 401){
-		YYIMManager.getInstance().onAuthError({
-			errorCode : 401,
-			message : '用户名或密码错误'
-		});
-	}else if(errorCode == 409){
-		YYIMManager.getInstance().onConflicted({
-			errorCode : 409,
-			message : '连接冲突'
-		});
-	}else if(errorCode == 4010){
-		YYIMManager.getInstance().onClientKickout({
-			errorCode : 4010,
-			message : '被客户端踢掉'
-		});
-	}else if(errorCode == 4011){
-		YYIMManager.getInstance().onUpdatePassword({
-			errorCode : 4011,
-			message : '修改密码'
-		});
-	}else {
-		YYIMManager.getInstance().onConnectError({
-			errorCode : errorCode,
-			message : '连接失败'
-		});
-	}
-};
-
-YYIMConnectEventHandler.prototype.onStreamError = function(packet) {
-	YYIMManager.getInstance().log("YYIMConnectEventHandler.prototype.onPacketError ", 0, packet);
-	YYIMConnection.getInstance().getDaemon().stopPing(false);
-	errorCode = packet.code;
-	
-	if(errorCode == 401){
-		YYIMManager.getInstance().onAuthError({
-			errorCode : 401,
-			message : '用户名或密码错误'
-		});
-	}else if(errorCode == 409){
-		YYIMManager.getInstance().onConflicted({
-			errorCode : 409,
-			message : '连接冲突'
-		});
-	}else if(errorCode == 4010){
-		YYIMManager.getInstance().onClientKickout({
-			errorCode : 4010,
-			message : '被客户端踢掉'
-		});
-	}else if(errorCode == 4011){
-		YYIMManager.getInstance().onUpdatePassword({
-			errorCode : 4011,
-			message : '修改密码'
-		});
-	}else {
-		YYIMManager.getInstance().onConnectError({
-			errorCode : errorCode,
-			message : '连接失败'
-		});
-	}
-};
-
-YYIMConnectEventHandler.prototype.onPacketError = function(packet) {
-	YYIMManager.getInstance().log("YYIMConnectEventHandler.prototype.onPacketError ", 0, packet);
-};
-
-/**
- * 连接关闭
- */
-YYIMConnectEventHandler.prototype.onDisConnect = function(){
-	YYIMManager.getInstance().onClosed();
-	
-	YYIMConnection.getInstance().getDaemon().stopPing(false);
-};
-
-/**
- * 连接状态改变时将调用此事件, 触发ON_CONNECT_STATUS_CHANGE全局事件，参数status, 可能的值为：
- * <ul>
- * <li>'initializing' ... well
- * <li>'connecting' if connect() was called
- * <li>'resuming' if resume() was called
- * <li>'processing' if it's about to operate as normal
- * <li>'onerror_fallback' if there was an error with the request object
- * <li>'protoerror_fallback' if there was an error at the http binding protocol flow (most likely that's where you interested in)
- * <li>'internal_server_error' in case of an internal server error
- * <li>'suspending' if suspend() is being called
- * <li>'aborted' if abort() was called
- * <li>'disconnecting' if disconnect() has been called
- * </ul>
- */
-YYIMConnectEventHandler.prototype.connectStatusChangeHandler = function(status) {
-	YYIMManager.getInstance().onStatusChanged(status);
-};
-function YYIMConnection() {
-	this.daemon = new YYIMConnectDaemon();
-	this.eventHandler = new YYIMConnectEventHandler();
-	this.connection = this.getConnection();
-	this.connectArg;
-	this.waitingList = [];
-	this.sending = false;
-	this.lastSendTime = 0;
-};
-
-YYIMConnection.getInstance = function() {
-	if (!YYIMConnection._instance) {
-		YYIMConnection._instance = new YYIMConnection();
-		YYIMConnection._instance._init();
-	}
-	return YYIMConnection._instance;
-};
-
-YYIMConnection.prototype.getDaemon = function() {
-	return this.daemon;
-};
-
-YYIMConnection.prototype._init = function(){
-	
-	YYIMManager.getInstance().exeBackhander('monitor');
-
-	this.eventHandler._init();
-
-	this.registerHandler(OPCODE.AUTH.KEY, function(userBindPacket){
-		// change to use opcode judge
-		var jid = new JSJaCJID(userBindPacket.jid), id = YYIMJIDUtil.getID(userBindPacket.jid);
-		
-		YYIMManager.getInstance()._user = {
-			jid: jid,
-			name: id
-		};
-		YYIMManager.getInstance().onUserBind(id, jid.getResource());
-	});
-	
-//	rongqb 20170713
-//	this.registerHandler(OPCODE.PING.KEY, this.getDaemon().pong.bind(this.getDaemon()));
-};
-
-/**
- * 注册连接的报文处理器
- * @param {string} @See OPCODE.EVENT.KEY,
- * @param {String} ns childName对应的子节点命名空间 [optional]
- * @param {String} type 子节点类型，不限制设置为“*", [optional]
- * @param {Function} handler 处理函数
- */
-YYIMConnection.prototype.registerHandler = function(event, ns, type, handler) {
-//	if(this.event != 'ping')
-//		return;
-	if (this.connection) {
-		this.connection.registerHandler.apply(this.connection, arguments);
-		return;
-	}
-	throw "connection is undefined!";
-};
-
-/**
- * 若已经和服务器建立连接 返回true, 否则返回false
- * @return {boolean}
- */
-YYIMConnection.prototype.connected = function() {
-	if (this.connection && this.connection.connected()) {
-		return true;
-	}
-	return false;
-}
-
-/**
- * 根据浏览器支持的不同情况, 返回最合适的连接方式, 如果连接以存在则直接返回
- * @returns {JSJaCConnection}
- */
-YYIMConnection.prototype.getConnection = function() {
-
-	if (!this.connection) {
-		if (YYIMConfiguration.useWebSocket()) {
-			this.connection = new JSJaCWebSocketConnection({
-				httpbase : YYIMConfiguration.getWebSocketUrl()
-			});
-		} else {
-			this.connection = new JSJaCHttpBindingConnection({
-				httpbase : YYIMConfiguration.getHttpBindUrl(),
-				timerval : YYIMConfiguration.CONNECTION.TIMERVAL,
-				wait : YYIMConfiguration.CONNECTION.WAIT
-			});
-		}
-	}
-
-	return this.connection;
-};
-
-/**
- * 请求连接服务器
- */
-YYIMConnection.prototype.connect = function(options) {
-	options = options || {};
-	
-	if (!this.connectArg) {
-		this.connectArg = YYIMConfiguration.getConnectionArgObj();
-	}
-
-	if (options.username) {
-		this.connectArg.username = options.username;
-	}
-	
-	if (options.token) {
-		this.connectArg.password = options.token;
-	}
-	
-	if(options.appType){
-		this.connectArg.appType = options.appType;
-	}
-	
-	if(options.identify){
-		this.connectArg.clientIdentify = options.identify;
-	}
-			
-	YYIMManager.getInstance()._user = {
-		jid: new JSJaCJID(this.connectArg.username + '@' + YYIMConfiguration.YY_IM_DOMAIN + '/' + this.connectArg.resource),
-		name: this.connectArg.username
-	};
-	
-	this.connection.connect(this.connectArg);
-};
-
-/**
- * 请求断开服务器
- */
-YYIMConnection.prototype.disconnect = function() {
-	this.daemon.stopPing(false);
-	if (this.connection) {
-		this.connection.disconnect();
-	}
-};
-
-/**
- * 发送报文到服务器
- */
-YYIMConnection.prototype.send = function(packet, callback, data, callbackContext) {
-	
-	this.waitingList.push({
-		packet:	packet,
-		callback: callback,
-		data: data,
-		callbackContext: callbackContext
-	});
-	
-	if(!this.sending){
-		this.sendInterval();	
-	}
-};
-
-/**
- * 递归延时发送预发送报文队列
- */
-YYIMConnection.prototype.sendInterval = function(){
-	var that = this;
-	if(this.waitingList.length){
-		this.sending = true;
-		var timespan = new Date().getTime() - this.lastSendTime;
-		
-		if(timespan >= YYIMConfiguration.SENDINTERVAL){
-			var data = this.waitingList.shift();
-			this.sendJumpPacket(data);
-			
-			if(data.packet 
-			&& data.packet.opcode != OPCODE.PING.SEND){
-				this.getDaemon().startPing();
-			}
-			
-			if(data.packet 
-			&& data.packet.opcode == OPCODE.PING.SEND){
-				this.getDaemon().setTimeout();
-			}
-			
-			this.lastSendTime = new Date().getTime();
-			this.sendInterval();
-		}else{
-			setTimeout(function(){
-				that.sendInterval();
-			},YYIMConfiguration.SENDINTERVAL - timespan);
-		}
-	}else{
-		this.sending = false;
-	}
-};
-
-/**
- * 发送报文到服务器
- */
-YYIMConnection.prototype.sendJumpPacket = function(arg) {
-	if(arg){
-		if(arg.callbackContext){
-			return this.connection.sendJumpPacket(arg.packet, arg.callback.bind(arg.callbackContext), arg.data);
-		}
-		return this.connection.sendJumpPacket(arg.packet, arg.callback, arg.data);
-	}
-};
-/**
- * XHR异步请求
- * 有自动轮讯
- */
-function MyXHR(obj) {
-	this.url = obj.url;
-	this.data = obj.data;
-	this.sCallback = obj.successCallback;
-	this.eCallback = obj.errorCallback;
-	this.xhr = (function() {
-		if(window.XMLHttpRequest){
-			return new XMLHttpRequest();
-		}else{
-			return new ActiveXObject("Microsoft.XMLHTTP");
-		}
-	})();
-	this.timeout = 10*1000;
-	this.timeoutIndex;
-	this.loop = false;
-}
-
-MyXHR.prototype.get = function() {
-	var _xhr = this.xhr;
-	_xhr.open('GET', this.url, true);
-	MyXHR.prototype._listenFn.call(this);
-	_xhr.send();
-}
-
-MyXHR.prototype.post = function() {
-	var _xhr = this.xhr;
-	_xhr.open('POST', this.url, true);
-	MyXHR.prototype._listenFn.call(this);
-	_xhr.setRequestHeader('Content-Type','x-www-form-urlencoded');
-	_xhr.send(this.data);
-}
-
-MyXHR.prototype.isLoop = function(flag) {
-	this.loop = flag;
-}
-
-/*
- * 停止轮询
- */
-MyXHR.prototype.stopLoop = function() {
-	clearTimeout(_self.timeoutIndex);
-}
-
-/*
- * 回调监听
- */
-MyXHR.prototype._listenFn = function() {
-	var _self = this;
-	var _xhr = this.xhr;
-	this.timeoutIndex = setTimeout(function() {
-		if (_self.loop) {
-			MyXHR.prototype.get.call(_self);
-		}
-		_self.eCallback(_xhr.responseText);
-	}, _self.timeout);
-	_xhr.onreadystatechange = function() {
-		if(_xhr.readyState == 4){
-			clearTimeout(_self.timeoutIndex);
-			if (_xhr.status == 200) {
-				_self.sCallback(_xhr.responseText);
-			}else {
-				_self.eCallback(_xhr.responseText);
-			}
-		}
-	}
-}
-
-
-function YYIMManager() {
-	this._user;
-	this._token = {};
-	this.appkey;
-	this.connectStatus = CONNECT_STATUS.INIT;
-	this.offlineStatus = [CONNECT_STATUS.ERROR,
-						  CONNECT_STATUS.OFFLINE,
-						  CONNECT_STATUS.CONFLICT,
-						  CONNECT_STATUS.AUTHERROR,
-						  CONNECT_STATUS.ONCLIENTKICKOUT,
-						  CONNECT_STATUS.INIT,
-						  CONNECT_STATUS.ONUPDATEPASSWORD];
-						  
-	this.onlineStatus = [CONNECT_STATUS.CONNECTED,
-						 CONNECT_STATUS.PROCESSING];
-	// 定义AI Key变量 yaoleib20171212
-	this.apiKey;
-	this.init();
-};
-
-YYIMManager.getInstance = function() {
-	if(!YYIMManager._instance) {
-		YYIMManager._instance = new YYIMManager();
-	}
-	return YYIMManager._instance;
-};
-
-YYIMManager.prototype.log = function(groupname, level, obj1, obj2) {
-	this._logger = this._logger || new YYIMConsoleLogger(YYIMConfiguration.LOG.FILTER_LEVEL);
-	this._logger.log(groupname, level, obj1, obj2);
-};
-
-/**
- * [INIT] 初始化，回调方法的设置
- * @param options
- */
-YYIMManager.prototype.init = function(options) {
-	var that = this;
-	options = options || {};
-
-	//系统回调
-	this.onClosed = function(arg) {
-		this.onConnectStatusChanged(CONNECT_STATUS.OFFLINE);
-		options.onClosed && options.onClosed(arg);
-	};
-
-	this.onAuthError = function(arg){
-		this.onConnectStatusChanged(CONNECT_STATUS.AUTHERROR);
-		options.onAuthError && options.onAuthError(arg);
-	};
-	
-	this.onStatusChanged = function(status) {
-		if(YYIMCommonUtil.isStringAndNotEmpty(status)) {
-			this.onConnectStatusChanged(status);
-		}
-	};
-	
-	this.onConnectStatusChanged = function(status) {
-		this.connectStatus = status || this.connectStatus;
-		this.log('connectStatus: ', 3, this.connectStatus);
-	};
-	
-	this.onOpened = function(arg) {
-		this.onConnectStatusChanged(CONNECT_STATUS.CONNECTED);
-		this.getTimeCorrection && this.getTimeCorrection();
-		options.onOpened && options.onOpened(arg);
-	};
-	
-	//rongqb 20170227
-	this.onUpdatePassword = function(arg){
-		this.disConnect(CONNECT_STATUS.ONUPDATEPASSWORD);
-		options.onUpdatePassword && options.onUpdatePassword(arg);
-	};
-	
-	//rongqb 20170227
-	this.onClientKickout = function(arg){
-		this.disConnect(CONNECT_STATUS.ONCLIENTKICKOUT);
-		options.onClientKickout && options.onClientKickout(arg);
-	};
-	
-	this.onConflicted = function(arg){
-		this.disConnect(CONNECT_STATUS.CONFLICT);
-		options.onConflicted && options.onConflicted(arg);
-	};
-	
-	this.onConnectError = function(arg) {
-		if(this.connectStatus == CONNECT_STATUS.OFFLINE
-		|| this.connectStatus == CONNECT_STATUS.INIT
-		|| this.connectStatus == CONNECT_STATUS.CONFLICT
-		|| this.connectStatus == CONNECT_STATUS.AUTHERROR
-		|| this.connectStatus == CONNECT_STATUS.ONCLIENTKICKOUT
-		|| this.connectStatus == CONNECT_STATUS.ONUPDATEPASSWORD){
-			if(this.ConnectErrorTimer){
-				clearInterval(this.ConnectErrorTimer);
-				this.ConnectErrorTimer = null;
-			}
-		}else{
-			this.onConnectStatusChanged(CONNECT_STATUS.ERROR);
-			if(!this.ConnectErrorTimer){
-				this.ConnectErrorTimer = setInterval(function() {
-					if(that.connectStatus == CONNECT_STATUS.CONNECTED 
-					|| that.connectStatus == CONNECT_STATUS.PROCESSING
-					|| that.connectStatus == CONNECT_STATUS.OFFLINE
-					|| that.connectStatus == CONNECT_STATUS.INIT) {
-						clearInterval(that.ConnectErrorTimer);
-						that.ConnectErrorTimer = null;
-					} else if(that.connectStatus == CONNECT_STATUS.ERROR) {
-						that.log('连接出现异常，正在尝试重连！', 3, arg);
-						that.connect();
-						that.onConnectStatusChanged(CONNECT_STATUS.CONNECTING);
-					}
-				}, 500);
-			}
-			options.onConnectError && options.onConnectError(arg);
-		}
-	};
-	
-	this.onUserBind = options.onUserBind || function(){};
-	
-	//token即将过期 通过此获取有效的 token
-	this.onExpiration = options.onExpiration;
-	
-	//注册各模块回调处理函数
-	this.exeBackhander('initCallback',options);
-	
-	(function() {
-		jQuery(window).on({
-			'unload offline': function() {
-				if(that.connectStatus != CONNECT_STATUS.INIT){
-					that.disConnect();
-				}
-			},
-			'online': function() {
-				if(that.connectStatus != CONNECT_STATUS.INIT
-				&& that.connectStatus != CONNECT_STATUS.CONFLICT
-				&& that.connectStatus != CONNECT_STATUS.AUTHERROR
-				&& that.connectStatus != CONNECT_STATUS.ONCLIENTKICKOUT
-				&& that.connectStatus != CONNECT_STATUS.ONUPDATEPASSWORD){
-					that.connect();
-				}
-			}
-		});
-	})();
-	
-	/**
-	 * 接口状态批处理
-	 * rongqb 20170808
-	 */
-	jQuery.ajaxSetup({
-		statusCode: {
-			401: function(){
-				//token Expirationed
-				options.onExpirationed && options.onExpirationed();
-			}
-		}
-	});
-};
-
-/**
- * [INIT] 设置多租户参数, 非多租户环境可不设置
- * arg {
- * 	app: String, //必须
- *  etp: String, //必须
- * 	wsurl: String,
- *  wsport: String,
- *  hbport: String,
- *  servlet: String,
- *  logEnable: Boolean,
- *  clientMark: clientMark
- * }
- */
-YYIMManager.prototype.initSDK = function(options) {
-	ConfigSetting.init(options);
-	var conf = YYIMConfiguration.MULTI_TENANCY;
-	this.appkey = conf.SEPARATOR + conf.APP_KEY + conf.SEPARATOR + conf.ETP_KEY;
-	// 存储AI Key yaoleib20171212
-	this.apiKey = options.apiKey;
-};
-
-YYIMManager.prototype.logEnable = function(logEnable) {
-	if(YYIMUtil['isWhateType'](logEnable, 'Boolean')) {
-		YYIMConfiguration.LOG.ENABLE = logEnable;
-	}else{
-		YYIMConfiguration.LOG.ENABLE = !YYIMConfiguration.LOG.ENABLE;
-	}
-};
-
-YYIMManager.prototype.getTenancy = function() {
-	return YYIMConfiguration.MULTI_TENANCY;
-};
-
-/**
- * 获取appKey 
- * @returns '.app.etp'
- */
-YYIMManager.prototype.getAppkey = function() {
-	return this.appkey;
-};
-
-/**
- * 获取apiKey yaoleib20171212
- * @returns '85de79b9f7e34c37a99accaddb256990'
- */
-YYIMManager.prototype.getApiKey = function() {
-    return this.apiKey;
-};
-
-YYIMManager.prototype.isOnline = function() {
-	if(this.onlineStatus.indexOf(this.connectStatus) > -1){
-		return true;
-	}
-	return false;
-};
-
-/**
- * 主动断开连接
- */
-YYIMManager.prototype.disConnect = function(status) {
-	if(this.getExpirationTimer){
-		clearInterval(this.getExpirationTimer);
-		this.getExpirationTimer = 0;
-	}
-	
-	YYIMConnection.getInstance().disconnect();
-	
-	this.onConnectStatusChanged(status || CONNECT_STATUS.OFFLINE);
-};
-
-/**
- * 根据之前的连接参数进行连接
- */
-YYIMManager.prototype.connect = function() {
-	if(!this.isOnline()){
-		YYIMConnection.getInstance().connect();
-	}
-};
-
-/**
- * 获取当前用户的Token
- * @returns
- */
-YYIMManager.prototype.getToken = function() {
-	try{
-		if(this.getExpiration() && YYIMUtil['isWhateType'](this.onExpiration,'Function')){
-			if((this.getExpiration() - this.getServerNow()) <= YYIMConfiguration.EXPIRATION.INVALID){
-				var that = this;
-				this.onExpiration(function(token,expiration){
-					if(token){
-						that._token.token = token;
-					}
-					if(expiration){
-						that._token.expiration = expiration;
-					}
-				});
-			}
-		}
-	}catch(e){
-		this.log('Token winll Invalid. Auto Get Token Error.', 0);
-	}
-	return this._token.token;
-};
-
-/**
- * 获取当前用户的token过期时间
- * @returns
- */
-YYIMManager.prototype.getExpiration = function() {
-	return this._token.expiration;
-};
-
-/**
- * 登录
- * @param name
- * @param password
- */
-YYIMManager.prototype.login = function(options) {
-	options = options || {};
-	
-	this._token = {
-		token: options.token,
-		expiration: options.expiration
-	};
-	
-	if(options.username && options.token){
-		if(!this.isOnline()){
-			YYIMConnection.getInstance().connect({
-				username: YYIMJIDUtil.getNode(options.username), 
-				token: options.token, 
-				appType: options.appType, 
-				identify: options.identify
-			});
-		}
-		if(YYIMUtil['isWhateType'](this.onExpiration,'Function')){
-			if(!this.getExpirationTimer){
-				var that = this;
-				this.getExpirationTimer = setInterval(function(){
-					that.getToken();
-				},YYIMConfiguration.EXPIRATION.INSPECTION_INTERVAL);
-			}
-		}
-	}else{
-		this.log((!options.username? 'Username ':'') + (!options.token? 'Token ':'') + ' Illegal.', 0);	
-	}
-};
-
-/**
- * 获取 sdk 当前的连接状态
- */
-YYIMManager.prototype.getConnectStatus = function(){
-	return this.connectStatus;
-};
-
-/**
- * 退出登录, 仅负责断开连接
- */
-YYIMManager.prototype.logout = function() {
-	this.disConnect.apply(this,arguments);
-	this.onConnectStatusChanged(CONNECT_STATUS.INIT);
-};
-
-/**
- * 获取当前登录用户的bareJid
- */
-YYIMManager.prototype.getUserBareJID = function() {
-	return this._user.jid.getBareJID();
-};
-
-/**
- * 获取当前登录用户的全jid
- */
-YYIMManager.prototype.getUserFullJID = function() {
-	return this._user.jid.toString();
-};
-
-/**
- * 获取当前用户登录的node
- */
-YYIMManager.prototype.getUserNode = function() {
-	return YYIMJIDUtil.getNode(this.getUserBareJID());
-};
-
-/**
- * 获取当前登录用户的id
- */
-YYIMManager.prototype.getUserID = function() {
-	return YYIMJIDUtil.getID(this.getUserBareJID());
-};
-
-/**
- * 获取当前的resource rongqb20151206
- */
-YYIMManager.prototype.getResource = function() {
-	return YYIMConfiguration.RESOURCE;
-};
-
-// get config
-YYIMManager.prototype.getServerName = function() {
-	return YYIMConfiguration.CONNECTION.SERVER_NAME;
-};
-
-YYIMManager.prototype.getServletPath = function() {
-	return YYIMConfiguration.SERVLET;
-};
-
-YYIMManager.prototype.getJIDUtil = function() {
-	return YYIMJIDUtil;
-};
-
-YYIMManager.prototype.getServerNow = function() {
-	return YYIMConfiguration.TIMECORRECTION.AUTOCORRECTION? (new Date().getTime() + YYIMChat.getConfig().TIMECORRECTION.RESULT): new Date().getTime();
-};
-
-YYIMManager.prototype.getBrowser = function() {
-	return YYIMConfiguration.BROWSER;
-};
-
-/**
- * 获得sdk 的常量
- * @returns {//...}
- */
-YYIMManager.prototype.getConstants = function() {
-	return {
-		FAVORITE_TYPE: FAVORITE_TYPE,
-		STATUS: STATUS,
-		TYPE: TYPE,
-		PRESENCE_TYPE: PRESENCE_TYPE,
-		COLLECT_TYPE: COLLECT_TYPE,
-		CHAT_TYPE: CHAT_TYPE,
-		MESSAGE_CONTENT_TYPE: MESSAGE_CONTENT_TYPE
-	};
-};
-
-/**
- * 获得sdk的配置信息
- */
-YYIMManager.prototype.getConfig = function() {
-	return YYIMConfiguration;
-};
-
-YYIMManager.prototype.getConnection = function() {
-	return YYIMConnection.getInstance();
-};
-
-YYIMManager.prototype.getJIDUtil = function() {
-	return YYIMJIDUtil;
-};
-
-YYIMManager.prototype.getUtil = function() {
-	return YYIMUtil;
-};
-
-/**
- * Extend 追加执行函数  rongqb 20161028
- * @param {Object} arg {
- * 	type: {
- * 		key: backhander
- *  }
- * }
- */
-YYIMManager.prototype.setBackhander = function(arg) {
-	if(arg){
-		this.backhanders = this.backhanders || {};
-		for(var x in arg){
-			this.backhanders[x] = this.backhanders[x] || {};
-			jQuery.extend(this.backhanders[x],arg[x]);
-		}
-	}
-};
-
-/**
- * 执行 Extend 追加函数   rongqb 20161028
- * @param {Object} type
- * }
- */
-YYIMManager.prototype.exeBackhander = function(type,options) {
-	this.backhanders = this.backhanders || {};
-	if(type && this.backhanders[type]){
-		for(var y in this.backhanders[type]){
-			if(YYIMUtil['isWhateType'](this.backhanders[type][y],'Function')){
-				try{
-					this.backhanders[type][y](options || {});
-				}catch(e){
-					this.log('exeBackhander: ' + type + ' ' + y + ' Error.',0);
-				}
-			}
-		}
-	}
-};
- 	return YYIMManager.getInstance();
-})();
+/******/ (function(modules) { // webpackBootstrap
+/******/ 	// The module cache
+/******/ 	var installedModules = {};
+/******/
+/******/ 	// The require function
+/******/ 	function __webpack_require__(moduleId) {
+/******/
+/******/ 		// Check if module is in cache
+/******/ 		if(installedModules[moduleId]) {
+/******/ 			return installedModules[moduleId].exports;
+/******/ 		}
+/******/ 		// Create a new module (and put it into the cache)
+/******/ 		var module = installedModules[moduleId] = {
+/******/ 			i: moduleId,
+/******/ 			l: false,
+/******/ 			exports: {}
+/******/ 		};
+/******/
+/******/ 		// Execute the module function
+/******/ 		modules[moduleId].call(module.exports, module, module.exports, __webpack_require__);
+/******/
+/******/ 		// Flag the module as loaded
+/******/ 		module.l = true;
+/******/
+/******/ 		// Return the exports of the module
+/******/ 		return module.exports;
+/******/ 	}
+/******/
+/******/
+/******/ 	// expose the modules object (__webpack_modules__)
+/******/ 	__webpack_require__.m = modules;
+/******/
+/******/ 	// expose the module cache
+/******/ 	__webpack_require__.c = installedModules;
+/******/
+/******/ 	// define getter function for harmony exports
+/******/ 	__webpack_require__.d = function(exports, name, getter) {
+/******/ 		if(!__webpack_require__.o(exports, name)) {
+/******/ 			Object.defineProperty(exports, name, {
+/******/ 				configurable: false,
+/******/ 				enumerable: true,
+/******/ 				get: getter
+/******/ 			});
+/******/ 		}
+/******/ 	};
+/******/
+/******/ 	// define __esModule on exports
+/******/ 	__webpack_require__.r = function(exports) {
+/******/ 		Object.defineProperty(exports, '__esModule', { value: true });
+/******/ 	};
+/******/
+/******/ 	// getDefaultExport function for compatibility with non-harmony modules
+/******/ 	__webpack_require__.n = function(module) {
+/******/ 		var getter = module && module.__esModule ?
+/******/ 			function getDefault() { return module['default']; } :
+/******/ 			function getModuleExports() { return module; };
+/******/ 		__webpack_require__.d(getter, 'a', getter);
+/******/ 		return getter;
+/******/ 	};
+/******/
+/******/ 	// Object.prototype.hasOwnProperty.call
+/******/ 	__webpack_require__.o = function(object, property) { return Object.prototype.hasOwnProperty.call(object, property); };
+/******/
+/******/ 	// __webpack_public_path__
+/******/ 	__webpack_require__.p = "";
+/******/
+/******/
+/******/ 	// Load entry module and return exports
+/******/ 	return __webpack_require__(__webpack_require__.s = "./src/index.js");
+/******/ })
+/************************************************************************/
+/******/ ({
+
+/***/ "./node_modules/_babel-runtime@6.26.0@babel-runtime/core-js/json/stringify.js":
+/*!************************************************************************************!*\
+  !*** ./node_modules/_babel-runtime@6.26.0@babel-runtime/core-js/json/stringify.js ***!
+  \************************************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+eval("module.exports = { \"default\": __webpack_require__(/*! core-js/library/fn/json/stringify */ \"./node_modules/_core-js@2.5.5@core-js/library/fn/json/stringify.js\"), __esModule: true };\n\n//# sourceURL=webpack:///./node_modules/_babel-runtime@6.26.0@babel-runtime/core-js/json/stringify.js?");
+
+/***/ }),
+
+/***/ "./node_modules/_babel-runtime@6.26.0@babel-runtime/core-js/object/define-property.js":
+/*!********************************************************************************************!*\
+  !*** ./node_modules/_babel-runtime@6.26.0@babel-runtime/core-js/object/define-property.js ***!
+  \********************************************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+eval("module.exports = { \"default\": __webpack_require__(/*! core-js/library/fn/object/define-property */ \"./node_modules/_core-js@2.5.5@core-js/library/fn/object/define-property.js\"), __esModule: true };\n\n//# sourceURL=webpack:///./node_modules/_babel-runtime@6.26.0@babel-runtime/core-js/object/define-property.js?");
+
+/***/ }),
+
+/***/ "./node_modules/_babel-runtime@6.26.0@babel-runtime/helpers/classCallCheck.js":
+/*!************************************************************************************!*\
+  !*** ./node_modules/_babel-runtime@6.26.0@babel-runtime/helpers/classCallCheck.js ***!
+  \************************************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+eval("\n\nexports.__esModule = true;\n\nexports.default = function (instance, Constructor) {\n  if (!(instance instanceof Constructor)) {\n    throw new TypeError(\"Cannot call a class as a function\");\n  }\n};\n\n//# sourceURL=webpack:///./node_modules/_babel-runtime@6.26.0@babel-runtime/helpers/classCallCheck.js?");
+
+/***/ }),
+
+/***/ "./node_modules/_babel-runtime@6.26.0@babel-runtime/helpers/createClass.js":
+/*!*********************************************************************************!*\
+  !*** ./node_modules/_babel-runtime@6.26.0@babel-runtime/helpers/createClass.js ***!
+  \*********************************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+eval("\n\nexports.__esModule = true;\n\nvar _defineProperty = __webpack_require__(/*! ../core-js/object/define-property */ \"./node_modules/_babel-runtime@6.26.0@babel-runtime/core-js/object/define-property.js\");\n\nvar _defineProperty2 = _interopRequireDefault(_defineProperty);\n\nfunction _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }\n\nexports.default = function () {\n  function defineProperties(target, props) {\n    for (var i = 0; i < props.length; i++) {\n      var descriptor = props[i];\n      descriptor.enumerable = descriptor.enumerable || false;\n      descriptor.configurable = true;\n      if (\"value\" in descriptor) descriptor.writable = true;\n      (0, _defineProperty2.default)(target, descriptor.key, descriptor);\n    }\n  }\n\n  return function (Constructor, protoProps, staticProps) {\n    if (protoProps) defineProperties(Constructor.prototype, protoProps);\n    if (staticProps) defineProperties(Constructor, staticProps);\n    return Constructor;\n  };\n}();\n\n//# sourceURL=webpack:///./node_modules/_babel-runtime@6.26.0@babel-runtime/helpers/createClass.js?");
+
+/***/ }),
+
+/***/ "./node_modules/_core-js@2.5.5@core-js/library/fn/json/stringify.js":
+/*!**************************************************************************!*\
+  !*** ./node_modules/_core-js@2.5.5@core-js/library/fn/json/stringify.js ***!
+  \**************************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+eval("var core = __webpack_require__(/*! ../../modules/_core */ \"./node_modules/_core-js@2.5.5@core-js/library/modules/_core.js\");\nvar $JSON = core.JSON || (core.JSON = { stringify: JSON.stringify });\nmodule.exports = function stringify(it) { // eslint-disable-line no-unused-vars\n  return $JSON.stringify.apply($JSON, arguments);\n};\n\n\n//# sourceURL=webpack:///./node_modules/_core-js@2.5.5@core-js/library/fn/json/stringify.js?");
+
+/***/ }),
+
+/***/ "./node_modules/_core-js@2.5.5@core-js/library/fn/object/define-property.js":
+/*!**********************************************************************************!*\
+  !*** ./node_modules/_core-js@2.5.5@core-js/library/fn/object/define-property.js ***!
+  \**********************************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+eval("__webpack_require__(/*! ../../modules/es6.object.define-property */ \"./node_modules/_core-js@2.5.5@core-js/library/modules/es6.object.define-property.js\");\nvar $Object = __webpack_require__(/*! ../../modules/_core */ \"./node_modules/_core-js@2.5.5@core-js/library/modules/_core.js\").Object;\nmodule.exports = function defineProperty(it, key, desc) {\n  return $Object.defineProperty(it, key, desc);\n};\n\n\n//# sourceURL=webpack:///./node_modules/_core-js@2.5.5@core-js/library/fn/object/define-property.js?");
+
+/***/ }),
+
+/***/ "./node_modules/_core-js@2.5.5@core-js/library/modules/_a-function.js":
+/*!****************************************************************************!*\
+  !*** ./node_modules/_core-js@2.5.5@core-js/library/modules/_a-function.js ***!
+  \****************************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+eval("module.exports = function (it) {\n  if (typeof it != 'function') throw TypeError(it + ' is not a function!');\n  return it;\n};\n\n\n//# sourceURL=webpack:///./node_modules/_core-js@2.5.5@core-js/library/modules/_a-function.js?");
+
+/***/ }),
+
+/***/ "./node_modules/_core-js@2.5.5@core-js/library/modules/_an-object.js":
+/*!***************************************************************************!*\
+  !*** ./node_modules/_core-js@2.5.5@core-js/library/modules/_an-object.js ***!
+  \***************************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+eval("var isObject = __webpack_require__(/*! ./_is-object */ \"./node_modules/_core-js@2.5.5@core-js/library/modules/_is-object.js\");\nmodule.exports = function (it) {\n  if (!isObject(it)) throw TypeError(it + ' is not an object!');\n  return it;\n};\n\n\n//# sourceURL=webpack:///./node_modules/_core-js@2.5.5@core-js/library/modules/_an-object.js?");
+
+/***/ }),
+
+/***/ "./node_modules/_core-js@2.5.5@core-js/library/modules/_core.js":
+/*!**********************************************************************!*\
+  !*** ./node_modules/_core-js@2.5.5@core-js/library/modules/_core.js ***!
+  \**********************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+eval("var core = module.exports = { version: '2.5.5' };\nif (typeof __e == 'number') __e = core; // eslint-disable-line no-undef\n\n\n//# sourceURL=webpack:///./node_modules/_core-js@2.5.5@core-js/library/modules/_core.js?");
+
+/***/ }),
+
+/***/ "./node_modules/_core-js@2.5.5@core-js/library/modules/_ctx.js":
+/*!*********************************************************************!*\
+  !*** ./node_modules/_core-js@2.5.5@core-js/library/modules/_ctx.js ***!
+  \*********************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+eval("// optional / simple context binding\nvar aFunction = __webpack_require__(/*! ./_a-function */ \"./node_modules/_core-js@2.5.5@core-js/library/modules/_a-function.js\");\nmodule.exports = function (fn, that, length) {\n  aFunction(fn);\n  if (that === undefined) return fn;\n  switch (length) {\n    case 1: return function (a) {\n      return fn.call(that, a);\n    };\n    case 2: return function (a, b) {\n      return fn.call(that, a, b);\n    };\n    case 3: return function (a, b, c) {\n      return fn.call(that, a, b, c);\n    };\n  }\n  return function (/* ...args */) {\n    return fn.apply(that, arguments);\n  };\n};\n\n\n//# sourceURL=webpack:///./node_modules/_core-js@2.5.5@core-js/library/modules/_ctx.js?");
+
+/***/ }),
+
+/***/ "./node_modules/_core-js@2.5.5@core-js/library/modules/_descriptors.js":
+/*!*****************************************************************************!*\
+  !*** ./node_modules/_core-js@2.5.5@core-js/library/modules/_descriptors.js ***!
+  \*****************************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+eval("// Thank's IE8 for his funny defineProperty\nmodule.exports = !__webpack_require__(/*! ./_fails */ \"./node_modules/_core-js@2.5.5@core-js/library/modules/_fails.js\")(function () {\n  return Object.defineProperty({}, 'a', { get: function () { return 7; } }).a != 7;\n});\n\n\n//# sourceURL=webpack:///./node_modules/_core-js@2.5.5@core-js/library/modules/_descriptors.js?");
+
+/***/ }),
+
+/***/ "./node_modules/_core-js@2.5.5@core-js/library/modules/_dom-create.js":
+/*!****************************************************************************!*\
+  !*** ./node_modules/_core-js@2.5.5@core-js/library/modules/_dom-create.js ***!
+  \****************************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+eval("var isObject = __webpack_require__(/*! ./_is-object */ \"./node_modules/_core-js@2.5.5@core-js/library/modules/_is-object.js\");\nvar document = __webpack_require__(/*! ./_global */ \"./node_modules/_core-js@2.5.5@core-js/library/modules/_global.js\").document;\n// typeof document.createElement is 'object' in old IE\nvar is = isObject(document) && isObject(document.createElement);\nmodule.exports = function (it) {\n  return is ? document.createElement(it) : {};\n};\n\n\n//# sourceURL=webpack:///./node_modules/_core-js@2.5.5@core-js/library/modules/_dom-create.js?");
+
+/***/ }),
+
+/***/ "./node_modules/_core-js@2.5.5@core-js/library/modules/_export.js":
+/*!************************************************************************!*\
+  !*** ./node_modules/_core-js@2.5.5@core-js/library/modules/_export.js ***!
+  \************************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+eval("var global = __webpack_require__(/*! ./_global */ \"./node_modules/_core-js@2.5.5@core-js/library/modules/_global.js\");\nvar core = __webpack_require__(/*! ./_core */ \"./node_modules/_core-js@2.5.5@core-js/library/modules/_core.js\");\nvar ctx = __webpack_require__(/*! ./_ctx */ \"./node_modules/_core-js@2.5.5@core-js/library/modules/_ctx.js\");\nvar hide = __webpack_require__(/*! ./_hide */ \"./node_modules/_core-js@2.5.5@core-js/library/modules/_hide.js\");\nvar has = __webpack_require__(/*! ./_has */ \"./node_modules/_core-js@2.5.5@core-js/library/modules/_has.js\");\nvar PROTOTYPE = 'prototype';\n\nvar $export = function (type, name, source) {\n  var IS_FORCED = type & $export.F;\n  var IS_GLOBAL = type & $export.G;\n  var IS_STATIC = type & $export.S;\n  var IS_PROTO = type & $export.P;\n  var IS_BIND = type & $export.B;\n  var IS_WRAP = type & $export.W;\n  var exports = IS_GLOBAL ? core : core[name] || (core[name] = {});\n  var expProto = exports[PROTOTYPE];\n  var target = IS_GLOBAL ? global : IS_STATIC ? global[name] : (global[name] || {})[PROTOTYPE];\n  var key, own, out;\n  if (IS_GLOBAL) source = name;\n  for (key in source) {\n    // contains in native\n    own = !IS_FORCED && target && target[key] !== undefined;\n    if (own && has(exports, key)) continue;\n    // export native or passed\n    out = own ? target[key] : source[key];\n    // prevent global pollution for namespaces\n    exports[key] = IS_GLOBAL && typeof target[key] != 'function' ? source[key]\n    // bind timers to global for call from export context\n    : IS_BIND && own ? ctx(out, global)\n    // wrap global constructors for prevent change them in library\n    : IS_WRAP && target[key] == out ? (function (C) {\n      var F = function (a, b, c) {\n        if (this instanceof C) {\n          switch (arguments.length) {\n            case 0: return new C();\n            case 1: return new C(a);\n            case 2: return new C(a, b);\n          } return new C(a, b, c);\n        } return C.apply(this, arguments);\n      };\n      F[PROTOTYPE] = C[PROTOTYPE];\n      return F;\n    // make static versions for prototype methods\n    })(out) : IS_PROTO && typeof out == 'function' ? ctx(Function.call, out) : out;\n    // export proto methods to core.%CONSTRUCTOR%.methods.%NAME%\n    if (IS_PROTO) {\n      (exports.virtual || (exports.virtual = {}))[key] = out;\n      // export proto methods to core.%CONSTRUCTOR%.prototype.%NAME%\n      if (type & $export.R && expProto && !expProto[key]) hide(expProto, key, out);\n    }\n  }\n};\n// type bitmap\n$export.F = 1;   // forced\n$export.G = 2;   // global\n$export.S = 4;   // static\n$export.P = 8;   // proto\n$export.B = 16;  // bind\n$export.W = 32;  // wrap\n$export.U = 64;  // safe\n$export.R = 128; // real proto method for `library`\nmodule.exports = $export;\n\n\n//# sourceURL=webpack:///./node_modules/_core-js@2.5.5@core-js/library/modules/_export.js?");
+
+/***/ }),
+
+/***/ "./node_modules/_core-js@2.5.5@core-js/library/modules/_fails.js":
+/*!***********************************************************************!*\
+  !*** ./node_modules/_core-js@2.5.5@core-js/library/modules/_fails.js ***!
+  \***********************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+eval("module.exports = function (exec) {\n  try {\n    return !!exec();\n  } catch (e) {\n    return true;\n  }\n};\n\n\n//# sourceURL=webpack:///./node_modules/_core-js@2.5.5@core-js/library/modules/_fails.js?");
+
+/***/ }),
+
+/***/ "./node_modules/_core-js@2.5.5@core-js/library/modules/_global.js":
+/*!************************************************************************!*\
+  !*** ./node_modules/_core-js@2.5.5@core-js/library/modules/_global.js ***!
+  \************************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+eval("// https://github.com/zloirock/core-js/issues/86#issuecomment-115759028\nvar global = module.exports = typeof window != 'undefined' && window.Math == Math\n  ? window : typeof self != 'undefined' && self.Math == Math ? self\n  // eslint-disable-next-line no-new-func\n  : Function('return this')();\nif (typeof __g == 'number') __g = global; // eslint-disable-line no-undef\n\n\n//# sourceURL=webpack:///./node_modules/_core-js@2.5.5@core-js/library/modules/_global.js?");
+
+/***/ }),
+
+/***/ "./node_modules/_core-js@2.5.5@core-js/library/modules/_has.js":
+/*!*********************************************************************!*\
+  !*** ./node_modules/_core-js@2.5.5@core-js/library/modules/_has.js ***!
+  \*********************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+eval("var hasOwnProperty = {}.hasOwnProperty;\nmodule.exports = function (it, key) {\n  return hasOwnProperty.call(it, key);\n};\n\n\n//# sourceURL=webpack:///./node_modules/_core-js@2.5.5@core-js/library/modules/_has.js?");
+
+/***/ }),
+
+/***/ "./node_modules/_core-js@2.5.5@core-js/library/modules/_hide.js":
+/*!**********************************************************************!*\
+  !*** ./node_modules/_core-js@2.5.5@core-js/library/modules/_hide.js ***!
+  \**********************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+eval("var dP = __webpack_require__(/*! ./_object-dp */ \"./node_modules/_core-js@2.5.5@core-js/library/modules/_object-dp.js\");\nvar createDesc = __webpack_require__(/*! ./_property-desc */ \"./node_modules/_core-js@2.5.5@core-js/library/modules/_property-desc.js\");\nmodule.exports = __webpack_require__(/*! ./_descriptors */ \"./node_modules/_core-js@2.5.5@core-js/library/modules/_descriptors.js\") ? function (object, key, value) {\n  return dP.f(object, key, createDesc(1, value));\n} : function (object, key, value) {\n  object[key] = value;\n  return object;\n};\n\n\n//# sourceURL=webpack:///./node_modules/_core-js@2.5.5@core-js/library/modules/_hide.js?");
+
+/***/ }),
+
+/***/ "./node_modules/_core-js@2.5.5@core-js/library/modules/_ie8-dom-define.js":
+/*!********************************************************************************!*\
+  !*** ./node_modules/_core-js@2.5.5@core-js/library/modules/_ie8-dom-define.js ***!
+  \********************************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+eval("module.exports = !__webpack_require__(/*! ./_descriptors */ \"./node_modules/_core-js@2.5.5@core-js/library/modules/_descriptors.js\") && !__webpack_require__(/*! ./_fails */ \"./node_modules/_core-js@2.5.5@core-js/library/modules/_fails.js\")(function () {\n  return Object.defineProperty(__webpack_require__(/*! ./_dom-create */ \"./node_modules/_core-js@2.5.5@core-js/library/modules/_dom-create.js\")('div'), 'a', { get: function () { return 7; } }).a != 7;\n});\n\n\n//# sourceURL=webpack:///./node_modules/_core-js@2.5.5@core-js/library/modules/_ie8-dom-define.js?");
+
+/***/ }),
+
+/***/ "./node_modules/_core-js@2.5.5@core-js/library/modules/_is-object.js":
+/*!***************************************************************************!*\
+  !*** ./node_modules/_core-js@2.5.5@core-js/library/modules/_is-object.js ***!
+  \***************************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+eval("module.exports = function (it) {\n  return typeof it === 'object' ? it !== null : typeof it === 'function';\n};\n\n\n//# sourceURL=webpack:///./node_modules/_core-js@2.5.5@core-js/library/modules/_is-object.js?");
+
+/***/ }),
+
+/***/ "./node_modules/_core-js@2.5.5@core-js/library/modules/_object-dp.js":
+/*!***************************************************************************!*\
+  !*** ./node_modules/_core-js@2.5.5@core-js/library/modules/_object-dp.js ***!
+  \***************************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+eval("var anObject = __webpack_require__(/*! ./_an-object */ \"./node_modules/_core-js@2.5.5@core-js/library/modules/_an-object.js\");\nvar IE8_DOM_DEFINE = __webpack_require__(/*! ./_ie8-dom-define */ \"./node_modules/_core-js@2.5.5@core-js/library/modules/_ie8-dom-define.js\");\nvar toPrimitive = __webpack_require__(/*! ./_to-primitive */ \"./node_modules/_core-js@2.5.5@core-js/library/modules/_to-primitive.js\");\nvar dP = Object.defineProperty;\n\nexports.f = __webpack_require__(/*! ./_descriptors */ \"./node_modules/_core-js@2.5.5@core-js/library/modules/_descriptors.js\") ? Object.defineProperty : function defineProperty(O, P, Attributes) {\n  anObject(O);\n  P = toPrimitive(P, true);\n  anObject(Attributes);\n  if (IE8_DOM_DEFINE) try {\n    return dP(O, P, Attributes);\n  } catch (e) { /* empty */ }\n  if ('get' in Attributes || 'set' in Attributes) throw TypeError('Accessors not supported!');\n  if ('value' in Attributes) O[P] = Attributes.value;\n  return O;\n};\n\n\n//# sourceURL=webpack:///./node_modules/_core-js@2.5.5@core-js/library/modules/_object-dp.js?");
+
+/***/ }),
+
+/***/ "./node_modules/_core-js@2.5.5@core-js/library/modules/_property-desc.js":
+/*!*******************************************************************************!*\
+  !*** ./node_modules/_core-js@2.5.5@core-js/library/modules/_property-desc.js ***!
+  \*******************************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+eval("module.exports = function (bitmap, value) {\n  return {\n    enumerable: !(bitmap & 1),\n    configurable: !(bitmap & 2),\n    writable: !(bitmap & 4),\n    value: value\n  };\n};\n\n\n//# sourceURL=webpack:///./node_modules/_core-js@2.5.5@core-js/library/modules/_property-desc.js?");
+
+/***/ }),
+
+/***/ "./node_modules/_core-js@2.5.5@core-js/library/modules/_to-primitive.js":
+/*!******************************************************************************!*\
+  !*** ./node_modules/_core-js@2.5.5@core-js/library/modules/_to-primitive.js ***!
+  \******************************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+eval("// 7.1.1 ToPrimitive(input [, PreferredType])\nvar isObject = __webpack_require__(/*! ./_is-object */ \"./node_modules/_core-js@2.5.5@core-js/library/modules/_is-object.js\");\n// instead of the ES6 spec version, we didn't implement @@toPrimitive case\n// and the second argument - flag - preferred type is a string\nmodule.exports = function (it, S) {\n  if (!isObject(it)) return it;\n  var fn, val;\n  if (S && typeof (fn = it.toString) == 'function' && !isObject(val = fn.call(it))) return val;\n  if (typeof (fn = it.valueOf) == 'function' && !isObject(val = fn.call(it))) return val;\n  if (!S && typeof (fn = it.toString) == 'function' && !isObject(val = fn.call(it))) return val;\n  throw TypeError(\"Can't convert object to primitive value\");\n};\n\n\n//# sourceURL=webpack:///./node_modules/_core-js@2.5.5@core-js/library/modules/_to-primitive.js?");
+
+/***/ }),
+
+/***/ "./node_modules/_core-js@2.5.5@core-js/library/modules/es6.object.define-property.js":
+/*!*******************************************************************************************!*\
+  !*** ./node_modules/_core-js@2.5.5@core-js/library/modules/es6.object.define-property.js ***!
+  \*******************************************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+eval("var $export = __webpack_require__(/*! ./_export */ \"./node_modules/_core-js@2.5.5@core-js/library/modules/_export.js\");\n// 19.1.2.4 / 15.2.3.6 Object.defineProperty(O, P, Attributes)\n$export($export.S + $export.F * !__webpack_require__(/*! ./_descriptors */ \"./node_modules/_core-js@2.5.5@core-js/library/modules/_descriptors.js\"), 'Object', { defineProperty: __webpack_require__(/*! ./_object-dp */ \"./node_modules/_core-js@2.5.5@core-js/library/modules/_object-dp.js\").f });\n\n\n//# sourceURL=webpack:///./node_modules/_core-js@2.5.5@core-js/library/modules/es6.object.define-property.js?");
+
+/***/ }),
+
+/***/ "./src/config/config.js":
+/*!******************************!*\
+  !*** ./src/config/config.js ***!
+  \******************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+eval("\n\nObject.defineProperty(exports, \"__esModule\", {\n\tvalue: true\n});\njQuery.support.cors = true;\n\nvar YYIMConfiguration = {};\n\nvar ConfigSetting = function () {\n\n\tvar YY_IM_DOMAIN = 'im.yyuap.com';\n\tvar YY_IM_ADDRESS = 'stellar.yyuap.com';\n\tvar YY_IM_WSPORT = 5227;\n\tvar YY_IM_HTTPBIND_PORT = 7075;\n\tvar YY_IM_SERVLET_ADDRESS = 'http://im.yyuap.com/';\n\tvar YY_IM_CLIENT_MARK = 'web';\n\n\tvar TODO_SERVLET_ADDRESS = 'https://pubaccount.yonyoucloud.com/';\n\n\tvar init = function init(options) {\n\t\toptions = options || {};\n\n\t\tYY_IM_CLIENT_MARK = options.clientMark || YY_IM_CLIENT_MARK;\n\t\tYY_IM_ADDRESS = options.wsurl || YY_IM_ADDRESS;\n\t\tYY_IM_WSPORT = options.wsport || YY_IM_WSPORT;\n\t\tYY_IM_HTTPBIND_PORT = options.hbport || YY_IM_HTTPBIND_PORT;\n\t\tYY_IM_SERVLET_ADDRESS = options.servlet || YY_IM_SERVLET_ADDRESS;\n\n\t\tTODO_SERVLET_ADDRESS = options.todoServlet || TODO_SERVLET_ADDRESS;\n\n\t\tvar getBrowser = function getBrowser() {\n\t\t\tvar userAgent = navigator.userAgent.toLowerCase();\n\n\t\t\treturn {\n\t\t\t\tversion: (userAgent.match(/.+(?:rv|it|ra|ie)[\\/: ]([\\d.]+)/) || [])[1],\n\t\t\t\twebkit: /webkit/.test(userAgent),\n\t\t\t\topera: /opera/.test(userAgent),\n\t\t\t\tmsie: /msie/.test(userAgent) && !/opera/.test(userAgent),\n\t\t\t\tmozilla: /mozilla/.test(userAgent) && !/(compatible|webkit)/.test(userAgent)\n\t\t\t};\n\t\t};\n\n\t\tvar isMsielt10 = function isMsielt10() {\n\t\t\tvar browser = getBrowser();\n\t\t\tif (browser.msie && window.parseInt(browser.version) < 10) {\n\t\t\t\treturn true;\n\t\t\t}\n\t\t\treturn false;\n\t\t};\n\n\t\tvar getClientMark = function getClientMark() {\n\t\t\treturn YY_IM_CLIENT_MARK;\n\t\t};\n\n\t\tif (isMsielt10()) {\n\t\t\tYY_IM_SERVLET_ADDRESS = YY_IM_SERVLET_ADDRESS.replace(/^https?:\\/\\//, window.location.protocol + '//');\n\t\t}\n\n\t\tif (/https/.test(window.location.protocol) || options.useHttps === true) {\n\t\t\tYY_IM_WSPORT = 5225;\n\t\t}\n\n\t\texports.YYIMConfiguration = YYIMConfiguration = {\n\t\t\tYY_IM_DOMAIN: YY_IM_DOMAIN,\n\n\t\t\tRESOURCE: YY_IM_CLIENT_MARK + '-v2.6',\n\n\t\t\tMULTI_TENANCY: {\n\t\t\t\tENABLE: true,\n\t\t\t\tETP_KEY: options.etp || 'etp',\n\t\t\t\tAPP_KEY: options.app || 'app',\n\t\t\t\tSEPARATOR: '.'\n\t\t\t},\n\n\t\t\tSENDINTERVAL: 30,\n\n\t\t\tGROUP: {\n\t\t\t\tMEMBERSLIMIT: 5 },\n\n\t\t\tBETCH_MAXLIMIT: {\n\t\t\t\tROSTER: 50,\n\t\t\t\tPUBACCOUNT: 50\n\t\t\t},\n\n\t\t\tINPUT_STATE: {\n\t\t\t\tINTERVAL: 2 * 1000\n\t\t\t},\n\n\t\t\tUPLOAD: {\n\t\t\t\tAUTO_SEND: true,\n\t\t\t\tMULTI_SELECTION: false,\n\t\t\t\tPREVENT_DUPLICATES: false,\n\t\t\t\tPREVIEW_SIZE: {\n\t\t\t\t\tWIDTH: 100,\n\t\t\t\t\tHEIGHT: 100\n\t\t\t\t},\n\t\t\t\tFLASH_SWF_URL: options.flash_swf_url || './Moxie.swf',\n\t\t\t\tSILVERLIGHT_XAP_URL: options.silverlight_xap_url || './Moxie.xap',\n\t\t\t\tMEDIATYPE: {\n\t\t\t\t\tIMAGE: 1,\n\t\t\t\t\tFILE: 2,\n\t\t\t\t\tDOC: 3\n\t\t\t\t},\n\t\t\t\tIMAGE_TYPES: /\\.(png|jpe?g|gif)$/i\n\t\t\t},\n\n\t\t\tTIMECORRECTION: {\n\t\t\t\tAUTOCORRECTION: true,\n\t\t\t\tTIMES: 3,\n\t\t\t\tRESIDUAL: 50,\n\t\t\t\tRESULT: 0,\n\t\t\t\tLOAD: false },\n\n\t\t\tMULTIPARTYCALL: {\n\t\t\t\tADDRESS: 'http://dudu.yonyoutelecom.cn/httpIntf/createConference.do',\n\t\t\t\tACCOUNT: '',\n\t\t\t\tKEY: '',\n\t\t\t\tPHONESMAXLENGTH: 200 },\n\n\t\t\tSERVLET: {\n\t\t\t\tREST_RESOURCE_SERVLET: YY_IM_SERVLET_ADDRESS + 'sysadmin/rest/resource/',\n\t\t\t\tREST_VERSION_SERVLET: YY_IM_SERVLET_ADDRESS + 'sysadmin/rest/version/',\n\t\t\t\tREST_USER_SERVLET: YY_IM_SERVLET_ADDRESS + 'sysadmin/rest/user/',\n\t\t\t\tREST_UPLOAD_SERVLET: YY_IM_SERVLET_ADDRESS + 'im_upload/rest/resource/',\n\t\t\t\tREST_DOWNLOAD_SERVLET: YY_IM_SERVLET_ADDRESS + 'im_download/rest/resource/',\n\t\t\t\tREST_TRANSFORM_SERVLET: YY_IM_SERVLET_ADDRESS + 'im_download/rest/transform/resource/',\n\t\t\t\tREST_SYSTEM_SERVLET: YY_IM_SERVLET_ADDRESS + 'sysadmin/rest/system/',\n\t\t\t\tREST_SYSTEM_CUSTOMER_USER: YY_IM_SERVLET_ADDRESS + 'sysadmin/rest/customer/user/',\n\n\t\t\t\tREST_TODO_USER: TODO_SERVLET_ADDRESS + 'todocenter/user/todo/'\n\t\t\t},\n\n\t\t\tSUPPORT: {\n\t\t\t\tisWebSocketSupport: function () {\n\t\t\t\t\twindow.WebSocket = window.WebSocket || window.MozWebSocket;\n\t\t\t\t\tif (window.WebSocket) {\n\t\t\t\t\t\treturn true;\n\t\t\t\t\t}\n\t\t\t\t\treturn false;\n\t\t\t\t}()\n\t\t\t},\n\n\t\t\tCONNECTION: {\n\t\t\t\tTIMERVAL: 2000,\n\t\t\t\tWAIT: 300,\n\t\t\t\tSECURE: false,\n\t\t\t\tALLOW_PLAIN: true,\n\t\t\t\tENABLE_WEBSOCKET: true,\n\t\t\t\tENABLE_LOCAL_CONNECTION: true,\n\t\t\t\tUSE_HTTPS: function () {\n\t\t\t\t\tif (/https/.test(window.location.protocol) || options.useHttps === true) {\n\t\t\t\t\t\treturn true;\n\t\t\t\t\t}\n\t\t\t\t\treturn false;\n\t\t\t\t}(),\n\t\t\t\tSERVER_NAME: YY_IM_DOMAIN,\n\t\t\t\tHTTP_BASE: YY_IM_ADDRESS,\n\t\t\t\tHTTP_BIND_PORT: YY_IM_HTTPBIND_PORT,\n\t\t\t\tWS_PORT: YY_IM_WSPORT\n\t\t\t},\n\n\t\t\tPING: {\n\t\t\t\tINTERVAL: 10 * 1000,\n\n\t\t\t\tSLOW_INTERVAL: 30 * 1000,\n\n\t\t\t\tTIMEOUT: 10 * 1000\n\t\t\t},\n\n\t\t\tDOMAIN: {\n\t\t\t\tCHATROOM: 'conference.' + YY_IM_DOMAIN,\n\t\t\t\tSEARCH: 'search.' + YY_IM_DOMAIN,\n\t\t\t\tPUBACCOUNT: 'pubaccount.' + YY_IM_DOMAIN\n\t\t\t},\n\n\t\t\tEXPIRATION: {\n\t\t\t\tINVALID: 6 * 60 * 60 * 1000,\n\t\t\t\tINSPECTION_INTERVAL: 30 * 60 * 1000 },\n\n\t\t\tLOG: {\n\t\t\t\tENABLE: !!options.logEnable,\n\t\t\t\tFILTER_LEVEL: 3\n\t\t\t},\n\n\t\t\tBROWSER: getBrowser()\n\t\t};\n\n\t\tYYIMConfiguration.getHttpBindUrl = function () {\n\t\t\tvar prefix = YYIMConfiguration.CONNECTION.USE_HTTPS ? 'https://' : 'http://';\n\t\t\treturn prefix + YYIMConfiguration.CONNECTION.HTTP_BASE + ':' + YYIMConfiguration.CONNECTION.HTTP_BIND_PORT + '/http-bind/';\n\t\t};\n\n\t\tYYIMConfiguration.getWebSocketUrl = function () {\n\t\t\tvar prefix = YYIMConfiguration.CONNECTION.USE_HTTPS ? 'wss://' : 'ws://';\n\t\t\treturn prefix + YYIMConfiguration.CONNECTION.HTTP_BASE + ':' + YYIMConfiguration.CONNECTION.WS_PORT;\n\t\t};\n\n\t\tYYIMConfiguration.useWebSocket = function () {\n\t\t\treturn YYIMConfiguration.SUPPORT.isWebSocketSupport && YYIMConfiguration.CONNECTION.ENABLE_WEBSOCKET;\n\t\t};\n\n\t\tYYIMConfiguration.getConnectionArgObj = function () {\n\t\t\treturn {\n\t\t\t\tdomain: YYIMConfiguration.CONNECTION.SERVER_NAME,\n\t\t\t\tresource: YYIMConfiguration.RESOURCE,\n\t\t\t\tallow_plain: YYIMConfiguration.CONNECTION.ALLOW_PLAIN,\n\t\t\t\tsecure: YYIMConfiguration.CONNECTION.SECURE,\n\t\t\t\tregister: false\n\t\t\t};\n\t\t};\n\n\t\tYYIMConfiguration.getLocationOrigin = function () {\n\t\t\treturn window.location.origin ? window.location.origin : window.location.protocol + '//' + window.location.host;\n\t\t};\n\n\t\tYYIMConfiguration.getClientMark = getClientMark;\n\t};\n\n\treturn { init: init };\n}();\n\nConfigSetting.init();\n\nexports.YYIMConfiguration = YYIMConfiguration;\nexports.ConfigSetting = ConfigSetting;\n\n//# sourceURL=webpack:///./src/config/config.js?");
+
+/***/ }),
+
+/***/ "./src/config/constant.js":
+/*!********************************!*\
+  !*** ./src/config/constant.js ***!
+  \********************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+eval("\n\nObject.defineProperty(exports, \"__esModule\", {\n\tvalue: true\n});\nvar CONNECT_STATUS = exports.CONNECT_STATUS = {\n\tINIT: 'init',\n\tOFFLINE: 'offline',\n\tCONNECTING: 'connecting',\n\tPROCESSING: 'processing',\n\tCONFLICT: 'conflict',\n\tCONNECTED: 'connected',\n\tERROR: 'error',\n\tAUTHERROR: 'AuthError',\n\tONCLIENTKICKOUT: 'onClientKickout',\n\tONUPDATEPASSWORD: 'onUpdatePassword'\n};\n\nvar FAVORITE_TYPE = exports.FAVORITE_TYPE = {\n\tFAVORITE: 'favorite',\n\tREMOVE: 'remove',\n\tNONE: 'none'\n};\n\nvar STATUS = exports.STATUS = {\n\tCHAT: 'chat',\n\tAWAY: 'away',\n\tXA: 'xa',\n\tDND: 'dnd',\n\tUNAVAILABLE: 'unavailable' };\n\nvar TYPE = exports.TYPE = {\n\tSET: 'set',\n\tRESULT: 'result',\n\tGET: 'get',\n\tSUBMIT: 'submit',\n\tUNAVAILABLE: 'unavailable'\n};\n\nvar PRESENCE_TYPE = exports.PRESENCE_TYPE = {\n\tSUBSCRIBE: 'subscribe',\n\tUNSUBSCRIBE: 'unsubscribe',\n\tSUBSCRIBED: 'subscribed',\n\tUNSUBSCRIBED: 'unsubscribed',\n\tPROBE: 'probe',\n\tUNAVAILABLE: 'unavailable',\n\tCOLLECT: 'collect' };\n\nvar COLLECT_TYPE = exports.COLLECT_TYPE = {\n\tADD: 'add',\n\tREMOVE: 'remove'\n};\n\nvar CHAT_TYPE = exports.CHAT_TYPE = {\n\tCHAT: 'chat',\n\tGROUP_CHAT: 'groupchat',\n\tPUB_ACCOUNT: 'pubaccount'\n};\n\nvar MESSAGE_CONTENT_TYPE = exports.MESSAGE_CONTENT_TYPE = {\n\tTEXT: 2,\n\tFILE: 4,\n\tIMAGE: 8,\n\tREDPACKET: 9,\n\tSMALLVIDEO: 10,\n\tREVOCATION: 13,\n\tMERGEFORWARD: 15,\n\tSINGLEGRAPHIC: 16,\n\tMOREGRAPHIC: 32,\n\tAUDO: 64,\n\tLOCATION: 128,\n\tSHARE: 256,\n\tWHITEBOARD: 1024\n};\n\n//# sourceURL=webpack:///./src/config/constant.js?");
+
+/***/ }),
+
+/***/ "./src/connection/YYIMConnectDaemon.js":
+/*!*********************************************!*\
+  !*** ./src/connection/YYIMConnectDaemon.js ***!
+  \*********************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+eval("\n\nObject.defineProperty(exports, \"__esModule\", {\n\tvalue: true\n});\nexports.YYIMConnectDaemon = undefined;\n\nvar _classCallCheck2 = __webpack_require__(/*! babel-runtime/helpers/classCallCheck */ \"./node_modules/_babel-runtime@6.26.0@babel-runtime/helpers/classCallCheck.js\");\n\nvar _classCallCheck3 = _interopRequireDefault(_classCallCheck2);\n\nvar _createClass2 = __webpack_require__(/*! babel-runtime/helpers/createClass */ \"./node_modules/_babel-runtime@6.26.0@babel-runtime/helpers/createClass.js\");\n\nvar _createClass3 = _interopRequireDefault(_createClass2);\n\nvar _config = __webpack_require__(/*! ../config/config */ \"./src/config/config.js\");\n\nvar _YYIMConnection = __webpack_require__(/*! ./YYIMConnection */ \"./src/connection/YYIMConnection.js\");\n\nvar _manager = __webpack_require__(/*! ../core/manager */ \"./src/core/manager.js\");\n\nfunction _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }\n\nvar YYIMConnectDaemon = function () {\n\tfunction YYIMConnectDaemon() {\n\t\t(0, _classCallCheck3.default)(this, YYIMConnectDaemon);\n\n\t\tthis.lastPongTime = Date.now();\n\n\t\tthis.pingInterval;\n\n\t\tthis.pingTimeout;\n\n\t\tthis.interval = 0;\n\t}\n\n\t(0, _createClass3.default)(YYIMConnectDaemon, [{\n\t\tkey: 'startPing',\n\t\tvalue: function startPing(isOnline) {\n\t\t\tif (isOnline === true) {\n\t\t\t\tthis.isOnline = isOnline;\n\t\t\t}\n\t\t\tif (_YYIMConnection.YYIMConnection.getInstance().connected()) {\n\t\t\t\tthis.interval = !this.interval ? _config.YYIMConfiguration.PING.SLOW_INTERVAL : _config.YYIMConfiguration.PING.INTERVAL;\n\t\t\t\tthis.ping();\n\t\t\t} else {\n\t\t\t\tthis.stopPing();\n\t\t\t}\n\t\t}\n\t}, {\n\t\tkey: 'stopPing',\n\t\tvalue: function stopPing(isOnline) {\n\t\t\tif (isOnline === false) {\n\t\t\t\tthis.isOnline = isOnline;\n\t\t\t}\n\n\t\t\tclearTimeout(this.pingTimeout);\n\t\t\tclearTimeout(this.pingInterval);\n\t\t}\n\t}, {\n\t\tkey: 'ping',\n\t\tvalue: function ping() {\n\t\t\tif (!this.isOnline) {\n\t\t\t\tthis.stopPing();\n\t\t\t} else {\n\t\t\t\tif (!this.sending) {\n\t\t\t\t\tthis.stopPing();\n\t\t\t\t\tthis.interval = this.interval || _config.YYIMConfiguration.PING.SLOW_INTERVAL;\n\n\t\t\t\t\tvar duration = Date.now() - (this.lastPongTime + this.interval);\n\t\t\t\t\tif (duration >= 0) {\n\t\t\t\t\t\ttry {\n\t\t\t\t\t\t\tthis.sending = true;\n\t\t\t\t\t\t\tthis.interval = _config.YYIMConfiguration.PING.SLOW_INTERVAL;\n\t\t\t\t\t\t\t_YYIMConnection.YYIMConnection.getInstance().send(new JumpPacket(null, OPCODE.PING.SEND));\n\t\t\t\t\t\t} catch (e) {\n\t\t\t\t\t\t\tthis.stopPing();\n\t\t\t\t\t\t\t_manager.YYIMManager.getInstance().log(\"Ping_Error.\", 0, e);\n\t\t\t\t\t\t\t_manager.YYIMManager.getInstance().onConnectError({\n\t\t\t\t\t\t\t\terrorCode: 408,\n\t\t\t\t\t\t\t\tmessage: '连接失败'\n\t\t\t\t\t\t\t});\n\t\t\t\t\t\t}\n\t\t\t\t\t} else {\n\t\t\t\t\t\tthis.pingInterval = setTimeout(this.ping.bind(this), -duration);\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t}\n\t\t}\n\t}, {\n\t\tkey: 'pong',\n\t\tvalue: function pong() {\n\t\t\tthis.lastPongTime = Date.now();\n\t\t\tif (!this.isOnline) {\n\t\t\t\tthis.stopPing();\n\t\t\t} else {\n\t\t\t\t_manager.YYIMManager.getInstance().log('【pong】\\t' + new Date(this.lastPongTime), 3, this.lastPongTime);\n\t\t\t\tthis.sending = false;\n\t\t\t\tthis.ping();\n\t\t\t}\n\t\t}\n\t}, {\n\t\tkey: 'setTimeout',\n\t\tvalue: function (_setTimeout) {\n\t\t\tfunction setTimeout() {\n\t\t\t\treturn _setTimeout.apply(this, arguments);\n\t\t\t}\n\n\t\t\tsetTimeout.toString = function () {\n\t\t\t\treturn _setTimeout.toString();\n\t\t\t};\n\n\t\t\treturn setTimeout;\n\t\t}(function () {\n\t\t\tif (!this.isOnline) {\n\t\t\t\tthis.stopPing();\n\t\t\t} else {\n\t\t\t\tvar now = Date.now();\n\t\t\t\t_manager.YYIMManager.getInstance().log('【setPingTimeout】\\t' + new Date(now), 3, now);\n\t\t\t\tclearTimeout(this.pingTimeout);\n\t\t\t\tthis.pingTimeout = setTimeout(this.timeoutHandler.bind(this), _config.YYIMConfiguration.PING.TIMEOUT);\n\t\t\t}\n\t\t})\n\t}, {\n\t\tkey: 'timeoutHandler',\n\t\tvalue: function timeoutHandler() {\n\t\t\tthis.sending = false;\n\t\t\tthis.stopPing();\n\t\t\t_manager.YYIMManager.getInstance().log(\"Ping_Timeout.\", 0);\n\t\t\t_manager.YYIMManager.getInstance().onConnectError({\n\t\t\t\terrorCode: 408,\n\t\t\t\tmessage: '连接失败'\n\t\t\t});\n\t\t}\n\t}]);\n\treturn YYIMConnectDaemon;\n}();\n\nexports.YYIMConnectDaemon = YYIMConnectDaemon;\n\n//# sourceURL=webpack:///./src/connection/YYIMConnectDaemon.js?");
+
+/***/ }),
+
+/***/ "./src/connection/YYIMConnectEventHandler.js":
+/*!***************************************************!*\
+  !*** ./src/connection/YYIMConnectEventHandler.js ***!
+  \***************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+eval("\n\nObject.defineProperty(exports, \"__esModule\", {\n\tvalue: true\n});\nexports.YYIMConnectEventHandler = undefined;\n\nvar _classCallCheck2 = __webpack_require__(/*! babel-runtime/helpers/classCallCheck */ \"./node_modules/_babel-runtime@6.26.0@babel-runtime/helpers/classCallCheck.js\");\n\nvar _classCallCheck3 = _interopRequireDefault(_classCallCheck2);\n\nvar _createClass2 = __webpack_require__(/*! babel-runtime/helpers/createClass */ \"./node_modules/_babel-runtime@6.26.0@babel-runtime/helpers/createClass.js\");\n\nvar _createClass3 = _interopRequireDefault(_createClass2);\n\nvar _manager = __webpack_require__(/*! ../core/manager */ \"./src/core/manager.js\");\n\nvar _YYIMConnection = __webpack_require__(/*! ./YYIMConnection */ \"./src/connection/YYIMConnection.js\");\n\nfunction _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }\n\nvar YYIMConnectEventHandler = function () {\n\tfunction YYIMConnectEventHandler() {\n\t\t(0, _classCallCheck3.default)(this, YYIMConnectEventHandler);\n\n\t\tthis._inited = false;\n\t}\n\n\t(0, _createClass3.default)(YYIMConnectEventHandler, [{\n\t\tkey: '_init',\n\t\tvalue: function _init() {\n\t\t\t_manager.YYIMManager.getInstance().log(\"YYIMConnectEventHandler.prototype.registerHandler\", 3);\n\t\t\tif (this._inited) {\n\t\t\t\treturn;\n\t\t\t}\n\t\t\tvar conn = _YYIMConnection.YYIMConnection.getInstance();\n\t\t\tconn.registerHandler('onConnect', this.onConnected);\n\t\t\tconn.registerHandler('onError', this.onConnectError);\n\t\t\tconn.registerHandler('onDisconnect', this.onDisConnect);\n\t\t\tconn.registerHandler(\"onStatusChanged\", this.connectStatusChangeHandler);\n\n\t\t\tconn.registerHandler(OPCODE.STREAM_ERROR.KEY, this.onStreamError);\n\t\t\tconn.registerHandler(OPCODE.PACKET_ERROR.KEY, this.onPacketError);\n\n\t\t\tconn.registerHandler(\"packet_in\", conn.getDaemon().pong.bind(conn.getDaemon()));\n\n\t\t\tthis._inited = true;\n\t\t}\n\t}, {\n\t\tkey: 'onConnected',\n\t\tvalue: function onConnected() {\n\t\t\t_manager.YYIMManager.getInstance().onOpened();\n\t\t\t_YYIMConnection.YYIMConnection.getInstance().getDaemon().startPing(true);\n\t\t}\n\t}, {\n\t\tkey: 'onConnectError',\n\t\tvalue: function onConnectError(e) {\n\t\t\t_manager.YYIMManager.getInstance().log(\"YYIMConnectEventHandler.prototype.onConnectError \", 0, e);\n\t\t\tvar errorCode = e.getAttribute(\"code\");\n\t\t\t_YYIMConnection.YYIMConnection.getInstance().getDaemon().stopPing(false);\n\t\t\tif (errorCode == 401) {\n\t\t\t\t_manager.YYIMManager.getInstance().onAuthError({\n\t\t\t\t\terrorCode: 401,\n\t\t\t\t\tmessage: '用户名或密码错误'\n\t\t\t\t});\n\t\t\t} else if (errorCode == 409) {\n\t\t\t\t_manager.YYIMManager.getInstance().onConflicted({\n\t\t\t\t\terrorCode: 409,\n\t\t\t\t\tmessage: '连接冲突'\n\t\t\t\t});\n\t\t\t} else if (errorCode == 4010) {\n\t\t\t\t_manager.YYIMManager.getInstance().onClientKickout({\n\t\t\t\t\terrorCode: 4010,\n\t\t\t\t\tmessage: '被客户端踢掉'\n\t\t\t\t});\n\t\t\t} else if (errorCode == 4011) {\n\t\t\t\t_manager.YYIMManager.getInstance().onUpdatePassword({\n\t\t\t\t\terrorCode: 4011,\n\t\t\t\t\tmessage: '修改密码'\n\t\t\t\t});\n\t\t\t} else {\n\t\t\t\t_manager.YYIMManager.getInstance().onConnectError({\n\t\t\t\t\terrorCode: errorCode,\n\t\t\t\t\tmessage: '连接失败'\n\t\t\t\t});\n\t\t\t}\n\t\t}\n\t}, {\n\t\tkey: 'onStreamError',\n\t\tvalue: function onStreamError(packet) {\n\t\t\t_manager.YYIMManager.getInstance().log(\"YYIMConnectEventHandler.prototype.onPacketError \", 0, packet);\n\t\t\t_YYIMConnection.YYIMConnection.getInstance().getDaemon().stopPing(false);\n\t\t\tvar errorCode = packet.code;\n\t\t\tif (errorCode == 401) {\n\t\t\t\t_manager.YYIMManager.getInstance().onAuthError({\n\t\t\t\t\terrorCode: 401,\n\t\t\t\t\tmessage: '用户名或密码错误'\n\t\t\t\t});\n\t\t\t} else if (errorCode == 409) {\n\t\t\t\t_manager.YYIMManager.getInstance().onConflicted({\n\t\t\t\t\terrorCode: 409,\n\t\t\t\t\tmessage: '连接冲突'\n\t\t\t\t});\n\t\t\t} else if (errorCode == 4010) {\n\t\t\t\t_manager.YYIMManager.getInstance().onClientKickout({\n\t\t\t\t\terrorCode: 4010,\n\t\t\t\t\tmessage: '被客户端踢掉'\n\t\t\t\t});\n\t\t\t} else if (errorCode == 4011) {\n\t\t\t\t_manager.YYIMManager.getInstance().onUpdatePassword({\n\t\t\t\t\terrorCode: 4011,\n\t\t\t\t\tmessage: '修改密码'\n\t\t\t\t});\n\t\t\t} else {\n\t\t\t\t_manager.YYIMManager.getInstance().onConnectError({\n\t\t\t\t\terrorCode: errorCode,\n\t\t\t\t\tmessage: '连接失败'\n\t\t\t\t});\n\t\t\t}\n\t\t}\n\t}, {\n\t\tkey: 'onPacketError',\n\t\tvalue: function onPacketError(packet) {\n\t\t\t_manager.YYIMManager.getInstance().log(\"YYIMConnectEventHandler.prototype.onPacketError \", 0, packet);\n\t\t}\n\t}, {\n\t\tkey: 'onDisConnect',\n\t\tvalue: function onDisConnect() {\n\t\t\t_manager.YYIMManager.getInstance().onClosed();\n\t\t\t_YYIMConnection.YYIMConnection.getInstance().getDaemon().stopPing(false);\n\t\t}\n\t}, {\n\t\tkey: 'connectStatusChangeHandler',\n\t\tvalue: function connectStatusChangeHandler(status) {\n\t\t\t_manager.YYIMManager.getInstance().onStatusChanged(status);\n\t\t}\n\t}]);\n\treturn YYIMConnectEventHandler;\n}();\n\nexports.YYIMConnectEventHandler = YYIMConnectEventHandler;\n\n//# sourceURL=webpack:///./src/connection/YYIMConnectEventHandler.js?");
+
+/***/ }),
+
+/***/ "./src/connection/YYIMConnection.js":
+/*!******************************************!*\
+  !*** ./src/connection/YYIMConnection.js ***!
+  \******************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+eval("\n\nObject.defineProperty(exports, \"__esModule\", {\n\tvalue: true\n});\nexports.YYIMConnection = undefined;\n\nvar _classCallCheck2 = __webpack_require__(/*! babel-runtime/helpers/classCallCheck */ \"./node_modules/_babel-runtime@6.26.0@babel-runtime/helpers/classCallCheck.js\");\n\nvar _classCallCheck3 = _interopRequireDefault(_classCallCheck2);\n\nvar _createClass2 = __webpack_require__(/*! babel-runtime/helpers/createClass */ \"./node_modules/_babel-runtime@6.26.0@babel-runtime/helpers/createClass.js\");\n\nvar _createClass3 = _interopRequireDefault(_createClass2);\n\nvar _config = __webpack_require__(/*! ../config/config */ \"./src/config/config.js\");\n\nvar _YYIMJIDUtil = __webpack_require__(/*! ../util/YYIMJIDUtil */ \"./src/util/YYIMJIDUtil.js\");\n\nvar _manager = __webpack_require__(/*! ../core/manager */ \"./src/core/manager.js\");\n\nvar _YYIMConnectDaemon = __webpack_require__(/*! ./YYIMConnectDaemon */ \"./src/connection/YYIMConnectDaemon.js\");\n\nvar _YYIMConnectEventHandler = __webpack_require__(/*! ./YYIMConnectEventHandler */ \"./src/connection/YYIMConnectEventHandler.js\");\n\nfunction _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }\n\nvar YYIMConnection = function () {\n\tfunction YYIMConnection() {\n\t\t(0, _classCallCheck3.default)(this, YYIMConnection);\n\n\t\tthis.daemon = new _YYIMConnectDaemon.YYIMConnectDaemon();\n\t\tthis.eventHandler = new _YYIMConnectEventHandler.YYIMConnectEventHandler();\n\t\tthis.connection = this.getConnection();\n\t\tthis.connectArg;\n\t\tthis.waitingList = [];\n\t\tthis.sending = false;\n\t\tthis.lastSendTime = 0;\n\t}\n\n\t(0, _createClass3.default)(YYIMConnection, [{\n\t\tkey: 'getDaemon',\n\t\tvalue: function getDaemon() {\n\t\t\treturn this.daemon;\n\t\t}\n\t}, {\n\t\tkey: '_init',\n\t\tvalue: function _init() {\n\t\t\t_manager.YYIMManager.getInstance().exeBackhander('monitor');\n\t\t\tthis.eventHandler._init();\n\t\t\tthis.registerHandler(OPCODE.AUTH.KEY, function (userBindPacket) {\n\t\t\t\tvar jid = new JSJaCJID(userBindPacket.jid),\n\t\t\t\t    id = _YYIMJIDUtil.YYIMJIDUtil.getID(userBindPacket.jid);\n\n\t\t\t\t_manager.YYIMManager.getInstance()._user = {\n\t\t\t\t\tjid: jid,\n\t\t\t\t\tname: id\n\t\t\t\t};\n\t\t\t\t_manager.YYIMManager.getInstance().onUserBind(id, jid.getResource());\n\t\t\t});\n\t\t}\n\t}, {\n\t\tkey: 'registerHandler',\n\t\tvalue: function registerHandler(event, ns, type, handler) {\n\t\t\tif (this.connection) {\n\t\t\t\tthis.connection.registerHandler.apply(this.connection, arguments);\n\t\t\t\treturn;\n\t\t\t}\n\t\t\tthrow \"connection is undefined!\";\n\t\t}\n\t}, {\n\t\tkey: 'connected',\n\t\tvalue: function connected() {\n\t\t\tif (this.connection && this.connection.connected()) {\n\t\t\t\treturn true;\n\t\t\t}\n\t\t\treturn false;\n\t\t}\n\t}, {\n\t\tkey: 'getConnection',\n\t\tvalue: function getConnection() {\n\t\t\tif (!this.connection) {\n\t\t\t\tif (_config.YYIMConfiguration.useWebSocket()) {\n\t\t\t\t\tthis.connection = new JSJaCWebSocketConnection({\n\t\t\t\t\t\thttpbase: _config.YYIMConfiguration.getWebSocketUrl()\n\t\t\t\t\t});\n\t\t\t\t} else {\n\t\t\t\t\tthis.connection = new JSJaCHttpBindingConnection({\n\t\t\t\t\t\thttpbase: _config.YYIMConfiguration.getHttpBindUrl(),\n\t\t\t\t\t\ttimerval: _config.YYIMConfiguration.CONNECTION.TIMERVAL,\n\t\t\t\t\t\twait: _config.YYIMConfiguration.CONNECTION.WAIT\n\t\t\t\t\t});\n\t\t\t\t}\n\t\t\t}\n\n\t\t\treturn this.connection;\n\t\t}\n\t}, {\n\t\tkey: 'connect',\n\t\tvalue: function connect(options) {\n\t\t\toptions = options || {};\n\t\t\tif (!this.connectArg) {\n\t\t\t\tthis.connectArg = _config.YYIMConfiguration.getConnectionArgObj();\n\t\t\t}\n\t\t\tif (options.username) {\n\t\t\t\tthis.connectArg.username = options.username;\n\t\t\t}\n\t\t\tif (options.token) {\n\t\t\t\tthis.connectArg.password = options.token;\n\t\t\t}\n\t\t\tif (options.appType) {\n\t\t\t\tthis.connectArg.appType = options.appType;\n\t\t\t}\n\t\t\tif (options.identify) {\n\t\t\t\tthis.connectArg.clientIdentify = options.identify;\n\t\t\t}\n\t\t\t_manager.YYIMManager.getInstance()._user = {\n\t\t\t\tjid: new JSJaCJID(this.connectArg.username + '@' + _config.YYIMConfiguration.YY_IM_DOMAIN + '/' + this.connectArg.resource),\n\t\t\t\tname: this.connectArg.username\n\t\t\t};\n\t\t\tthis.connection.connect(this.connectArg);\n\t\t}\n\t}, {\n\t\tkey: 'disconnect',\n\t\tvalue: function disconnect() {\n\t\t\tthis.daemon.stopPing(false);\n\t\t\tif (this.connection) {\n\t\t\t\tthis.connection.disconnect();\n\t\t\t}\n\t\t}\n\t}, {\n\t\tkey: 'send',\n\t\tvalue: function send(packet, callback, data, callbackContext) {\n\t\t\tthis.waitingList.push({\n\t\t\t\tpacket: packet,\n\t\t\t\tcallback: callback,\n\t\t\t\tdata: data,\n\t\t\t\tcallbackContext: callbackContext\n\t\t\t});\n\t\t\tif (!this.sending) {\n\t\t\t\tthis.sendInterval();\n\t\t\t}\n\t\t}\n\t}, {\n\t\tkey: 'sendInterval',\n\t\tvalue: function sendInterval() {\n\t\t\tvar _this = this;\n\n\t\t\tif (this.waitingList.length) {\n\t\t\t\tthis.sending = true;\n\t\t\t\tvar timespan = new Date().getTime() - this.lastSendTime;\n\n\t\t\t\tif (timespan >= _config.YYIMConfiguration.SENDINTERVAL) {\n\t\t\t\t\tvar data = this.waitingList.shift();\n\t\t\t\t\tthis.sendJumpPacket(data);\n\n\t\t\t\t\tif (data.packet && data.packet.opcode != OPCODE.PING.SEND) {\n\t\t\t\t\t\tthis.getDaemon().startPing();\n\t\t\t\t\t}\n\n\t\t\t\t\tif (data.packet && data.packet.opcode == OPCODE.PING.SEND) {\n\t\t\t\t\t\tthis.getDaemon().setTimeout();\n\t\t\t\t\t}\n\n\t\t\t\t\tthis.lastSendTime = new Date().getTime();\n\t\t\t\t\tthis.sendInterval();\n\t\t\t\t} else {\n\t\t\t\t\tsetTimeout(function () {\n\t\t\t\t\t\t_this.sendInterval();\n\t\t\t\t\t}, _config.YYIMConfiguration.SENDINTERVAL - timespan);\n\t\t\t\t}\n\t\t\t} else {\n\t\t\t\tthis.sending = false;\n\t\t\t}\n\t\t}\n\t}, {\n\t\tkey: 'sendJumpPacket',\n\t\tvalue: function sendJumpPacket(arg) {\n\t\t\tif (arg) {\n\t\t\t\tif (arg.callbackContext) {\n\t\t\t\t\treturn this.connection.sendJumpPacket(arg.packet, arg.callback.bind(arg.callbackContext), arg.data);\n\t\t\t\t}\n\t\t\t\treturn this.connection.sendJumpPacket(arg.packet, arg.callback, arg.data);\n\t\t\t}\n\t\t}\n\t}]);\n\treturn YYIMConnection;\n}();\n\nYYIMConnection.getInstance = function () {\n\tif (!YYIMConnection._instance) {\n\t\tYYIMConnection._instance = new YYIMConnection();\n\t\tYYIMConnection._instance._init();\n\t}\n\treturn YYIMConnection._instance;\n};\n\nexports.YYIMConnection = YYIMConnection;\n\n//# sourceURL=webpack:///./src/connection/YYIMConnection.js?");
+
+/***/ }),
+
+/***/ "./src/core/manager.js":
+/*!*****************************!*\
+  !*** ./src/core/manager.js ***!
+  \*****************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+eval("\n\nObject.defineProperty(exports, \"__esModule\", {\n\tvalue: true\n});\nexports.YYIMChat = exports.YYIMManager = undefined;\n\nvar _classCallCheck2 = __webpack_require__(/*! babel-runtime/helpers/classCallCheck */ \"./node_modules/_babel-runtime@6.26.0@babel-runtime/helpers/classCallCheck.js\");\n\nvar _classCallCheck3 = _interopRequireDefault(_classCallCheck2);\n\nvar _createClass2 = __webpack_require__(/*! babel-runtime/helpers/createClass */ \"./node_modules/_babel-runtime@6.26.0@babel-runtime/helpers/createClass.js\");\n\nvar _createClass3 = _interopRequireDefault(_createClass2);\n\nvar _YYIMConnection = __webpack_require__(/*! ../connection/YYIMConnection */ \"./src/connection/YYIMConnection.js\");\n\nvar _YYIMConsoleLogger = __webpack_require__(/*! ../util/YYIMConsoleLogger */ \"./src/util/YYIMConsoleLogger.js\");\n\nvar _YYIMJIDUtil = __webpack_require__(/*! ../util/YYIMJIDUtil */ \"./src/util/YYIMJIDUtil.js\");\n\nvar _config = __webpack_require__(/*! ../config/config */ \"./src/config/config.js\");\n\nvar _constant = __webpack_require__(/*! ../config/constant */ \"./src/config/constant.js\");\n\nfunction _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }\n\nvar YYIMManager = function () {\n\tfunction YYIMManager() {\n\t\t(0, _classCallCheck3.default)(this, YYIMManager);\n\n\t\tthis._user;\n\t\tthis._token = {};\n\t\tthis.appkey;\n\t\tthis.connectStatus = _constant.CONNECT_STATUS.INIT;\n\t\tthis.offlineStatus = [_constant.CONNECT_STATUS.ERROR, _constant.CONNECT_STATUS.OFFLINE, _constant.CONNECT_STATUS.CONFLICT, _constant.CONNECT_STATUS.AUTHERROR, _constant.CONNECT_STATUS.ONCLIENTKICKOUT, _constant.CONNECT_STATUS.INIT, _constant.CONNECT_STATUS.ONUPDATEPASSWORD];\n\n\t\tthis.onlineStatus = [_constant.CONNECT_STATUS.CONNECTED, _constant.CONNECT_STATUS.PROCESSING];\n\n\t\tthis.apiKey;\n\t\tthis.init();\n\t}\n\n\t(0, _createClass3.default)(YYIMManager, [{\n\t\tkey: 'log',\n\t\tvalue: function log(groupname, level, obj1, obj2) {\n\t\t\tthis._logger = this._logger || new _YYIMConsoleLogger.YYIMConsoleLogger(_config.YYIMConfiguration.LOG.FILTER_LEVEL);\n\t\t\tthis._logger.log(groupname, level, obj1, obj2);\n\t\t}\n\t}, {\n\t\tkey: 'init',\n\t\tvalue: function init(options) {\n\t\t\tvar _this = this;\n\n\t\t\toptions = options || {};\n\n\t\t\tthis.onConnectStatusChanged = function (status) {\n\t\t\t\t_this.connectStatus = status || _this.connectStatus;\n\t\t\t\t_this.log('connectStatus: ', 3, _this.connectStatus);\n\t\t\t};\n\n\t\t\tthis.onClosed = function (arg) {\n\t\t\t\t_this.onConnectStatusChanged(_constant.CONNECT_STATUS.OFFLINE);\n\t\t\t\toptions.onClosed && options.onClosed(arg);\n\t\t\t};\n\n\t\t\tthis.onAuthError = function (arg) {\n\t\t\t\t_this.onConnectStatusChanged(_constant.CONNECT_STATUS.AUTHERROR);\n\t\t\t\toptions.onAuthError && options.onAuthError(arg);\n\t\t\t};\n\n\t\t\tthis.onStatusChanged = function (status) {\n\t\t\t\tif (YYIMCommonUtil.isStringAndNotEmpty(status)) {\n\t\t\t\t\t_this.onConnectStatusChanged(status);\n\t\t\t\t}\n\t\t\t};\n\n\t\t\tthis.onOpened = function (arg) {\n\t\t\t\t_this.onConnectStatusChanged(_constant.CONNECT_STATUS.CONNECTED);\n\t\t\t\t_this.getTimeCorrection && _this.getTimeCorrection();\n\t\t\t\toptions.onOpened && options.onOpened(arg);\n\t\t\t};\n\n\t\t\tthis.onUpdatePassword = function (arg) {\n\t\t\t\t_this.disConnect(_constant.CONNECT_STATUS.ONUPDATEPASSWORD);\n\t\t\t\toptions.onUpdatePassword && options.onUpdatePassword(arg);\n\t\t\t};\n\n\t\t\tthis.onClientKickout = function (arg) {\n\t\t\t\t_this.disConnect(_constant.CONNECT_STATUS.ONCLIENTKICKOUT);\n\t\t\t\toptions.onClientKickout && options.onClientKickout(arg);\n\t\t\t};\n\n\t\t\tthis.onConflicted = function (arg) {\n\t\t\t\t_this.disConnect(_constant.CONNECT_STATUS.CONFLICT);\n\t\t\t\toptions.onConflicted && options.onConflicted(arg);\n\t\t\t};\n\n\t\t\tthis.onConnectError = function (arg) {\n\t\t\t\tif (_this.connectStatus == _constant.CONNECT_STATUS.OFFLINE || _this.connectStatus == _constant.CONNECT_STATUS.INIT || _this.connectStatus == _constant.CONNECT_STATUS.CONFLICT || _this.connectStatus == _constant.CONNECT_STATUS.AUTHERROR || _this.connectStatus == _constant.CONNECT_STATUS.ONCLIENTKICKOUT || _this.connectStatus == _constant.CONNECT_STATUS.ONUPDATEPASSWORD) {\n\t\t\t\t\tif (_this.ConnectErrorTimer) {\n\t\t\t\t\t\tclearInterval(_this.ConnectErrorTimer);\n\t\t\t\t\t\t_this.ConnectErrorTimer = null;\n\t\t\t\t\t}\n\t\t\t\t} else {\n\t\t\t\t\t_this.onConnectStatusChanged(_constant.CONNECT_STATUS.ERROR);\n\t\t\t\t\tif (!_this.ConnectErrorTimer) {\n\t\t\t\t\t\t_this.ConnectErrorTimer = setInterval(function () {\n\t\t\t\t\t\t\tif (_this.connectStatus == _constant.CONNECT_STATUS.CONNECTED || _this.connectStatus == _constant.CONNECT_STATUS.PROCESSING || _this.connectStatus == _constant.CONNECT_STATUS.OFFLINE || _this.connectStatus == _constant.CONNECT_STATUS.INIT) {\n\t\t\t\t\t\t\t\tclearInterval(_this.ConnectErrorTimer);\n\t\t\t\t\t\t\t\t_this.ConnectErrorTimer = null;\n\t\t\t\t\t\t\t} else if (_this.connectStatus == _constant.CONNECT_STATUS.ERROR) {\n\t\t\t\t\t\t\t\t_this.log('连接出现异常，正在尝试重连！', 3, arg);\n\t\t\t\t\t\t\t\t_this.connect();\n\t\t\t\t\t\t\t\t_this.onConnectStatusChanged(_constant.CONNECT_STATUS.CONNECTING);\n\t\t\t\t\t\t\t}\n\t\t\t\t\t\t}, 500);\n\t\t\t\t\t}\n\t\t\t\t\toptions.onConnectError && options.onConnectError(arg);\n\t\t\t\t}\n\t\t\t};\n\n\t\t\tthis.onUserBind = options.onUserBind || function () {};\n\n\t\t\tthis.onExpiration = options.onExpiration;\n\n\t\t\tthis.exeBackhander('initCallback', options);\n\n\t\t\t(function () {\n\t\t\t\tjQuery(window).on({\n\t\t\t\t\t'unload offline': function unloadOffline() {\n\t\t\t\t\t\tif (_this.connectStatus != _constant.CONNECT_STATUS.INIT) {\n\t\t\t\t\t\t\t_this.disConnect();\n\t\t\t\t\t\t}\n\t\t\t\t\t},\n\t\t\t\t\t'online': function online() {\n\t\t\t\t\t\tif (_this.connectStatus != _constant.CONNECT_STATUS.INIT && _this.connectStatus != _constant.CONNECT_STATUS.CONFLICT && _this.connectStatus != _constant.CONNECT_STATUS.AUTHERROR && _this.connectStatus != _constant.CONNECT_STATUS.ONCLIENTKICKOUT && _this.connectStatus != _constant.CONNECT_STATUS.ONUPDATEPASSWORD) {\n\t\t\t\t\t\t\t_this.connect();\n\t\t\t\t\t\t}\n\t\t\t\t\t}\n\t\t\t\t});\n\t\t\t})();\n\n\t\t\tjQuery.ajaxSetup({\n\t\t\t\tstatusCode: {\n\t\t\t\t\t401: function _() {\n\t\t\t\t\t\toptions.onExpirationed && options.onExpirationed();\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t});\n\t\t}\n\t}, {\n\t\tkey: 'initSDK',\n\t\tvalue: function initSDK(options) {\n\t\t\t_config.ConfigSetting.init(options);\n\t\t\tvar conf = _config.YYIMConfiguration.MULTI_TENANCY;\n\t\t\tthis.appkey = conf.SEPARATOR + conf.APP_KEY + conf.SEPARATOR + conf.ETP_KEY;\n\n\t\t\tthis.apiKey = options.apiKey;\n\t\t}\n\t}, {\n\t\tkey: 'logEnable',\n\t\tvalue: function logEnable(_logEnable) {\n\t\t\tif (YYIMUtil['isWhateType'](_logEnable, 'Boolean')) {\n\t\t\t\t_config.YYIMConfiguration.LOG.ENABLE = _logEnable;\n\t\t\t} else {\n\t\t\t\t_config.YYIMConfiguration.LOG.ENABLE = !_config.YYIMConfiguration.LOG.ENABLE;\n\t\t\t}\n\t\t}\n\t}, {\n\t\tkey: 'getTenancy',\n\t\tvalue: function getTenancy() {\n\t\t\treturn _config.YYIMConfiguration.MULTI_TENANCY;\n\t\t}\n\t}, {\n\t\tkey: 'getAppkey',\n\t\tvalue: function getAppkey() {\n\t\t\treturn this.appkey;\n\t\t}\n\t}, {\n\t\tkey: 'getApiKey',\n\t\tvalue: function getApiKey() {\n\t\t\treturn this.apiKey;\n\t\t}\n\t}, {\n\t\tkey: 'isOnline',\n\t\tvalue: function isOnline() {\n\t\t\tif (this.onlineStatus.indexOf(this.connectStatus) > -1) {\n\t\t\t\treturn true;\n\t\t\t}\n\t\t\treturn false;\n\t\t}\n\t}, {\n\t\tkey: 'disConnect',\n\t\tvalue: function disConnect(status) {\n\t\t\tif (this.getExpirationTimer) {\n\t\t\t\tclearInterval(this.getExpirationTimer);\n\t\t\t\tthis.getExpirationTimer = 0;\n\t\t\t}\n\n\t\t\t_YYIMConnection.YYIMConnection.getInstance().disconnect();\n\n\t\t\tthis.onConnectStatusChanged(status || _constant.CONNECT_STATUS.OFFLINE);\n\t\t}\n\t}, {\n\t\tkey: 'connect',\n\t\tvalue: function connect() {\n\t\t\tif (!this.isOnline()) {\n\t\t\t\t_YYIMConnection.YYIMConnection.getInstance().connect();\n\t\t\t}\n\t\t}\n\t}, {\n\t\tkey: 'getToken',\n\t\tvalue: function getToken() {\n\t\t\tvar _this2 = this;\n\n\t\t\ttry {\n\t\t\t\tif (this.getExpiration() && YYIMUtil['isWhateType'](this.onExpiration, 'Function')) {\n\t\t\t\t\tif (this.getExpiration() - this.getServerNow() <= _config.YYIMConfiguration.EXPIRATION.INVALID) {\n\t\t\t\t\t\tthis.onExpiration(function (token, expiration) {\n\t\t\t\t\t\t\tif (token) {\n\t\t\t\t\t\t\t\t_this2._token.token = token;\n\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\tif (expiration) {\n\t\t\t\t\t\t\t\t_this2._token.expiration = expiration;\n\t\t\t\t\t\t\t}\n\t\t\t\t\t\t});\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t} catch (e) {\n\t\t\t\tthis.log('Token winll Invalid. Auto Get Token Error.', 0);\n\t\t\t}\n\t\t\treturn this._token.token;\n\t\t}\n\t}, {\n\t\tkey: 'getExpiration',\n\t\tvalue: function getExpiration() {\n\t\t\treturn this._token.expiration;\n\t\t}\n\t}, {\n\t\tkey: 'login',\n\t\tvalue: function login(options) {\n\t\t\tvar _this3 = this;\n\n\t\t\toptions = options || {};\n\t\t\tthis._token = {\n\t\t\t\ttoken: options.token,\n\t\t\t\texpiration: options.expiration\n\t\t\t};\n\t\t\tif (options.username && options.token) {\n\t\t\t\tif (!this.isOnline()) {\n\t\t\t\t\t_YYIMConnection.YYIMConnection.getInstance().connect({\n\t\t\t\t\t\tusername: _YYIMJIDUtil.YYIMJIDUtil.getNode(options.username),\n\t\t\t\t\t\ttoken: options.token,\n\t\t\t\t\t\tappType: options.appType,\n\t\t\t\t\t\tidentify: options.identify\n\t\t\t\t\t});\n\t\t\t\t}\n\t\t\t\tif (YYIMUtil['isWhateType'](this.onExpiration, 'Function')) {\n\t\t\t\t\tif (!this.getExpirationTimer) {\n\t\t\t\t\t\tthis.getExpirationTimer = setInterval(function () {\n\t\t\t\t\t\t\t_this3.getToken();\n\t\t\t\t\t\t}, _config.YYIMConfiguration.EXPIRATION.INSPECTION_INTERVAL);\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t} else {\n\t\t\t\tthis.log((!options.username ? 'Username ' : '') + (!options.token ? 'Token ' : '') + ' Illegal.', 0);\n\t\t\t}\n\t\t}\n\t}, {\n\t\tkey: 'getConnectStatus',\n\t\tvalue: function getConnectStatus() {\n\t\t\treturn this.connectStatus;\n\t\t}\n\t}, {\n\t\tkey: 'logout',\n\t\tvalue: function logout() {\n\t\t\tthis.disConnect.apply(this, arguments);\n\t\t\tthis.onConnectStatusChanged(_constant.CONNECT_STATUS.INIT);\n\t\t}\n\t}, {\n\t\tkey: 'getUserBareJID',\n\t\tvalue: function getUserBareJID() {\n\t\t\treturn this._user.jid.getBareJID();\n\t\t}\n\t}, {\n\t\tkey: 'getUserFullJID',\n\t\tvalue: function getUserFullJID() {\n\t\t\treturn this._user.jid.toString();\n\t\t}\n\t}, {\n\t\tkey: 'getUserNode',\n\t\tvalue: function getUserNode() {\n\t\t\treturn _YYIMJIDUtil.YYIMJIDUtil.getNode(this.getUserBareJID());\n\t\t}\n\t}, {\n\t\tkey: 'getUserID',\n\t\tvalue: function getUserID() {\n\t\t\treturn _YYIMJIDUtil.YYIMJIDUtil.getID(this.getUserBareJID());\n\t\t}\n\t}, {\n\t\tkey: 'getResource',\n\t\tvalue: function getResource() {\n\t\t\treturn _config.YYIMConfiguration.RESOURCE;\n\t\t}\n\t}, {\n\t\tkey: 'getServerName',\n\t\tvalue: function getServerName() {\n\t\t\treturn _config.YYIMConfiguration.CONNECTION.SERVER_NAME;\n\t\t}\n\t}, {\n\t\tkey: 'getServletPath',\n\t\tvalue: function getServletPath() {\n\t\t\treturn _config.YYIMConfiguration.SERVLET;\n\t\t}\n\t}, {\n\t\tkey: 'getJIDUtil',\n\t\tvalue: function getJIDUtil() {\n\t\t\treturn _YYIMJIDUtil.YYIMJIDUtil;\n\t\t}\n\t}, {\n\t\tkey: 'getServerNow',\n\t\tvalue: function getServerNow() {\n\t\t\treturn _config.YYIMConfiguration.TIMECORRECTION.AUTOCORRECTION ? new Date().getTime() + YYIMManager.getInstance().getConfig().TIMECORRECTION.RESULT : new Date().getTime();\n\t\t}\n\t}, {\n\t\tkey: 'getBrowser',\n\t\tvalue: function getBrowser() {\n\t\t\treturn _config.YYIMConfiguration.BROWSER;\n\t\t}\n\t}, {\n\t\tkey: 'getConstants',\n\t\tvalue: function getConstants() {\n\t\t\treturn {\n\t\t\t\tFAVORITE_TYPE: _constant.FAVORITE_TYPE,\n\t\t\t\tSTATUS: _constant.STATUS,\n\t\t\t\tTYPE: _constant.TYPE,\n\t\t\t\tPRESENCE_TYPE: _constant.PRESENCE_TYPE,\n\t\t\t\tCOLLECT_TYPE: _constant.COLLECT_TYPE,\n\t\t\t\tCHAT_TYPE: _constant.CHAT_TYPE,\n\t\t\t\tMESSAGE_CONTENT_TYPE: _constant.MESSAGE_CONTENT_TYPE\n\t\t\t};\n\t\t}\n\t}, {\n\t\tkey: 'getConfig',\n\t\tvalue: function getConfig() {\n\t\t\treturn _config.YYIMConfiguration;\n\t\t}\n\t}, {\n\t\tkey: 'getConnection',\n\t\tvalue: function getConnection() {\n\t\t\treturn _YYIMConnection.YYIMConnection.getInstance();\n\t\t}\n\t}, {\n\t\tkey: 'getJIDUtil',\n\t\tvalue: function getJIDUtil() {\n\t\t\treturn _YYIMJIDUtil.YYIMJIDUtil;\n\t\t}\n\t}, {\n\t\tkey: 'getUtil',\n\t\tvalue: function getUtil() {\n\t\t\treturn YYIMUtil;\n\t\t}\n\t}, {\n\t\tkey: 'setBackhander',\n\t\tvalue: function setBackhander(arg) {\n\t\t\tif (arg) {\n\t\t\t\tthis.backhanders = this.backhanders || {};\n\t\t\t\tfor (var x in arg) {\n\t\t\t\t\tthis.backhanders[x] = this.backhanders[x] || {};\n\t\t\t\t\twindow.jQuery.extend(this.backhanders[x], arg[x]);\n\t\t\t\t}\n\t\t\t}\n\t\t}\n\t}, {\n\t\tkey: 'exeBackhander',\n\t\tvalue: function exeBackhander(type, options) {\n\t\t\tthis.backhanders = this.backhanders || {};\n\t\t\tif (type && this.backhanders[type]) {\n\t\t\t\tfor (var y in this.backhanders[type]) {\n\t\t\t\t\tif (YYIMUtil['isWhateType'](this.backhanders[type][y], 'Function')) {\n\t\t\t\t\t\ttry {\n\t\t\t\t\t\t\tthis.backhanders[type][y](options || {});\n\t\t\t\t\t\t} catch (e) {\n\t\t\t\t\t\t\tthis.log('exeBackhander: ' + type + ' ' + y + ' Error.', 0);\n\t\t\t\t\t\t}\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t}\n\t\t}\n\t}]);\n\treturn YYIMManager;\n}();\n\nYYIMManager.getInstance = function () {\n\tif (!YYIMManager._instance) {\n\t\tYYIMManager._instance = new YYIMManager();\n\t}\n\treturn YYIMManager._instance;\n};\n\nvar YYIMChat = YYIMManager.getInstance();\n\nexports.YYIMManager = YYIMManager;\nexports.YYIMChat = YYIMChat;\n\n//# sourceURL=webpack:///./src/core/manager.js?");
+
+/***/ }),
+
+/***/ "./src/index.js":
+/*!**********************!*\
+  !*** ./src/index.js ***!
+  \**********************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+eval("\n\nvar _manager = __webpack_require__(/*! ./core/manager */ \"./src/core/manager.js\");\n\n__webpack_require__(/*! ./module/aiability/Extender */ \"./src/module/aiability/Extender.js\");\n\n__webpack_require__(/*! ./module/digest/Extender */ \"./src/module/digest/Extender.js\");\n\n__webpack_require__(/*! ./module/download/Extender */ \"./src/module/download/Extender.js\");\n\n__webpack_require__(/*! ./module/extend/Extender */ \"./src/module/extend/Extender.js\");\n\n__webpack_require__(/*! ./module/group/Extender */ \"./src/module/group/Extender.js\");\n\n__webpack_require__(/*! ./module/input_state/Extender */ \"./src/module/input_state/Extender.js\");\n\n__webpack_require__(/*! ./module/message/Extender */ \"./src/module/message/Extender.js\");\n\n__webpack_require__(/*! ./module/profile/Extender */ \"./src/module/profile/Extender.js\");\n\n__webpack_require__(/*! ./module/pubaccount/Extender */ \"./src/module/pubaccount/Extender.js\");\n\n__webpack_require__(/*! ./module/roster/Extender */ \"./src/module/roster/Extender.js\");\n\n__webpack_require__(/*! ./module/todo/Extender */ \"./src/module/todo/Extender.js\");\n\n__webpack_require__(/*! ./module/upload/Extender */ \"./src/module/upload/Extender.js\");\n\nwindow.YYIMChat = _manager.YYIMChat;\n\n//# sourceURL=webpack:///./src/index.js?");
+
+/***/ }),
+
+/***/ "./src/module/aiability/Extender.js":
+/*!******************************************!*\
+  !*** ./src/module/aiability/Extender.js ***!
+  \******************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+eval("\n\nvar _YYAIAbility = __webpack_require__(/*! ../../util/YYAIAbility */ \"./src/util/YYAIAbility.js\");\n\nvar _YYAIAbility2 = _interopRequireDefault(_YYAIAbility);\n\nvar _manager = __webpack_require__(/*! ../../core/manager */ \"./src/core/manager.js\");\n\nvar _Manager = __webpack_require__(/*! ./Manager */ \"./src/module/aiability/Manager.js\");\n\nfunction _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }\n\n_manager.YYIMManager.prototype.setAIAbility = function (arg) {\n    arg = arg || {};\n    if (!!arg.intelligentable) {\n        (0, _Manager.setAIAbility)(arg);\n    } else {\n        arg.error && arg.error();\n    }\n};\n\n_manager.YYIMManager.prototype.getAIWords = function (arg) {\n    (0, _Manager.getAIWords)(arg || {});\n};\n\n_manager.YYIMManager.prototype.openAIAbility = function (isAIAbility) {\n    this.isAIAbility = isAIAbility;\n};\n\n_manager.YYIMManager.prototype.openFilterWords = function (isOpenFilter) {\n    _YYAIAbility2.default.openFilterWords(isOpenFilter);\n};\n\n_manager.YYIMManager.prototype.setDictionaries = function (intelligentWordsTime) {\n    var storageWordsTime = window.localStorage.intelligentWordsTime;\n    if (storageWordsTime != intelligentWordsTime) {\n        _manager.YYIMChat.getAIWords({\n            success: function success(data) {\n                _YYAIAbility2.default.setDictionaries(data.intelligentWords || []);\n\n                window.localStorage.intelligentWordsTime = intelligentWordsTime;\n            },\n            error: function error(xhr) {\n                try {\n                    arg.error && arg.error(JSON.parse(xhr.responseText));\n                    arg = null;\n                } catch (e) {\n                    arg.error && arg.error();\n                    arg = null;\n                }\n            }\n        });\n    }\n};\n\n_manager.YYIMManager.prototype.intelligentAnalysis = function (keyword) {\n    _YYAIAbility2.default.intelligentAnalysis(keyword);\n};\n\n_manager.YYIMManager.prototype.getMultiTerminals = function (arg) {\n    (0, _Manager.getMultiTerminals)(arg || {});\n};\n\n_manager.YYIMManager.prototype.sendMultiTerminalsCommand = function (arg) {\n    (0, _Manager.sendMultiTerminalsCommand)(arg || {});\n};\n\n//# sourceURL=webpack:///./src/module/aiability/Extender.js?");
+
+/***/ }),
+
+/***/ "./src/module/aiability/Manager.js":
+/*!*****************************************!*\
+  !*** ./src/module/aiability/Manager.js ***!
+  \*****************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+eval("\n\nObject.defineProperty(exports, \"__esModule\", {\n    value: true\n});\nexports.sendMultiTerminalsCommand = exports.getMultiTerminals = exports.getAIWords = exports.setAIAbility = undefined;\n\nvar _stringify = __webpack_require__(/*! babel-runtime/core-js/json/stringify */ \"./node_modules/_babel-runtime@6.26.0@babel-runtime/core-js/json/stringify.js\");\n\nvar _stringify2 = _interopRequireDefault(_stringify);\n\nvar _manager = __webpack_require__(/*! ../../core/manager */ \"./src/core/manager.js\");\n\nfunction _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }\n\nfunction setAIAbility(arg) {\n    jQuery.ajax({\n        url: _manager.YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + _manager.YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + _manager.YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + _manager.YYIMManager.getInstance().getUserID() + '/profile/intelligentable?token=' + _manager.YYIMManager.getInstance().getToken(),\n        type: 'post',\n        data: (0, _stringify2.default)(arg),\n        dataType: 'json',\n        cache: false,\n        processData: false,\n        contentType: \"application/json\",\n        success: function success(data) {\n            arg.success && arg.success(arg);\n            arg = null;\n        },\n        error: function error(xhr) {\n            try {\n                arg.error && arg.error(JSON.parse(xhr.responseText));\n                arg = null;\n            } catch (e) {\n                arg.error && arg.error();\n                arg = null;\n            }\n        }\n    });\n}\n\nfunction getAIWords(arg) {\n    jQuery.ajax({\n        url: _manager.YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + _manager.YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + _manager.YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + _manager.YYIMManager.getInstance().getUserID() + '/intelligent/words?token=' + _manager.YYIMManager.getInstance().getToken() + '&apiKey=' + _manager.YYIMChat.getApiKey(),\n        type: 'get',\n        data: '',\n        dataType: 'json',\n        cache: false,\n        processData: false,\n        contentType: \"application/json\",\n        success: function success(data) {\n            arg.success && arg.success(data);\n            arg = null;\n        },\n        error: function error(xhr) {\n            try {\n                arg.error && arg.error(JSON.parse(xhr.responseText));\n                arg = null;\n            } catch (e) {\n                arg.error && arg.error();\n                arg = null;\n            }\n        }\n    });\n}\n\nfunction getMultiTerminals(arg) {\n    jQuery.ajax({\n        url: _manager.YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + _manager.YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + _manager.YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + _manager.YYIMManager.getInstance().getUserID() + '/multiterminals?token=' + _manager.YYIMManager.getInstance().getToken(),\n        type: 'get',\n        data: '',\n        dataType: 'json',\n        cache: false,\n        processData: false,\n        contentType: \"application/json\",\n        success: function success(data) {\n            arg.success && arg.success(data);\n            arg = null;\n        },\n        error: function error(xhr) {\n            try {\n                arg.error && arg.error(JSON.parse(xhr.responseText));\n                arg = null;\n            } catch (e) {\n                arg.error && arg.error();\n                arg = null;\n            }\n        }\n    });\n}\n\nfunction sendMultiTerminalsCommand(arg) {\n    jQuery.ajax({\n        url: _manager.YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + _manager.YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + _manager.YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + _manager.YYIMManager.getInstance().getUserID() + '/multiterminals/command?token=' + _manager.YYIMManager.getInstance().getToken(),\n        type: 'POST',\n        data: arg.data,\n        dataType: 'json',\n        cache: false,\n        processData: false,\n        contentType: \"application/json\",\n        success: function success(data) {\n            arg.success && arg.success(data);\n            arg = null;\n        },\n        error: function error(xhr) {\n            try {\n                arg.error && arg.error(JSON.parse(xhr.responseText));\n                arg = null;\n            } catch (e) {\n                arg.error && arg.error();\n                arg = null;\n            }\n        }\n    });\n}\n\nexports.setAIAbility = setAIAbility;\nexports.getAIWords = getAIWords;\nexports.getMultiTerminals = getMultiTerminals;\nexports.sendMultiTerminalsCommand = sendMultiTerminalsCommand;\n\n//# sourceURL=webpack:///./src/module/aiability/Manager.js?");
+
+/***/ }),
+
+/***/ "./src/module/digest/Extender.js":
+/*!***************************************!*\
+  !*** ./src/module/digest/Extender.js ***!
+  \***************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+eval("\n\nvar _manager = __webpack_require__(/*! ../../core/manager */ \"./src/core/manager.js\");\n\nvar _Manager = __webpack_require__(/*! ./Manager */ \"./src/module/digest/Manager.js\");\n\n_manager.YYIMManager.prototype.getRecentDigset = function (arg) {\n  arg.startDate = YYIMUtil['isWhateType'](arg.startDate, 'Number') && arg.startDate > 0 ? arg.startDate : 0;\n  if (!(YYIMUtil['isWhateType'](arg.size, 'Number') && arg.size > 0)) {\n    delete arg.size;\n  }\n  (0, _Manager.getRecentDigset)(arg);\n};\n\n_manager.YYIMManager.prototype.removeRecentDigest = function (arg) {\n  if (arg.id) {\n    (0, _Manager.removeRecentDigest)(arg);\n  } else {\n    arg && arg.error && arg.error();\n  }\n};\n\n//# sourceURL=webpack:///./src/module/digest/Extender.js?");
+
+/***/ }),
+
+/***/ "./src/module/digest/Manager.js":
+/*!**************************************!*\
+  !*** ./src/module/digest/Manager.js ***!
+  \**************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+eval("\n\nObject.defineProperty(exports, \"__esModule\", {\n\tvalue: true\n});\nexports.removeRecentDigest = exports.getRecentDigset = undefined;\n\nvar _manager = __webpack_require__(/*! ../../core/manager */ \"./src/core/manager.js\");\n\nfunction getRecentDigset(arg) {\n\tvar param = {\n\t\tstartDate: arg.startDate\n\t};\n\tif (arg.size) {\n\t\tparam.size = arg.size;\n\t}\n\tjQuery.ajax({\n\t\turl: _manager.YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + _manager.YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + _manager.YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + _manager.YYIMChat.getUserID() + '/contactsmessage/digests?token=' + _manager.YYIMChat.getToken(),\n\t\ttype: 'get',\n\t\tdata: param,\n\t\tdataType: 'json',\n\t\tcache: false,\n\t\tsuccess: function success(data) {\n\t\t\tfor (var x in data.list) {\n\t\t\t\tif (data.list.hasOwnProperty(x)) {\n\t\t\t\t\tvar item = data.list[x];\n\n\t\t\t\t\titem.id = _manager.YYIMChat.getJIDUtil().getID(item.jid);\n\t\t\t\t\titem.type = _manager.YYIMChat.getJIDUtil().getChatTypeByJid(item.jid);\n\n\t\t\t\t\ttry {\n\t\t\t\t\t\tif (item.lastMessage) {\n\t\t\t\t\t\t\titem.lastMessage = messageParser(JSON.parse(item.lastMessage), item.type);\n\t\t\t\t\t\t}\n\t\t\t\t\t} catch (e) {}\n\t\t\t\t}\n\t\t\t}\n\t\t\targ.success && arg.success(data);\n\t\t\targ = null;\n\t\t},\n\t\terror: function error(xhr) {\n\t\t\ttry {\n\t\t\t\targ.error && arg.error(JSON.parse(xhr.responseText));\n\t\t\t\targ = null;\n\t\t\t} catch (e) {\n\t\t\t\targ.error && arg.error();\n\t\t\t\targ = null;\n\t\t\t}\n\t\t}\n\t});\n}\n\nfunction parseContent(content, contentType) {\n\tif (content) {\n\t\tvar body = JSON.parse(content);\n\t\ttry {\n\t\t\tif (isNaN(Number(body.content)) && contentType != _manager.YYIMChat.getConstants().MESSAGE_CONTENT_TYPE.TEXT) {\n\t\t\t\tbody.content = JSON.parse(body.content);\n\t\t\t\tif (body.content.content) {\n\t\t\t\t\tbody.content = body.content.content;\n\t\t\t\t}\n\t\t\t}\n\t\t} catch (e) {}\n\t\treturn body;\n\t} else {\n\t\treturn null;\n\t}\n}\n\nfunction messageParser(packet, type) {\n\n\tvar message = {\n\t\tfrom: _manager.YYIMChat.getJIDUtil().getID(packet.sender),\n\t\tto: _manager.YYIMChat.getJIDUtil().getID(packet.receiver || _manager.YYIMChat.getUserID()),\n\t\tid: packet.packetId,\n\t\tdateline: packet.dateline || packet.ts,\n\t\ttype: type,\n\t\tsessionVersion: packet.sessionVersion\n\t};\n\n\tif (type) {\n\t\tif (type == _manager.YYIMChat.getConstants().CHAT_TYPE.GROUP_CHAT) {\n\t\t\tmessage.from = {\n\t\t\t\troom: _manager.YYIMChat.getJIDUtil().getID(packet.mucid),\n\t\t\t\troster: _manager.YYIMChat.getJIDUtil().getID(packet.sender)\n\t\t\t};\n\t\t} else if (type == _manager.YYIMChat.getConstants().CHAT_TYPE.PUB_ACCOUNT) {\n\t\t\tmessage.from = {\n\t\t\t\troom: _manager.YYIMChat.getJIDUtil().getID(packet.sender),\n\t\t\t\troster: _manager.YYIMChat.getJIDUtil().getID(_manager.YYIMChat.getJIDUtil().getResource(packet.sender))\n\t\t\t};\n\t\t}\n\t}\n\n\tif (packet.content) {\n\t\tmessage.data = message.data || {};\n\t\ttry {\n\t\t\tvar content = parseContent(packet.content, packet.contentType);\n\t\t\tif (!!content && (!!content.content || content.content === '')) {\n\t\t\t\tmessage.data = content;\n\t\t\t} else {\n\t\t\t\tmessage.data.content = content;\n\t\t\t}\n\t\t} catch (e) {}\n\n\t\tmessage.data.contentType = packet.contentType;\n\t\tmessage.data.dateline = packet.dateline || packet.ts;\n\n\t\tif (message.data.content && message.data.contentType && (message.data.contentType == _manager.YYIMChat.getConstants().MESSAGE_CONTENT_TYPE.IMAGE || message.data.contentType == _manager.YYIMChat.getConstants().MESSAGE_CONTENT_TYPE.FILE)) {\n\n\t\t\tmessage.data.content.attachId = message.data.content.path;\n\t\t\tmessage.data.content.path = _manager.YYIMChat.getFileUrl(message.data.content.path);\n\t\t}\n\n\t\tif (_manager.YYIMChat.getJIDUtil().getID(packet.sender) != _manager.YYIMChat.getUserID()) {\n\t\t\tvar receipt = {\n\t\t\t\tto: _manager.YYIMChat.getJIDUtil().getID(packet.mucid || packet.sender),\n\t\t\t\tid: message.id,\n\t\t\t\ttype: message.type,\n\t\t\t\tsessionVersion: message.sessionVersion\n\t\t\t};\n\t\t\tmessage.data.receipt = receipt;\n\t\t}\n\t}\n\treturn message;\n}\n\nfunction removeRecentDigest(arg) {\n\tvar typeRelation = {\n\t\t'chat': 'user',\n\t\t'groupchat': 'room',\n\t\t'pubaccount': 'pub'\n\t};\n\n\tjQuery.ajax({\n\t\turl: _manager.YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + _manager.YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + _manager.YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + _manager.YYIMChat.getUserID() + '/contacts/' + (typeRelation[arg.type] || typeRelation['chat']) + '/' + arg.id + '?token=' + _manager.YYIMChat.getToken(),\n\t\ttype: 'DELETE',\n\t\tdataType: 'json',\n\t\tcache: false,\n\t\tsuccess: function success(data) {\n\t\t\targ.success && arg.success(data);\n\t\t\targ = null;\n\t\t},\n\t\terror: function error(xhr) {\n\t\t\ttry {\n\t\t\t\targ.error && arg.error(JSON.parse(xhr.responseText));\n\t\t\t\targ = null;\n\t\t\t} catch (e) {\n\t\t\t\targ.error && arg.error();\n\t\t\t\targ = null;\n\t\t\t}\n\t\t}\n\t});\n}\n\nexports.getRecentDigset = getRecentDigset;\nexports.removeRecentDigest = removeRecentDigest;\n\n//# sourceURL=webpack:///./src/module/digest/Manager.js?");
+
+/***/ }),
+
+/***/ "./src/module/download/Extender.js":
+/*!*****************************************!*\
+  !*** ./src/module/download/Extender.js ***!
+  \*****************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+eval("\n\nvar _manager = __webpack_require__(/*! ../../core/manager */ \"./src/core/manager.js\");\n\nvar _Manager = __webpack_require__(/*! ./Manager */ \"./src/module/download/Manager.js\");\n\n_manager.YYIMManager.prototype.getTransformFileList = function (arg) {\n  if (arg && arg.attachId) {\n    (0, _Manager.getTransformFileList)(arg);\n  } else {\n    arg && arg.error && arg.error();\n  }\n};\n\n_manager.YYIMManager.prototype.getFileUrl = function (attachId, mediaType) {\n  if (attachId) {\n    return (0, _Manager.getFileUrl)(attachId, mediaType);\n  }\n};\n\n//# sourceURL=webpack:///./src/module/download/Extender.js?");
+
+/***/ }),
+
+/***/ "./src/module/download/Manager.js":
+/*!****************************************!*\
+  !*** ./src/module/download/Manager.js ***!
+  \****************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+eval("\n\nObject.defineProperty(exports, \"__esModule\", {\n\tvalue: true\n});\nexports.getFileUrl = exports.getTransformFileList = undefined;\n\nvar _manager = __webpack_require__(/*! ../../core/manager */ \"./src/core/manager.js\");\n\nfunction getTransformFileList(arg) {\n\tjQuery.ajax({\n\t\turl: _manager.YYIMChat.getConfig().SERVLET.REST_TRANSFORM_SERVLET + 'docInfo',\n\t\ttype: 'get',\n\t\tdata: {\n\t\t\tattachId: arg.attachId,\n\t\t\ttoken: _manager.YYIMChat.getToken(),\n\t\t\tdownloader: _manager.YYIMChat.getUserNode()\n\t\t},\n\t\tdataType: 'json',\n\t\tcache: false,\n\t\tsuccess: arg.success,\n\t\terror: function error(xhr) {\n\t\t\ttry {\n\t\t\t\targ.error && arg.error(JSON.parse(xhr.responseText));\n\t\t\t\targ = null;\n\t\t\t} catch (e) {\n\t\t\t\targ.error && arg.error();\n\t\t\t\targ = null;\n\t\t\t}\n\t\t}\n\t});\n}\n\nfunction getFileUrl(attachId, mediaType) {\n\tif (attachId) {\n\t\tif (/^https?:\\/\\/|^data:image\\/jpeg;/.test(attachId)) {\n\t\t\treturn attachId;\n\t\t}\n\t\tvar url = _manager.YYIMChat.getConfig().SERVLET.REST_RESOURCE_SERVLET + _manager.YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + _manager.YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/download';\n\t\treturn url + '?' + jQuery.param({\n\t\t\tattachId: attachId,\n\t\t\tdownloader: _manager.YYIMChat.getUserNode(),\n\t\t\ttoken: _manager.YYIMChat.getToken(),\n\t\t\tmediaType: mediaType === 1 ? mediaType : 2\n\t\t});\n\t}\n}\n\nexports.getTransformFileList = getTransformFileList;\nexports.getFileUrl = getFileUrl;\n\n//# sourceURL=webpack:///./src/module/download/Manager.js?");
+
+/***/ }),
+
+/***/ "./src/module/extend/Extender.js":
+/*!***************************************!*\
+  !*** ./src/module/extend/Extender.js ***!
+  \***************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+eval("\n\nvar _manager = __webpack_require__(/*! ../../core/manager */ \"./src/core/manager.js\");\n\nvar _Manager = __webpack_require__(/*! ./Manager */ \"./src/module/extend/Manager.js\");\n\n_manager.YYIMManager.prototype.multiPartyCall = function (arg) {\n\tif (typeof arg === 'undefined' || typeof arg.caller === 'undefined' || !YYIMArrayUtil.isArray(arg.phones) || !arg.phones.length) {\n\t\targ.error && arg.error();\n\t\treturn;\n\t}\n\n\tif (!YYIMRegExp.phone.test(arg.caller)) {\n\t\targ.error && arg.error();\n\t\treturn;\n\t}\n\n\tvar phones = [];\n\tfor (var x in arg.phones) {\n\t\tvar phone = arg.phones[x].toString();\n\t\tif (YYIMRegExp.phone.test(phone)) {\n\t\t\tif (phones.indexOf(phone) === -1) {\n\t\t\t\tphones.push(phone);\n\t\t\t\tvar tempCondition = phones.join(\",\");\n\t\t\t\tif (phones.length > _manager.YYIMChat.getConfig().MULTIPARTYCALL.PARTYMAXLENGTH || tempCondition.length > _manager.YYIMChat.getConfig().MULTIPARTYCALL.PHONESMAXLENGTH) {\n\t\t\t\t\tphones.pop();\n\t\t\t\t\tbreak;\n\t\t\t\t}\n\t\t\t}\n\t\t}\n\t}\n\n\tif (!phones.length) {\n\t\targ.error && arg.error();\n\t\treturn;\n\t}\n\n\targ.caller = arg.caller.toString();\n\targ.phones = phones;\n\n\tif (arg.accountMmanaged !== true) {\n\t\targ.phones = phones.join(',');\n\t\targ.account = arg.account ? arg.account : _manager.YYIMChat.getConfig().MULTIPARTYCALL.ACCOUNT;\n\t\targ.key = arg.key ? arg.key : _manager.YYIMChat.getConfig().MULTIPARTYCALL.KEY;\n\n\t\tif (typeof arg.account === 'undefined' || typeof arg.key === 'undefined') {\n\t\t\targ.error && arg.error();\n\t\t\treturn;\n\t\t}\n\t}\n\n\t(0, _Manager.multiPartyCall)(arg);\n};\n\n_manager.YYIMManager.prototype.getTimeCorrection = function (callback) {\n\t(0, _Manager.getTimeCorrection)(callback);\n};\n\n//# sourceURL=webpack:///./src/module/extend/Extender.js?");
+
+/***/ }),
+
+/***/ "./src/module/extend/Manager.js":
+/*!**************************************!*\
+  !*** ./src/module/extend/Manager.js ***!
+  \**************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+eval("\n\nObject.defineProperty(exports, \"__esModule\", {\n\tvalue: true\n});\nexports.getTimeCorrection = exports.multiPartyCall = undefined;\n\nvar _stringify = __webpack_require__(/*! babel-runtime/core-js/json/stringify */ \"./node_modules/_babel-runtime@6.26.0@babel-runtime/core-js/json/stringify.js\");\n\nvar _stringify2 = _interopRequireDefault(_stringify);\n\nvar _manager = __webpack_require__(/*! ../../core/manager */ \"./src/core/manager.js\");\n\nfunction _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }\n\nfunction multiPartyCall(arg) {\n\n\tif (arg.accountMmanaged === true) {\n\t\tvar data = {\n\t\t\tetpId: _manager.YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY,\n\t\t\tappId: _manager.YYIMChat.getConfig().MULTI_TENANCY.APP_KEY,\n\t\t\tcaller: arg.caller,\n\t\t\tphones: arg.phones,\n\t\t\tusername: _manager.YYIMManager.getInstance().getUserNode() };\n\n\t\tjQuery.ajax({\n\t\t\turl: _manager.YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + 'voip/make?token=' + _manager.YYIMManager.getInstance().getToken(),\n\t\t\ttype: 'post',\n\t\t\tdata: (0, _stringify2.default)(data),\n\t\t\tdataType: 'json',\n\t\t\tcache: false,\n\t\t\tprocessData: false,\n\t\t\tcontentType: \"application/json\",\n\t\t\theaders: {},\n\t\t\tsuccess: arg.success,\n\t\t\terror: function error(xhr) {\n\t\t\t\ttry {\n\t\t\t\t\targ.error && arg.error(JSON.parse(xhr.responseText));\n\t\t\t\t\targ = null;\n\t\t\t\t} catch (e) {\n\t\t\t\t\targ.error && arg.error();\n\t\t\t\t\targ = null;\n\t\t\t\t}\n\t\t\t}\n\t\t});\n\t} else {\n\t\tvar timestamp = new Date().getTime();\n\t\tvar data = {\n\t\t\tcaller: arg.caller,\n\t\t\tphones: arg.phones,\n\t\t\taccount_identify: arg.account,\n\t\t\tuserId: _manager.YYIMManager.getInstance().getUserBareJID(),\n\t\t\ttimestamp: timestamp,\n\t\t\tsign: hex_sha1(arg.account + arg.key + timestamp)\n\t\t};\n\n\t\tjQuery.ajax({\n\t\t\turl: _manager.YYIMChat.getConfig().MULTIPARTYCALL.ADDRESS,\n\t\t\ttype: 'get',\n\t\t\tdata: data,\n\t\t\tdataType: 'jsonp',\n\t\t\tcache: false,\n\t\t\tjsonp: 'callback',\n\t\t\tsuccess: arg.success,\n\t\t\terror: function error(xhr) {\n\t\t\t\ttry {\n\t\t\t\t\targ.error && arg.error(JSON.parse(xhr.responseText));\n\t\t\t\t\targ = null;\n\t\t\t\t} catch (e) {\n\t\t\t\t\targ.error && arg.error();\n\t\t\t\t\targ = null;\n\t\t\t\t}\n\t\t\t}\n\t\t});\n\t}\n}\n\nfunction getServerCorrection(arg) {\n\tvar start,\n\t    end = 0;\n\tjQuery.ajax({\n\t\turl: _manager.YYIMChat.getConfig().SERVLET.REST_SYSTEM_SERVLET + 'time',\n\t\ttype: 'get',\n\t\tcache: false,\n\t\tbeforeSend: function beforeSend() {\n\t\t\tstart = new Date().getTime();\n\t\t},\n\t\tsuccess: function success(serverTime) {\n\t\t\tend = new Date().getTime();\n\t\t\targ && arg.success && arg.success(serverTime - (start + end) / 2, end - start);\n\t\t\targ = null;\n\t\t},\n\t\terror: function error(xhr) {\n\t\t\ttry {\n\t\t\t\targ.error && arg.error(JSON.parse(xhr.responseText));\n\t\t\t\targ = null;\n\t\t\t} catch (e) {\n\t\t\t\targ.error && arg.error();\n\t\t\t\targ = null;\n\t\t\t}\n\t\t}\n\t});\n}\n\nvar corrections = [];\nfunction getTimeCorrection(callback) {\n\tif (_manager.YYIMChat.getConfig().TIMECORRECTION.LOAD) {\n\t\tcallback && callback(_manager.YYIMChat.getConfig().TIMECORRECTION.RESULT);\n\t} else {\n\t\tgetServerCorrection({\n\t\t\tsuccess: function success(correct, intervcal) {\n\t\t\t\tif (intervcal < _manager.YYIMChat.getConfig().TIMECORRECTION.RESIDUAL) {\n\t\t\t\t\t_manager.YYIMChat.getConfig().TIMECORRECTION.LOAD = true;\n\t\t\t\t\t_manager.YYIMChat.getConfig().TIMECORRECTION.RESULT = Math.round(correct);\n\t\t\t\t\treturn callback && callback(_manager.YYIMChat.getConfig().TIMECORRECTION.RESULT);;\n\t\t\t\t} else {\n\t\t\t\t\tcorrections.push(correct);\n\n\t\t\t\t\tif (corrections.length < _manager.YYIMChat.getConfig().TIMECORRECTION.TIMES) {\n\t\t\t\t\t\tgetTimeCorrection(callback);\n\t\t\t\t\t} else {\n\t\t\t\t\t\tvar sum = 0;\n\t\t\t\t\t\tfor (var x in corrections) {\n\t\t\t\t\t\t\tif (YYIMUtil['isWhateType'](corrections[x], 'Number')) {\n\t\t\t\t\t\t\t\tsum += corrections[x];\n\t\t\t\t\t\t\t}\n\t\t\t\t\t\t}\n\t\t\t\t\t\tcorrections.length = 0;\n\t\t\t\t\t\t_manager.YYIMChat.getConfig().TIMECORRECTION.LOAD = true;\n\t\t\t\t\t\t_manager.YYIMChat.getConfig().TIMECORRECTION.RESULT = Math.round(sum / _manager.YYIMChat.getConfig().TIMECORRECTION.TIMES);\n\t\t\t\t\t\tcallback && callback(_manager.YYIMChat.getConfig().TIMECORRECTION.RESULT);\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t}\n\t\t});\n\t}\n}\n\nexports.multiPartyCall = multiPartyCall;\nexports.getTimeCorrection = getTimeCorrection;\n\n//# sourceURL=webpack:///./src/module/extend/Manager.js?");
+
+/***/ }),
+
+/***/ "./src/module/group/Extender.js":
+/*!**************************************!*\
+  !*** ./src/module/group/Extender.js ***!
+  \**************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+eval("\n\nvar _manager = __webpack_require__(/*! ../../core/manager */ \"./src/core/manager.js\");\n\nvar _Manager = __webpack_require__(/*! ./Manager */ \"./src/module/group/Manager.js\");\n\n_manager.YYIMChat.setBackhander({\n\t'monitor': {\n\t\t'groupMonitor': _Manager.monitor\n\t},\n\t'initCallback': {\n\t\t'group': function group(options) {\n\t\t\t_manager.YYIMChat.onGroupUpdate = options.onGroupUpdate || function () {};\n\t\t\t_manager.YYIMChat.onTransferGroupOwner = options.onTransferGroupOwner || function () {};\n\t\t\t_manager.YYIMChat.onKickedOutGroup = options.onKickedOutGroup || function () {};\n\t\t}\n\t}\n});\n\n_manager.YYIMManager.prototype.queryChatGroup = function (arg) {\n\tif (YYIMCommonUtil.isStringAndNotEmpty(arg.keyword)) {\n\t\t(0, _Manager.queryChatGroup)(arg);\n\t} else {\n\t\targ && arg.error && arg.error();\n\t}\n};\n\n_manager.YYIMManager.prototype.joinChatGroup = function (arg) {\n\tif (YYIMCommonUtil.isStringAndNotEmpty(arg.id)) {\n\t\t(0, _Manager.joinChatGroup)({\n\t\t\tjid: _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.id)),\n\t\t\tsuccess: arg.success,\n\t\t\terror: arg.error\n\t\t});\n\t} else {\n\t\targ && arg.error && arg.error();\n\t}\n};\n\n_manager.YYIMManager.prototype.getChatGroupInfo = function (arg) {\n\tif (YYIMCommonUtil.isStringAndNotEmpty(arg.id)) {\n\t\t(0, _Manager.getChatGroupInfo)({\n\t\t\tjid: _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.id)),\n\t\t\tmembersLimit: YYIMCommonUtil.isNumber(arg.membersLimit) && arg.membersLimit > 0 ? arg.membersLimit : _manager.YYIMChat.getConfig().GROUP.MEMBERSLIMIT,\n\t\t\tsuccess: arg.success,\n\t\t\terror: arg.error\n\t\t});\n\t} else {\n\t\targ && arg.error && arg.error();\n\t}\n};\n\n_manager.YYIMManager.prototype.getChatGroups = function (arg) {\n\targ = arg || {};\n\targ.startDate = YYIMUtil['isWhateType'](arg.startDate, 'Number') && arg.startDate > 0 ? arg.startDate : 0;\n\targ.membersLimit = YYIMCommonUtil.isNumber(arg.membersLimit) && arg.membersLimit > 0 ? arg.membersLimit : _manager.YYIMChat.getConfig().GROUP.MEMBERSLIMIT;\n\t(0, _Manager.getChatGroups)(arg);\n};\n\n_manager.YYIMManager.prototype.createChatGroup = function (arg) {\n\tif (!YYIMArrayUtil.isArray(arg.members)) {\n\t\tdelete arg.members;\n\t}\n\tif (arg.members) {\n\t\t(0, _Manager.createChatGroup)(arg);\n\t} else {\n\t\targ && arg.error && arg.error();\n\t}\n};\n\n_manager.YYIMManager.prototype.transferChatGroup = function (arg) {\n\tif (arg && typeof arg.newOwner == 'string' && arg.to) {\n\t\targ.to = _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));\n\t\t(0, _Manager.transferChatGroup)(arg);\n\t} else {\n\t\targ && arg.error && arg.error();\n\t}\n};\n\n_manager.YYIMManager.prototype.dismissChatGroup = function (arg) {\n\tif (arg && arg.to) {\n\t\targ.to = _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));\n\t\t(0, _Manager.dismissChatGroup)(arg);\n\t} else {\n\t\targ && arg.error && arg.error();\n\t}\n};\n\n_manager.YYIMManager.prototype.getSharedFiles = function (arg) {\n\tif (arg && arg.id) {\n\t\t(0, _Manager.getSharedFiles)(arg);\n\t} else {\n\t\targ && arg.error && arg.error();\n\t}\n};\n\n_manager.YYIMManager.prototype.inviteGroupMember = function (arg) {\n\tif (arg.members && YYIMArrayUtil.isArray(arg.members) && arg.members.length && arg.to) {\n\t\targ.to = _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));\n\t\t(0, _Manager.inviteGroupMember)(arg);\n\t} else {\n\t\targ && arg.error && arg.error();\n\t}\n};\n\n_manager.YYIMManager.prototype.modifyChatGroupInfo = function (arg) {\n\tif (arg.name && arg.to) {\n\t\targ.to = _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));\n\t\t(0, _Manager.modifyChatGroupInfo)(arg);\n\t} else {\n\t\targ && arg.error && arg.error();\n\t}\n};\n\n_manager.YYIMManager.prototype.kickGroupMember = function (arg) {\n\tif (arg.member && typeof arg.member == 'string' && arg.to) {\n\t\targ.to = _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));\n\t\t(0, _Manager.kickGroupMember)(arg);\n\t} else {\n\t\targ && arg.error && arg.error();\n\t}\n};\n\n_manager.YYIMManager.prototype.exitChatGroup = function (arg) {\n\tif (arg.to) {\n\t\targ.to = _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));\n\t\t(0, _Manager.exitChatGroup)(arg);\n\t} else {\n\t\targ && arg.error && arg.error();\n\t}\n};\n\n_manager.YYIMManager.prototype.collectGroup = function (arg) {\n\tif (arg.to) {\n\t\targ.to = _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));\n\t\targ.type = this.getConstants().COLLECT_TYPE.ADD;\n\t\t(0, _Manager.collectChatGroup)(arg);\n\t} else {\n\t\targ && arg.error && arg.error();\n\t}\n};\n\n_manager.YYIMManager.prototype.removeCollectGroup = function (arg) {\n\tif (arg.to) {\n\t\targ.to = _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));\n\t\targ.type = this.getConstants().COLLECT_TYPE.REMOVE;\n\t\t(0, _Manager.collectChatGroup)(arg);\n\t} else {\n\t\targ && arg.error && arg.error();\n\t}\n};\n\n_manager.YYIMManager.prototype.getGroupMembers = function (arg) {\n\tvar id = arg.id || arg.to;\n\tif (arg && id) {\n\t\tif (YYIMCommonUtil.isStringAndNotEmpty(id)) {\n\t\t\t(0, _Manager.getGroupMembers)(arg);\n\t\t}\n\t} else {\n\t\targ && arg.error && arg.error();\n\t}\n};\n\n//# sourceURL=webpack:///./src/module/group/Extender.js?");
+
+/***/ }),
+
+/***/ "./src/module/group/Manager.js":
+/*!*************************************!*\
+  !*** ./src/module/group/Manager.js ***!
+  \*************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+eval("\n\nObject.defineProperty(exports, \"__esModule\", {\n\tvalue: true\n});\nexports.collectChatGroup = exports.exitChatGroup = exports.kickGroupMember = exports.modifyChatGroupInfo = exports.inviteGroupMember = exports.getSharedFiles = exports.dismissChatGroup = exports.transferChatGroup = exports.createChatGroup = exports.getChatGroups = exports.getChatGroupInfo = exports.joinChatGroup = exports.getGroupMembers = exports.queryChatGroup = exports.monitor = undefined;\n\nvar _manager = __webpack_require__(/*! ../../core/manager */ \"./src/core/manager.js\");\n\nfunction getChatGroups(arg) {\n\tjQuery.ajax({\n\t\turl: _manager.YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + _manager.YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + _manager.YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + _manager.YYIMChat.getUserID() + '/room/contacts/increment?timestamp=' + arg.startDate + '&token=' + _manager.YYIMChat.getToken() + '&membersLimit=' + arg.membersLimit,\n\t\ttype: 'get',\n\t\tdataType: 'json',\n\t\tcache: false,\n\t\tsuccess: function success(chatGroupList) {\n\t\t\tif (!!chatGroupList) {\n\t\t\t\tchatGroupList.roomItems = chatGroupList.roomItems || [];\n\t\t\t\tchatGroupList.roomNames = chatGroupList.roomNames || [];\n\t\t\t\tchatGroupList.leftRooms = chatGroupList.leftRooms || [];\n\n\t\t\t\tvar i = chatGroupList.roomItems.length || 0;\n\t\t\t\twhile (i--) {\n\t\t\t\t\tchatGroupList.roomItems[i] = handleChatGroup(chatGroupList.roomItems[i]);\n\t\t\t\t}\n\n\t\t\t\tvar j = chatGroupList.roomNames.length || 0;\n\t\t\t\twhile (j--) {\n\t\t\t\t\tchatGroupList.roomNames[j] = _manager.YYIMChat.getJIDUtil().getID(chatGroupList.roomNames[j]);\n\t\t\t\t}\n\n\t\t\t\tvar z = chatGroupList.leftRooms.length || 0;\n\t\t\t\twhile (z--) {\n\t\t\t\t\tchatGroupList.leftRooms[z] = _manager.YYIMChat.getJIDUtil().getID(chatGroupList.leftRooms[z]);\n\t\t\t\t}\n\t\t\t}\n\t\t\targ.success && arg.success(chatGroupList || {});\n\t\t\targ = null;\n\t\t},\n\t\terror: function error(xhr) {\n\t\t\ttry {\n\t\t\t\targ.error && arg.error(JSON.parse(xhr.responseText));\n\t\t\t\targ = null;\n\t\t\t} catch (e) {\n\t\t\t\targ.error && arg.error();\n\t\t\t\targ = null;\n\t\t\t}\n\t\t}\n\t});\n}\n\nfunction queryChatGroup(arg) {\n\tvar iqBody = {\n\t\tstart: YYIMCommonUtil.isNumber(arg.start) ? arg.start : 0,\n\t\tsize: YYIMCommonUtil.isNumber(arg.size) ? arg.size : 20,\n\t\tsearch: arg.keyword\n\t};\n\t_manager.YYIMChat.getConnection().send(new JumpPacket(iqBody, OPCODE.QUERY_CHATGROUP.SEND), function (queryResult, _arg) {\n\t\tvar items = queryResult.items || [],\n\t\t    i = items.length;\n\t\twhile (i--) {\n\t\t\tvar item = items[i];\n\t\t\titems[i].id = _manager.YYIMChat.getJIDUtil().getID(item.jid);\n\t\t\titems[i].name = items[i].name || items[i].id;\n\t\t}\n\t\t_arg.complete && _arg.complete();\n\t\t_arg.success && _arg.success({\n\t\t\tstart: queryResult.start,\n\t\t\ttotal: queryResult.total,\n\t\t\titems: items\n\t\t});\n\t}, arg);\n}\n\nfunction getChatGroupInfo(arg) {\n\tjQuery.ajax({\n\t\turl: _manager.YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + _manager.YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + _manager.YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + _manager.YYIMChat.getUserID() + '/room/info?membersLimit=' + arg.membersLimit + '&mucId=' + arg.jid + '&token=' + _manager.YYIMChat.getToken(),\n\t\ttype: 'get',\n\t\tdataType: 'json',\n\t\tcache: false,\n\t\tsuccess: function success(result) {\n\t\t\tvar group = handleChatGroup(result);\n\t\t\targ.success && arg.success(group);\n\t\t\targ = null;\n\t\t},\n\t\terror: function error(xhr) {\n\t\t\ttry {\n\t\t\t\targ.error && arg.error(JSON.parse(xhr.responseText));\n\t\t\t\targ = null;\n\t\t\t} catch (e) {\n\t\t\t\targ.error && arg.error();\n\t\t\t\targ = null;\n\t\t\t}\n\t\t}\n\t});\n}\n\nfunction createChatGroup(arg) {\n\tvar iqBody = {\n\t\tid: Math.uuid(),\n\t\tto: arg.to,\n\t\tnaturalLanguageName: arg.name,\n\t\tfrom: _manager.YYIMChat.getUserBareJID(),\n\t\tinvitees: arg.members\n\t};\n\n\t_manager.YYIMChat.getConnection().send(new JumpPacket(iqBody, OPCODE.CREATE_GROUP.SEND), function (result, _arg) {\n\t\t_arg.complete && _arg.complete();\n\t\t_arg.success && _arg.success(handleChatGroup(result));\n\t}, arg);\n}\n\nfunction transferChatGroup(arg) {\n\tvar iqBody = {\n\t\tid: Math.uuid(),\n\t\tto: arg.to,\n\t\tfrom: _manager.YYIMChat.getUserBareJID(),\n\t\tnewOwner: arg.newOwner\n\t};\n\n\t_manager.YYIMChat.getConnection().send(new JumpPacket(iqBody, OPCODE.TRANSFER_GROUP.SEND), function (result, _arg) {\n\t\t_arg.complete && _arg.complete();\n\t\t_arg.success && _arg.success(transferChatGroupOwner(result));\n\t}, arg);\n}\n\nfunction dismissChatGroup(arg) {\n\tvar iqBody = {\n\t\tid: Math.uuid(),\n\t\tto: arg.to,\n\t\tfrom: _manager.YYIMChat.getUserBareJID()\n\t};\n\n\t_manager.YYIMChat.getConnection().send(new JumpPacket(iqBody, OPCODE.DISMISS_GROUP.SEND), function (result, _arg) {\n\t\t_arg.complete && _arg.complete();\n\t\t_arg.success && _arg.success({\n\t\t\tid: result.id,\n\t\t\tfrom: _manager.YYIMChat.getJIDUtil().getID(result.from),\n\t\t\tto: _manager.YYIMChat.getJIDUtil().getID(result.to)\n\t\t});\n\t}, arg);\n}\n\nfunction inviteGroupMember(arg) {\n\tvar iqBody = {\n\t\tid: Math.uuid(),\n\t\tto: arg.to,\n\t\tfrom: _manager.YYIMChat.getUserBareJID(),\n\t\tinvitees: arg.members\n\t};\n\n\t_manager.YYIMChat.getConnection().send(new JumpPacket(iqBody, OPCODE.INVITE_GROUP_MEMBER.SEND), function (result, _arg) {\n\t\t_arg.complete && _arg.complete();\n\t\t_arg.success && _arg.success(handleChatGroup(result));\n\t}, arg);\n}\n\nfunction modifyChatGroupInfo(arg) {\n\tvar iqBody = {\n\t\tid: Math.uuid(),\n\t\tnaturalLanguageName: arg.name,\n\t\tfrom: _manager.YYIMChat.getUserBareJID(),\n\t\tto: arg.to\n\t};\n\n\t_manager.YYIMChat.getConnection().send(new JumpPacket(iqBody, OPCODE.MODIFY_GROUP_INFO.SEND), function (result, _arg) {\n\t\t_arg.complete && _arg.complete();\n\t\t_arg.success && _arg.success(handleChatGroup(result));\n\t}, arg);\n}\n\nfunction kickGroupMember(arg) {\n\tvar iqBody = {\n\t\tid: Math.uuid(),\n\t\tmember: arg.member,\n\t\tfrom: _manager.YYIMChat.getUserBareJID(),\n\t\tto: arg.to\n\t};\n\n\t_manager.YYIMChat.getConnection().send(new JumpPacket(iqBody, OPCODE.KICK_GROUP_MEMBER.SEND), function (result, _arg) {\n\t\t_arg.complete && _arg.complete();\n\t\t_arg.success && _arg.success(handleChatGroup(result));\n\t}, arg);\n}\n\nfunction exitChatGroup(arg) {\n\tvar iqBody = {\n\t\tid: Math.uuid(),\n\t\tfrom: _manager.YYIMChat.getUserBareJID(),\n\t\tto: arg.to\n\t};\n\n\t_manager.YYIMChat.getConnection().send(new JumpPacket(iqBody, OPCODE.EXIT_GROUP.SEND), function (result, _arg) {\n\t\t_arg.complete && _arg.complete();\n\t\t_arg.success && _arg.success({\n\t\t\tfrom: _manager.YYIMChat.getJIDUtil().getID(result.from),\n\t\t\tid: result.id,\n\t\t\tto: _manager.YYIMChat.getJIDUtil().getID(result.to)\n\t\t});\n\t}, arg);\n}\n\nfunction handleChatGroup(result) {\n\tif (!result) {\n\t\treturn;\n\t}\n\n\tvar j = result.members.length;\n\tvar members = [];\n\twhile (j--) {\n\t\tvar member = result.members[j];\n\t\tmember.id = _manager.YYIMChat.getJIDUtil().getID(member.jid);\n\t\tmembers.push(member);\n\t}\n\tvar chatGroup = {\n\t\tid: _manager.YYIMChat.getJIDUtil().getID(result.from || result.jid),\n\t\tname: result.naturalLanguageName || result.roomname || result.name,\n\t\tphoto: result.photo,\n\t\tnumberOfMembers: result.numberOfMembers,\n\t\tsuperLarge: result.superLarge,\n\t\tcollected: result.collected,\n\t\ttype: result.type,\n\t\tsafeModel: result.safeModel,\n\t\tcreationdate: result.creationdate,\n\t\tcreater: _manager.YYIMChat.getJIDUtil().getID(result.operator),\n\t\tmembers: members,\n\t\towners: result.owners,\n\t\ttag: result.tag\n\t};\n\treturn chatGroup;\n}\n\nfunction transferChatGroupOwner(result) {\n\tif (!result) {\n\t\treturn;\n\t}\n\n\tvar j = result.memberItems.length;\n\tvar members = [];\n\twhile (j--) {\n\t\tvar member = result.memberItems[j];\n\t\tmember.id = _manager.YYIMChat.getJIDUtil().getID(member.jid);\n\t\tmembers.push(member);\n\t}\n\tvar chatGroup = {\n\t\tid: _manager.YYIMChat.getJIDUtil().getID(result.from),\n\t\tmembers: members\n\t};\n\treturn chatGroup;\n}\n\nfunction collectChatGroup(arg) {\n\tvar iqBody = {\n\t\tid: Math.uuid(),\n\t\tfrom: _manager.YYIMChat.getUserBareJID(),\n\t\tto: arg.to,\n\t\ttype: arg.type\n\t};\n\n\t_manager.YYIMChat.getConnection().send(new JumpPacket(iqBody, OPCODE.COLLECT_GROUP.SEND), function (result, _arg) {\n\t\t_arg.complete && _arg.complete();\n\t\t_arg.success && _arg.success({\n\t\t\tfrom: _manager.YYIMChat.getJIDUtil().getID(_arg.to),\n\t\t\tid: result.id,\n\t\t\tto: _manager.YYIMChat.getUserID(),\n\t\t\ttype: _arg.type,\n\t\t\tcode: result.code,\n\t\t\tmessage: result.message\n\t\t});\n\t}, arg);\n}\n\nfunction getSharedFiles(arg) {\n\tvar type = [_manager.YYIMChat.getConstants().CHAT_TYPE.CHAT, _manager.YYIMChat.getConstants().CHAT_TYPE.GROUP_CHAT, _manager.YYIMChat.getConstants().CHAT_TYPE.PUB_ACCOUNT].indexOf(arg.type) > -1 ? arg.type : _manager.YYIMChat.getConstants().CHAT_TYPE.CHAT;\n\n\tvar url = _manager.YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + _manager.YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + _manager.YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/shareattachment/persional/attachment/' + _manager.YYIMChat.getUserID() + '/' + arg.id;\n\tif (type == _manager.YYIMChat.getConstants().CHAT_TYPE.GROUP_CHAT) {\n\t\turl = _manager.YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + _manager.YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + _manager.YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/shareattachment/room/attachment/' + arg.id + '/' + _manager.YYIMChat.getUserID();\n\t}\n\n\tjQuery.ajax({\n\t\turl: url,\n\t\tdata: {\n\t\t\ttoken: _manager.YYIMChat.getToken(),\n\t\t\tfileType: ['file', 'image', 'microvideo'].indexOf(arg.fileType) > -1 ? arg.fileType : 'file',\n\t\t\tstart: parseInt(arg.start) || 0,\n\t\t\tsize: parseInt(arg.size) || 20\n\t\t},\n\t\ttype: 'get',\n\t\tdataType: 'json',\n\t\tcache: false,\n\t\tsuccess: function success(data) {\n\t\t\tvar items = data.list || [];\n\t\t\ti = items.length;\n\t\t\twhile (i--) {\n\t\t\t\tvar item = items[i];\n\t\t\t\titem.id = item.packetId;\n\t\t\t\titem.creator = _manager.YYIMChat.getJIDUtil().getID(item.creator);\n\t\t\t\titem.owner = [];\n\t\t\t\tif (type == _manager.YYIMChat.getConstants().CHAT_TYPE.GROUP_CHAT) {\n\t\t\t\t\titem.owner.push({\n\t\t\t\t\t\tid: _manager.YYIMChat.getJIDUtil().getID(item.ownerId),\n\t\t\t\t\t\ttype: type\n\t\t\t\t\t});\n\t\t\t\t} else {\n\t\t\t\t\tvar temp = item.ownerId.split('::');\n\t\t\t\t\ttemp[0] = _manager.YYIMChat.getJIDUtil().getID(temp[0]);\n\t\t\t\t\ttemp[1] = _manager.YYIMChat.getJIDUtil().getID(temp[1]);\n\t\t\t\t\titem.owner.push({\n\t\t\t\t\t\tid: temp[0],\n\t\t\t\t\t\ttype: type\n\t\t\t\t\t}, {\n\t\t\t\t\t\tid: temp[1],\n\t\t\t\t\t\ttype: type\n\t\t\t\t\t});\n\t\t\t\t}\n\t\t\t\tdelete item.ownerId;\n\t\t\t}\n\t\t\targ.success && arg.success(data);\n\t\t\targ = null;\n\t\t},\n\t\terror: function error(xhr) {\n\t\t\ttry {\n\t\t\t\targ.error && arg.error(JSON.parse(xhr.responseText));\n\t\t\t\targ = null;\n\t\t\t} catch (e) {\n\t\t\t\targ.error && arg.error();\n\t\t\t\targ = null;\n\t\t\t}\n\t\t}\n\t});\n}\n\nfunction getGroupMembers(arg) {\n\tjQuery.ajax({\n\t\turl: _manager.YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + _manager.YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + _manager.YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + _manager.YYIMChat.getUserID() + '/room/members?mucId=' + arg.id + '&token=' + _manager.YYIMChat.getToken(),\n\t\ttype: 'get',\n\t\tdataType: 'json',\n\t\tcache: false,\n\t\tsuccess: function success(result) {\n\t\t\tif (result && result.length) {\n\t\t\t\tvar index = result.length;\n\t\t\t\twhile (index--) {\n\t\t\t\t\tresult[index].id = _manager.YYIMChat.getJIDUtil().getID(result[index].jid);\n\t\t\t\t}\n\t\t\t}\n\t\t\targ.success && arg.success(result || []);\n\t\t\targ = null;\n\t\t},\n\t\terror: function error() {\n\t\t\ttry {\n\t\t\t\targ.error && arg.error(JSON.parse(xhr.responseText));\n\t\t\t\targ = null;\n\t\t\t} catch (e) {\n\t\t\t\targ.error && arg.error();\n\t\t\t\targ = null;\n\t\t\t}\n\t\t}\n\t});\n}\n\nfunction joinChatGroup(arg) {\n\tvar presenceBody = {\n\t\tto: arg.jid + \"/\" + _manager.YYIMChat.getUserNode()\n\t};\n\n\t_manager.YYIMChat.getConnection().send(new JumpPacket(presenceBody, OPCODE.CHATGROUP.SEND), function (joinResult, _arg) {\n\t\tif (joinResult && joinResult.code == '40301') {\n\t\t\t_arg.error && _arg.error({\n\t\t\t\tcode: joinResult.code,\n\t\t\t\tmessage: joinResult.message\n\t\t\t});\n\t\t} else if (joinResult) {\n\t\t\tjoinResult.id = _manager.YYIMChat.getJIDUtil().getID(joinResult.from);\n\t\t\t_arg.success && _arg.success(joinResult);\n\t\t}\n\t}, arg);\n}\n\nfunction monitor() {\n\t_manager.YYIMChat.getConnection().registerHandler(OPCODE.ON_GROUP_UPDATE.KEY, function (packet) {\n\t\tvar chatgroup = handleChatGroup(packet);\n\t\tif (chatgroup) {\n\t\t\t_manager.YYIMChat.onGroupUpdate(chatgroup);\n\t\t}\n\t});\n\n\t_manager.YYIMChat.getConnection().registerHandler(OPCODE.ON_GROUP_TRANSFER.KEY, function (packet) {\n\t\tvar chatgroup = transferChatGroupOwner(packet);\n\t\tif (chatgroup) {\n\t\t\t_manager.YYIMChat.onTransferGroupOwner(chatgroup);\n\t\t}\n\t});\n\n\t_manager.YYIMChat.getConnection().registerHandler(OPCODE.KICKED_GROUP.KEY, function (packet) {\n\t\tvar result = {\n\t\t\tid: packet.id,\n\t\t\tfrom: _manager.YYIMChat.getJIDUtil().getID(packet.from),\n\t\t\tto: _manager.YYIMChat.getJIDUtil().getID(packet.to)\n\t\t};\n\t\tif (result) {\n\t\t\t_manager.YYIMChat.onKickedOutGroup(result);\n\t\t}\n\t});\n}\n\nexports.monitor = monitor;\nexports.queryChatGroup = queryChatGroup;\nexports.getGroupMembers = getGroupMembers;\nexports.joinChatGroup = joinChatGroup;\nexports.getChatGroupInfo = getChatGroupInfo;\nexports.getChatGroups = getChatGroups;\nexports.createChatGroup = createChatGroup;\nexports.transferChatGroup = transferChatGroup;\nexports.dismissChatGroup = dismissChatGroup;\nexports.getSharedFiles = getSharedFiles;\nexports.inviteGroupMember = inviteGroupMember;\nexports.modifyChatGroupInfo = modifyChatGroupInfo;\nexports.kickGroupMember = kickGroupMember;\nexports.exitChatGroup = exitChatGroup;\nexports.collectChatGroup = collectChatGroup;\n\n//# sourceURL=webpack:///./src/module/group/Manager.js?");
+
+/***/ }),
+
+/***/ "./src/module/input_state/Extender.js":
+/*!********************************************!*\
+  !*** ./src/module/input_state/Extender.js ***!
+  \********************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+eval("\n\nvar _manager = __webpack_require__(/*! ../../core/manager */ \"./src/core/manager.js\");\n\nvar _Manager = __webpack_require__(/*! ./Manager */ \"./src/module/input_state/Manager.js\");\n\n_manager.YYIMChat.setBackhander({\n\t'monitor': {\n\t\t'inputStateMonitor': _Manager.monitor\n\t}\n});\n\n_manager.YYIMManager.prototype.inputStateChange = function (arg) {\n\tif (arg && arg.to) {\n\t\targ.contentType = arg.contentType || _manager.YYIMChat.getConstants().MESSAGE_CONTENT_TYPE.TEXT;\n\t\t(0, _Manager.inputStateChange)(arg);\n\t} else {\n\t\targ && arg.error && arg.error();\n\t}\n};\n\n//# sourceURL=webpack:///./src/module/input_state/Extender.js?");
+
+/***/ }),
+
+/***/ "./src/module/input_state/Manager.js":
+/*!*******************************************!*\
+  !*** ./src/module/input_state/Manager.js ***!
+  \*******************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+eval("\n\nObject.defineProperty(exports, \"__esModule\", {\n\tvalue: true\n});\nexports.inputStateChange = exports.monitor = undefined;\n\nvar _manager = __webpack_require__(/*! ../../core/manager */ \"./src/core/manager.js\");\n\nfunction monitor() {\n\t_manager.YYIMChat.getConnection().registerHandler(OPCODE.INPUT_STATE.KEY, function (state) {\n\t\tif (state && state.from) {\n\t\t\tstate.from = _manager.YYIMChat.getJIDUtil().getID(state.from);\n\t\t}\n\t\tif (state && state.to) {\n\t\t\tstate.to = _manager.YYIMChat.getJIDUtil().getID(state.to);\n\t\t}\n\t\tonInputStateChanged(state);\n\t});\n}\n\nvar onInputState = {};\nfunction onInputStateChanged(arg) {\n\tonInputState[arg.from] = onInputState[arg.from] || {\n\t\ttimer: 0,\n\t\tparam: arg\n\t};\n\n\tonInputState[arg.from].param = arg;\n\n\tif (onInputState[arg.from].timer) {\n\t\tclearTimeout(onInputState[arg.from].timer);\n\t\tonInputState[arg.from].timer = 0;\n\t}\n\n\tif (arg.typing == 0) {\n\t\tvar param = onInputState[arg.from].param;\n\t\tonInputState[arg.from] = null;\n\t\t_manager.YYIMChat.onInputStateChanged(param);\n\t} else {\n\t\t_manager.YYIMChat.onInputStateChanged(onInputState[arg.from].param);\n\t\tonInputState[arg.from].timer = setTimeout(function () {\n\t\t\tvar param = onInputState[arg.from].param;\n\t\t\tparam.typing = 0;\n\t\t\tonInputState[arg.from] = null;\n\t\t\t_manager.YYIMChat.onInputStateChanged(param);\n\t\t}, onInputState[arg.from].param.timeout || _manager.YYIMChat.getConfig().INPUT_STATE.INTERVAL);\n\t}\n}\n\nfunction sendInputState(arg) {\n\tvar msgBody = {\n\t\t\"id\": Math.uuid(),\n\t\t\"to\": _manager.YYIMChat.getJIDUtil().buildUserJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to)),\n\t\t\"contentType\": arg.contentType,\n\t\t\"typing\": arg.typing\n\t};\n\n\t_manager.YYIMChat.getConnection().send(new JumpPacket(msgBody, OPCODE.INPUT_STATE.SEND));\n}\n\nvar inputState = {};\nfunction inputStateChange(arg) {\n\tinputState[arg.to] = inputState[arg.to] || {\n\t\ttimer: 0,\n\t\tparam: arg,\n\t\tlastUpdateTime: 0,\n\t\tlastSendTime: 0\n\t};\n\n\tif (inputState[arg.to].timer) {\n\t\tclearTimeout(inputState[arg.to].timer);\n\t\tinputState[arg.to].timer = 0;\n\t}\n\n\tinputState[arg.to].lastUpdateTime = new Date().getTime();\n\n\tif (inputState[arg.to].lastUpdateTime - inputState[arg.to].lastSendTime > _manager.YYIMChat.getConfig().INPUT_STATE.INTERVAL || arg.contentType != inputState[arg.to].param.contentType) {\n\n\t\tinputState[arg.to].param = arg;\n\t\tinputState[arg.to].param.typing = 1;\n\t\tinputState[arg.to].lastSendTime = inputState[arg.to].lastUpdateTime;\n\t\tsendInputState(inputState[arg.to].param);\n\t}\n\n\tinputState[arg.to].timer = setTimeout(function () {\n\t\tvar param = inputState[arg.to].param;\n\t\tparam.typing = 0;\n\t\tinputState[arg.to] = null;\n\n\t\tsendInputState(param);\n\t}, _manager.YYIMChat.getConfig().INPUT_STATE.INTERVAL);\n}\n\nexports.monitor = monitor;\nexports.inputStateChange = inputStateChange;\n\n//# sourceURL=webpack:///./src/module/input_state/Manager.js?");
+
+/***/ }),
+
+/***/ "./src/module/message/Extender.js":
+/*!****************************************!*\
+  !*** ./src/module/message/Extender.js ***!
+  \****************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+eval("\n\nvar _manager = __webpack_require__(/*! ../../core/manager */ \"./src/core/manager.js\");\n\nvar _Manager = __webpack_require__(/*! ./Manager */ \"./src/module/message/Manager.js\");\n\n_manager.YYIMChat.setBackhander({\n\t'monitor': {\n\t\t'messageMonitor': _Manager.monitor\n\t},\n\t'initCallback': {\n\t\t'message': function message(options) {\n\t\t\t_manager.YYIMChat.onReceipts = options.onReceipts || function () {};\n\t\t\t_manager.YYIMChat.onMessage = options.onMessage || function () {};\n\t\t\t_manager.YYIMChat.onTransparentMessage = options.onTransparentMessage || function () {};\n\t\t}\n\t}\n});\n\n_manager.YYIMManager.prototype.getHistoryMessage = function (arg) {\n\targ = arg || {};\n\n\tif (!YYIMUtil['isWhateType'](arg.start, 'Number')) {\n\t\targ.start = 0;\n\t}\n\n\tif (!YYIMUtil['isWhateType'](arg.size, 'Number')) {\n\t\targ.size = 100;\n\t}\n\n\t(0, _Manager.getHistoryMessage)(arg);\n};\n\n_manager.YYIMManager.prototype.sendReadedReceiptsPacket = function (arg) {\n\tif (arg && arg.id) {\n\t\targ.state = 2;\n\t\t(0, _Manager.sendReceiptsPacket)(arg);\n\t}\n};\n\n_manager.YYIMManager.prototype.sendFormMessage = function (arg) {\n\tvar that = this;\n\tvar file = arg.file;\n\n\tvar param = {\n\t\ttoken: this.getToken(),\n\t\tcreator: this.getUserNode(),\n\t\treceiver: this.getJIDUtil().getNode(arg.to),\n\t\tmediaType: arg.mediaType || 2,\n\t\trandomId: Math.uuid(),\n\t\tname: file.name,\n\t\tsize: file.size\n\t};\n\tvar url = _manager.YYIMChat.getConfig().SERVLET.REST_RESOURCE_SERVLET + _manager.YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + _manager.YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/upload';\n\turl += '?' + jQuery.param(param);\n\n\tjQuery.ajax({\n\t\txhr: function xhr() {\n\t\t\tvar xhr = new window.XMLHttpRequest();\n\n\t\t\txhr.upload.addEventListener(\"progress\", function (evt) {\n\t\t\t\tif (evt.lengthComputable) {\n\t\t\t\t\tvar percentComplete = evt.loaded / evt.total;\n\t\t\t\t\targ.progress && arg.progress({\n\t\t\t\t\t\tloaded: evt.loaded,\n\t\t\t\t\t\ttotal: evt.total,\n\t\t\t\t\t\tpercent: percentComplete\n\t\t\t\t\t});\n\t\t\t\t}\n\t\t\t}, false);\n\n\t\t\txhr.addEventListener(\"progress\", function (evt) {\n\t\t\t\tif (evt.lengthComputable) {\n\t\t\t\t\tvar percentComplete = evt.loaded / evt.total;\n\t\t\t\t\targ.progress && arg.progress({\n\t\t\t\t\t\tloaded: evt.loaded,\n\t\t\t\t\t\ttotal: evt.total,\n\t\t\t\t\t\tpercent: percentComplete\n\t\t\t\t\t});\n\t\t\t\t}\n\t\t\t}, false);\n\t\t\treturn xhr;\n\t\t},\n\t\turl: url,\n\t\ttype: 'post',\n\t\tdataType: 'json',\n\t\tdata: arg.data,\n\t\tprocessData: false,\n\t\tcontentType: false,\n\t\tsuccess: function success(result) {\n\t\t\tif (result && result.attachId) {\n\t\t\t\tvar CONTENT_TYPE = _manager.YYIMChat.getConstants().MESSAGE_CONTENT_TYPE;\n\t\t\t\targ.fileUploaded && arg.fileUploaded(result);\n\t\t\t\tthat.sendMessage({\n\t\t\t\t\tid: arg.id,\n\t\t\t\t\tto: arg.to,\n\t\t\t\t\tspaceId: arg.spaceId,\n\t\t\t\t\ttype: arg.type,\n\t\t\t\t\tcontent: new IMFile({\n\t\t\t\t\t\tname: file.name,\n\t\t\t\t\t\tpath: result.attachId,\n\t\t\t\t\t\tsize: file.size,\n\t\t\t\t\t\toriginal: param.mediaType === 1 ? 1 : null\n\t\t\t\t\t}),\n\t\t\t\t\tcontentType: param.mediaType === 1 ? CONTENT_TYPE.IMAGE : CONTENT_TYPE.FILE,\n\t\t\t\t\tsuccess: arg.success,\n\t\t\t\t\terror: arg.error\n\t\t\t\t});\n\t\t\t} else {\n\t\t\t\targ.error && arg.error();\n\t\t\t}\n\t\t\targ = null;\n\t\t},\n\t\terror: arg.error\n\t});\n};\n\n_manager.YYIMManager.prototype.sendShareMessage = function (arg) {\n\targ.contentType = _manager.YYIMChat.getConstants().MESSAGE_CONTENT_TYPE.SHARE;\n\tthis.sendMessage(arg);\n};\n\n_manager.YYIMManager.prototype.sendTextMessage = function (arg) {\n\targ.content = arg.msg || arg.content;\n\targ.contentType = _manager.YYIMChat.getConstants().MESSAGE_CONTENT_TYPE.TEXT;\n\tthis.sendMessage(arg);\n};\n\n_manager.YYIMManager.prototype.sendMessage = function (arg) {\n\targ.id = arg.id || Math.uuid();\n\targ.type = arg.type || _manager.YYIMChat.getConstants().CHAT_TYPE.CHAT;\n\targ.body = {\n\t\tdateline: arg.dateline,\n\t\textend: arg.extend,\n\t\tcontent: arg.content,\n\t\tcontentType: arg.contentType,\n\t\tsceneParams: arg.sceneParams\n\t};\n\n\tif (arg.type === _manager.YYIMChat.getConstants().CHAT_TYPE.GROUP_CHAT && YYIMArrayUtil.isArray(arg.atuser)) {\n\t\targ.body.atuser = arg.atuser;\n\t}\n\n\t(0, _Manager.sendMessage)(arg);\n};\n\n_manager.YYIMManager.prototype.revokeMessage = function (arg) {\n\tif (arg && arg.id) {\n\t\t(0, _Manager.revokeMessage)(arg);\n\t} else {\n\t\targ && arg.error && arg.error();\n\t}\n};\n\n_manager.YYIMManager.prototype.sendPic = function (arg) {\n\targ = arg || {};\n\tif (YYIMUtil['isWhateType'](arg.chatInfo, 'Function')) {\n\t\tthis.uploader(jQuery('#' + arg.fileInputId)[0] || arg.fileInputId, {\n\t\t\tdrop_element: arg.drop_element,\n\t\t\tchatInfo: arg.chatInfo,\n\t\t\tfileFiltered: arg.fileFiltered,\n\t\t\tbeforeUpload: arg.beforeUpload,\n\t\t\tmediaType: 1,\n\t\t\tsuccess: function success(result) {\n\t\t\t\t(0, _Manager.sendMessage)({\n\t\t\t\t\tid: result.chatInfo.messageId || Math.uuid(),\n\t\t\t\t\tspaceId: result.chatInfo.spaceId,\n\t\t\t\t\tbody: {\n\t\t\t\t\t\textend: result.chatInfo.extend,\n\t\t\t\t\t\tcontent: new IMFile({\n\t\t\t\t\t\t\tid: result.file.id,\n\t\t\t\t\t\t\tname: result.file.name,\n\t\t\t\t\t\t\tpath: result.data && result.data.attachId,\n\t\t\t\t\t\t\tsize: result.file.size,\n\t\t\t\t\t\t\toriginal: 1\n\t\t\t\t\t\t}),\n\t\t\t\t\t\tcontentType: _manager.YYIMChat.getConstants().MESSAGE_CONTENT_TYPE.IMAGE\n\t\t\t\t\t},\n\t\t\t\t\tto: result.chatInfo.to,\n\t\t\t\t\ttype: result.chatInfo.type,\n\t\t\t\t\tsuccess: function success(data) {\n\t\t\t\t\t\targ.success && arg.success(data);\n\t\t\t\t\t}\n\t\t\t\t});\n\t\t\t\targ.fileUploaded && arg.fileUploaded(result);\n\t\t\t},\n\t\t\terror: arg.error,\n\t\t\tprogress: arg.progress\n\t\t});\n\t} else {\n\t\targ && arg.error && arg.error();\n\t}\n};\n\n_manager.YYIMManager.prototype.sendFile = function (arg) {\n\tvar that = this;\n\targ = arg || {};\n\tif (YYIMUtil['isWhateType'](arg.chatInfo, 'Function')) {\n\t\tthis.uploader(jQuery('#' + arg.fileInputId)[0] || arg.fileInputId, {\n\t\t\tdrop_element: arg.drop_element,\n\t\t\tchatInfo: arg.chatInfo,\n\t\t\tfileFiltered: arg.fileFiltered,\n\t\t\tbeforeUpload: arg.beforeUpload,\n\t\t\tmediaType: 3,\n\t\t\tsuccess: function success(result) {\n\t\t\t\tvar mediaType = 3;\n\n\t\t\t\tif (_manager.YYIMChat.getConfig().UPLOAD.IMAGE_TYPES.test(result.file.name)) {\n\t\t\t\t\tmediaType = 1;\n\t\t\t\t}\n\n\t\t\t\tvar file = new IMFile({\n\t\t\t\t\tid: result.file.id,\n\t\t\t\t\tname: result.file.name,\n\t\t\t\t\tpath: result.data && result.data.attachId,\n\t\t\t\t\tsize: result.file.size\n\t\t\t\t});\n\n\t\t\t\tif (mediaType === 1) {\n\t\t\t\t\tfile.build({\n\t\t\t\t\t\toriginal: 1\n\t\t\t\t\t});\n\t\t\t\t}\n\n\t\t\t\tif (result && result['data'] && result['data']['data'] && result['data']['data']['fileUrl']) {\n\t\t\t\t\tfile.build({\n\t\t\t\t\t\tpath: result['data']['data']['fileUrl'],\n\t\t\t\t\t\tfid: result['data']['data']['fid']\n\t\t\t\t\t});\n\t\t\t\t}\n\n\t\t\t\tif (YYIMUtil['isWhateType'](result['data'], 'Array')) {\n\t\t\t\t\tfile = new IMFile({\n\t\t\t\t\t\tid: result.file.id,\n\t\t\t\t\t\tname: result.file.name,\n\t\t\t\t\t\tpath: result['data'][4],\n\t\t\t\t\t\tsize: result.file.size,\n\t\t\t\t\t\tfid: result['data'][0]\n\t\t\t\t\t});\n\t\t\t\t}\n\n\t\t\t\t(0, _Manager.sendMessage)({\n\t\t\t\t\tid: result.chatInfo.messageId || Math.uuid(),\n\t\t\t\t\tspaceId: result.chatInfo.spaceId,\n\t\t\t\t\tbody: {\n\t\t\t\t\t\textend: result.chatInfo.extend,\n\t\t\t\t\t\tcontent: file,\n\t\t\t\t\t\tcontentType: mediaType === 1 ? that.getConstants().MESSAGE_CONTENT_TYPE.IMAGE : that.getConstants().MESSAGE_CONTENT_TYPE.FILE\n\t\t\t\t\t},\n\t\t\t\t\tto: result.chatInfo.to,\n\t\t\t\t\ttype: result.chatInfo.type,\n\t\t\t\t\tsuccess: function success(data) {\n\t\t\t\t\t\targ.success && arg.success(data);\n\t\t\t\t\t}\n\t\t\t\t});\n\n\t\t\t\targ.fileUploaded && arg.fileUploaded(result);\n\t\t\t},\n\t\t\terror: arg.error,\n\t\t\tprogress: arg.progress\n\t\t});\n\t} else {\n\t\targ && arg.error && arg.error();\n\t}\n};\n\n//# sourceURL=webpack:///./src/module/message/Extender.js?");
+
+/***/ }),
+
+/***/ "./src/module/message/Manager.js":
+/*!***************************************!*\
+  !*** ./src/module/message/Manager.js ***!
+  \***************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+eval("\n\nObject.defineProperty(exports, \"__esModule\", {\n\tvalue: true\n});\nexports.sendReceiptsPacket = exports.revokeMessage = exports.getHistoryMessage = exports.sendMessage = exports.monitor = undefined;\n\nvar _stringify = __webpack_require__(/*! babel-runtime/core-js/json/stringify */ \"./node_modules/_babel-runtime@6.26.0@babel-runtime/core-js/json/stringify.js\");\n\nvar _stringify2 = _interopRequireDefault(_stringify);\n\nvar _YYAIAbility = __webpack_require__(/*! ../../util/YYAIAbility */ \"./src/util/YYAIAbility.js\");\n\nvar _YYAIAbility2 = _interopRequireDefault(_YYAIAbility);\n\nvar _manager = __webpack_require__(/*! ../../core/manager */ \"./src/core/manager.js\");\n\nfunction _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }\n\nvar receivedMsgIds = new BaseList();\n\nfunction monitor() {\n\t_manager.YYIMChat.getConnection().registerHandler(OPCODE.USER_MESSAGE.KEY, function (packet) {\n\t\tparseMessage(packet, _manager.YYIMChat.getConstants().CHAT_TYPE.CHAT);\n\t});\n\n\t_manager.YYIMChat.getConnection().registerHandler(OPCODE.CHATGROUP_MESSAGE.KEY, function (packet) {\n\t\tparseMessage(packet, _manager.YYIMChat.getConstants().CHAT_TYPE.GROUP_CHAT);\n\t});\n\n\t_manager.YYIMChat.getConnection().registerHandler(OPCODE.PUBACCOUNT_MESSAGE.KEY, function (packet) {\n\t\tparseMessage(packet, _manager.YYIMChat.getConstants().CHAT_TYPE.PUB_ACCOUNT);\n\t});\n\n\t_manager.YYIMChat.getConnection().registerHandler(OPCODE.RECEIPTS.KEY, function (receipts) {\n\t\treceipts.type = _manager.YYIMChat.getJIDUtil().getChatTypeByJid(receipts.to);\n\t\treceipts.from = _manager.YYIMChat.getJIDUtil().getID(receipts.from);\n\t\treceipts.to = _manager.YYIMChat.getJIDUtil().getID(receipts.to);\n\n\t\t_manager.YYIMChat.onReceipts(receipts);\n\t});\n\n\t_manager.YYIMChat.getConnection().registerHandler(OPCODE.SYNC_MESSAGE.KEY, function (packet) {\n\t\tparseMessage(packet, packet.type);\n\t});\n\n\t_manager.YYIMChat.getConnection().registerHandler(OPCODE.USERONLINEDELIVERPACKET.KEY, function (packet) {\n\t\tparseTransparentMessage(packet, _manager.YYIMChat.getConstants().CHAT_TYPE.CHAT);\n\t});\n\n\t_manager.YYIMChat.getConnection().registerHandler(OPCODE.MUCONLINEDELIVERPACKET.KEY, function (packet) {\n\t\tparseTransparentMessage(packet, _manager.YYIMChat.getConstants().CHAT_TYPE.GROUP_CHAT);\n\t});\n\n\t_manager.YYIMChat.getConnection().registerHandler(OPCODE.PUBONLINEDELIVERPACKET.KEY, function (packet) {\n\t\tparseTransparentMessage(packet, _manager.YYIMChat.getConstants().CHAT_TYPE.PUB_ACCOUNT);\n\t});\n\n\t_manager.YYIMChat.getConnection().registerHandler(OPCODE.REMINDSETTINGONLINEDELIVERPACKET.KEY, function (packet) {\n\t\tparseTransparentMessage(packet);\n\t});\n};\n\nfunction parseTransparentMessage(packet, type) {\n\tif (receivedMsgIds.get(packet.id)) {\n\t\treturn;\n\t}\n\treceivedMsgIds.set(packet.id, packet);\n\n\tpacket.type = type || _manager.YYIMChat.getJIDUtil().getChatTypeByJid(packet.from);\n\n\tpacket.to = _manager.YYIMChat.getJIDUtil().getID(packet.to) || _manager.YYIMChat.getUserID();\n\n\tpacket.from = packet.type != _manager.YYIMChat.getConstants().CHAT_TYPE.GROUP_CHAT ? _manager.YYIMChat.getJIDUtil().getID(packet.from) : {\n\t\troom: _manager.YYIMChat.getJIDUtil().getID(packet.from),\n\t\troster: _manager.YYIMChat.getJIDUtil().getID(_manager.YYIMChat.getJIDUtil().getResource(packet.from))\n\t};\n\n\tif (packet.attributes) {\n\t\tif (packet.attributes.receiver) {\n\t\t\tpacket.attributes.receiver = _manager.YYIMChat.getJIDUtil().getID(packet.attributes.receiver);\n\t\t}\n\n\t\tif (packet.attributes.bareJID) {\n\t\t\tpacket.attributes.bareJID = {\n\t\t\t\tid: _manager.YYIMChat.getJIDUtil().getID(packet.attributes.bareJID),\n\t\t\t\ttype: _manager.YYIMChat.getJIDUtil().getChatTypeByJid(packet.attributes.bareJID)\n\t\t\t};\n\t\t}\n\n\t\tif (packet.attributes.userJids && _manager.YYIMChat.getUtil()['isWhateType'](packet.attributes.userJids, 'Array')) {\n\t\t\tfor (var x in packet.attributes.userJids) {\n\t\t\t\tif (packet.attributes.userJids.hasOwnProperty(x)) {\n\t\t\t\t\tpacket.attributes.userJids[x] = _manager.YYIMChat.getJIDUtil().getID(packet.attributes.userJids[x]);\n\t\t\t\t}\n\t\t\t}\n\t\t}\n\t}\n\ttry {\n\t\t_manager.YYIMChat.onTransparentMessage(packet);\n\t} catch (e) {\n\t\t_manager.YYIMChat.log(\"TransparentMessHandleError:\", 0, packet);\n\t}\n}\n\nfunction parseMessageBody(packet, type) {\n\n\tvar packetContent;\n\ttry {\n\t\tpacketContent = JSON.parse(packet.content);\n\n\t\tif (packetContent && packetContent.content) {\n\t\t\ttry {\n\t\t\t\tif (isNaN(Number(packetContent.content)) && packet.contentType != _manager.YYIMChat.getConstants().MESSAGE_CONTENT_TYPE.TEXT) {\n\t\t\t\t\tpacketContent.content = JSON.parse(packetContent.content);\n\t\t\t\t}\n\t\t\t} catch (e) {}\n\t\t}\n\t} catch (e) {\n\t\tpacketContent = packet.content;\n\t}\n\n\tvar content = packetContent;\n\n\tif (typeof packetContent.content != 'undefined') {\n\t\tcontent = packetContent.content;\n\t}\n\n\tvar body = {\n\t\tcontent: content,\n\t\tcontentType: packet.contentType,\n\t\tdateline: packet.dateline || packet.ts,\n\t\tatuser: packetContent.atuser,\n\t\textend: packetContent.extend };\n\n\tif (packet.contentType == _manager.YYIMChat.getConstants().MESSAGE_CONTENT_TYPE.MERGEFORWARD) {\n\t\tbody.title = packetContent.title;\n\t\tbody.containfileNum = packetContent.containfileNum;\n\t\tbody.safeMode = packetContent.safeMode;\n\n\t\tif (packetContent.messages) {\n\t\t\tbody.messages = [];\n\t\t\tfor (var x in packetContent.messages) {\n\t\t\t\tif (packetContent.messages.hasOwnProperty(x)) {\n\t\t\t\t\tvar item = arguments.callee(packetContent.messages[x], type);\n\t\t\t\t\tif (item) {\n\t\t\t\t\t\tbody.messages.push(item);\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t}\n\t\t}\n\t}\n\n\tvar from = type == _manager.YYIMChat.getConstants().CHAT_TYPE.CHAT ? _manager.YYIMChat.getJIDUtil().getID(packet.sender || packet.from) : {\n\t\troom: _manager.YYIMChat.getJIDUtil().getID(packet.mucid || packet.sender || packet.from),\n\t\troster: _manager.YYIMChat.getJIDUtil().getID(_manager.YYIMChat.getJIDUtil().getResource(packet.sender || packet.from) || packet.sender)\n\t};\n\n\tvar result = {\n\t\tid: packet.id || packet.packetId,\n\t\ttype: type,\n\t\tfrom: from,\n\t\tdateline: body.dateline,\n\t\tsessionVersion: packet.sessionVersion,\n\t\tdata: body\n\t};\n\n\tif (type == _manager.YYIMChat.getConstants().CHAT_TYPE.CHAT) {\n\t\tresult.resource = _manager.YYIMChat.getJIDUtil().getResource(packet.sender || packet.from);\n\t\tresult.to = _manager.YYIMChat.getJIDUtil().getID(packet.receiver || packet.to);\n\t} else {\n\t\tresult.to = _manager.YYIMChat.getUserID();\n\t}\n\n\tif (body.contentType) {\n\t\tif (result.data.content && result.data.content.path) {\n\t\t\tresult.data.content.attachId = result.data.content.path;\n\t\t\tresult.data.content.path = _manager.YYIMChat.getFileUrl(result.data.content.path);\n\n\t\t\tif (body.contentType == _manager.YYIMChat.getConstants().MESSAGE_CONTENT_TYPE.FILE || body.contentType == _manager.YYIMChat.getConstants().MESSAGE_CONTENT_TYPE.IMAGE) {\n\t\t\t\tresult.data.content.size = result.data.content.size || 0;\n\t\t\t}\n\t\t}\n\n\t\tif (result.data && (packet.receipts === true || _manager.YYIMChat.getJIDUtil().getID(packet.sender || packet.from) != _manager.YYIMChat.getUserID())) {\n\n\t\t\tresult.data.receipt = {\n\t\t\t\tto: packet.mucid || packet.sender || packet.from,\n\t\t\t\tid: packet.id || packet.packetId,\n\t\t\t\ttype: type,\n\t\t\t\tsessionVersion: packet.sessionVersion\n\t\t\t};\n\n\t\t\tif (packet.receipts === true) {\n\t\t\t\tsendReceiptsPacket(result.data.receipt);\n\t\t\t}\n\t\t}\n\t\treturn result;\n\t}\n}\n\nfunction parseMessage(packet, type) {\n\tif (receivedMsgIds.get(packet.id)) {\n\t\treturn;\n\t}\n\treceivedMsgIds.set(packet.id, packet);\n\n\tvar message = parseMessageBody(packet, type);\n\n\tif (message) {\n\t\ttry {\n\t\t\t_manager.YYIMChat.onMessage(message);\n\t\t} catch (e) {\n\t\t\t_manager.YYIMChat.log(\"ParseMessageError:\", 0, message, e);\n\t\t}\n\t}\n}\n\nfunction sendReceiptsPacket(arg) {\n\targ = arg || {};\n\tvar Jid = _manager.YYIMChat.getJIDUtil().buildUserJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));\n\tif (arg.type == _manager.YYIMChat.getConstants().CHAT_TYPE.GROUP_CHAT) {\n\t\tJid = _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));\n\t} else if (arg.type == _manager.YYIMChat.getConstants().CHAT_TYPE.PUB_ACCOUNT) {\n\t\tJid = _manager.YYIMChat.getJIDUtil().buildPubAccountJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));\n\t}\n\tvar receiptsPacket = new JumpPacket({\n\t\tto: Jid,\n\t\tdateline: new Date().getTime(),\n\t\tsessionVersion: arg.sessionVersion,\n\t\tid: arg.id,\n\t\tstate: arg.state\n\t}, OPCODE.RECEIPTS.SEND);\n\t_manager.YYIMChat.getConnection().send(receiptsPacket);\n}\n\nfunction sendMessage(arg) {\n\tvar body = arg.body || {};\n\n\tbody.extend = handleRequestParams(body);\n\n\tif (body.extend && typeof body.extend != 'string') {\n\t\ttry {\n\t\t\tbody.extend = (0, _stringify2.default)(body.extend);\n\t\t} catch (e) {\n\t\t\tdelete body.extend;\n\t\t\t_manager.YYIMChat.log('ExtendIllegal', 0, e.message);\n\t\t}\n\t}\n\n\tvar to,\n\t    msgBody = {\n\t\tid: arg.id,\n\t\tspaceId: arg.spaceId,\n\t\ttype: arg.type || _manager.YYIMChat.getConstants().CHAT_TYPE.CHAT,\n\t\tcontentType: body.contentType || _manager.YYIMChat.getConstants().MESSAGE_CONTENT_TYPE.TEXT,\n\t\tdateline: body.dateline || (_manager.YYIMChat.getConfig().TIMECORRECTION.AUTOCORRECTION ? new Date().getTime() + _manager.YYIMChat.getConfig().TIMECORRECTION.RESULT : new Date().getTime()),\n\t\tcontent: (0, _stringify2.default)({\n\t\t\tatuser: body.atuser,\n\t\t\textend: body.extend,\n\t\t\tcontent: body.content\n\t\t})\n\t},\n\t    opcode = OPCODE.USER_MESSAGE.SEND;\n\n\tif ((!body.contentType || body.contentType == _manager.YYIMChat.getConstants().MESSAGE_CONTENT_TYPE.TEXT) && arg.type == _manager.YYIMChat.getConstants().CHAT_TYPE.GROUP_CHAT) {\n\t\tif (YYIMUtil['isWhateType'](body.atuser, 'Array') && body.atuser.length) {\n\t\t\tif (body.atuser.indexOf('im_atall') != -1) {\n\t\t\t\tmsgBody.statRead = 1;\n\t\t\t} else {\n\t\t\t\tmsgBody.statRead = 2;\n\t\t\t\tmsgBody.statMem = body.atuser;\n\t\t\t}\n\t\t}\n\t}\n\n\tif (arg.type == _manager.YYIMChat.getConstants().CHAT_TYPE.GROUP_CHAT) {\n\t\tto = _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));\n\t\topcode = OPCODE.CHATGROUP_MESSAGE.SEND;\n\t} else if (arg.type == _manager.YYIMChat.getConstants().CHAT_TYPE.PUB_ACCOUNT) {\n\t\tto = _manager.YYIMChat.getJIDUtil().buildPubAccountJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));\n\t\topcode = OPCODE.PUBACCOUNT_MESSAGE.SEND;\n\t} else {\n\t\tmsgBody.receipts = '1';\n\t\tif (arg.resource) {\n\t\t\tif (arg.to == _manager.YYIMChat.getUserID()) {\n\t\t\t\tto = _manager.YYIMChat.getJIDUtil().buildUserJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to), arg.resource);\n\t\t\t} else {\n\t\t\t\tto = _manager.YYIMChat.getJIDUtil().buildUserJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));\n\t\t\t}\n\t\t} else {\n\t\t\tto = _manager.YYIMChat.getJIDUtil().buildUserJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));\n\t\t}\n\t}\n\n\tmsgBody.to = to;\n\n\t_manager.YYIMChat.getConnection().send(new JumpPacket(msgBody, opcode), function (receipts) {\n\t\tif (receipts.code == 40302) {\n\t\t\targ.error && arg.error();\n\t\t\targ = null;\n\t\t} else {\n\t\t\tif (!!_manager.YYIMChat.getConfig().TIMECORRECTION.AUTOCORRECTION) {\n\t\t\t\tif (receipts && receipts.state == 1) {\n\t\t\t\t\t_manager.YYIMChat.onReceipts(receipts);\n\t\t\t\t}\n\t\t\t} else {\n\t\t\t\targ.success && arg.success(handleSendMessage(arg, body, receipts));\n\t\t\t\targ = null;\n\t\t\t}\n\t\t}\n\t});\n\n\tif (!!_manager.YYIMChat.getConfig().TIMECORRECTION.AUTOCORRECTION) {\n\t\targ.success && arg.success(handleSendMessage(arg, body, {\n\t\t\tdateline: msgBody.dateline\n\t\t}));\n\t}\n}\n\nfunction handleRequestParams(body) {\n\tvar messageExtend = {\n\t\tintelligentAnalysis: {}\n\t};\n\n\tif (body.contentType && body.contentType == _manager.YYIMChat.getConstants().MESSAGE_CONTENT_TYPE.TEXT) {\n\t\tif (body.extend && typeof body.extend != 'string') {\n\t\t\tmessageExtend = body.extend;\n\t\t}\n\t\tif (_YYAIAbility2.default.intelligentAnalysis(body.content)) {\n\t\t\tmessageExtend.intelligentAnalysis.intelligentable = true;\n\t\t\tif (body.sceneParams) {\n\t\t\t\tmessageExtend.intelligentAnalysis.params = body.sceneParams;\n\t\t\t\tdelete body.sceneParams;\n\t\t\t}\n\t\t}\n\t}\n\treturn messageExtend;\n}\n\nfunction handleSendMessage(arg, body, receipts) {\n\tvar result = {\n\t\tid: arg.id,\n\t\ttype: arg.type,\n\t\tsessionVersion: receipts.sessionVersion || 0,\n\t\tdata: {\n\t\t\tcontent: body.content,\n\t\t\tcontentType: body.contentType,\n\t\t\tdateline: receipts.dateline,\n\t\t\textend: body.extend\n\t\t}\n\t};\n\n\tif (result.type != _manager.YYIMChat.getConstants().CHAT_TYPE.CHAT) {\n\t\tresult.to = _manager.YYIMChat.getUserID();\n\t\tresult.from = {\n\t\t\troom: _manager.YYIMChat.getJIDUtil().getID(arg.to),\n\t\t\troster: _manager.YYIMChat.getUserID()\n\t\t};\n\t} else {\n\t\tresult.to = _manager.YYIMChat.getJIDUtil().getID(arg.to);\n\t\tresult.from = _manager.YYIMChat.getUserID();\n\t\tresult.resource = _manager.YYIMChat.getResource();\n\t}\n\n\tif (result.data.content.path) {\n\t\tresult.data.content.attachId = result.data.content.path;\n\t\tresult.data.content.path = _manager.YYIMChat.getFileUrl(result.data.content.path);\n\t}\n\treturn result;\n}\n\nfunction getHistoryMessage(arg) {\n\tvar requestUrl,\n\t    route,\n\t    params = {\n\t\ttoken: _manager.YYIMChat.getToken(),\n\t\tstart: arg.start || 0,\n\t\tsize: arg.size || 100\n\t};\n\n\tif (arg.type == _manager.YYIMChat.getConstants().CHAT_TYPE.GROUP_CHAT) {\n\t\troute = 'groupchat';\n\t} else if (arg.type == _manager.YYIMChat.getConstants().CHAT_TYPE.PUB_ACCOUNT) {\n\t\troute = 'pubaccount';\n\t} else {\n\t\troute = 'user';\n\t\tif (arg.contentType) {\n\t\t\tvar typelist = _manager.YYIMChat.getConstants().MESSAGE_CONTENT_TYPE;\n\t\t\tfor (var x in typelist) {\n\t\t\t\tif (arg.contentType == typelist[x]) {\n\t\t\t\t\tparams.contentType = arg.contentType;\n\t\t\t\t\tbreak;\n\t\t\t\t}\n\t\t\t}\n\t\t}\n\t}\n\n\trequestUrl = _manager.YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + _manager.YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + _manager.YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + _manager.YYIMChat.getUserID() + '/msghistory/' + route + '/' + arg.id + '/version/' + (arg.startVersion || 0) + '/' + arg.endVersion;\n\trequestUrl += '?' + jQuery.param(params);\n\n\t_manager.YYIMChat.log(\"历史记录：request URL\", 2, requestUrl);\n\tjQuery.ajax({\n\t\turl: requestUrl,\n\t\tdataType: \"json\",\n\t\tcache: false,\n\t\tsuccess: function success(data) {\n\t\t\t_historyMessageProcessor(data, arg);\n\t\t\targ = null;\n\t\t},\n\t\terror: function error(xhr) {\n\t\t\t_manager.YYIMChat.log(\"getHistoryMessage_error:\", 0, xhr.statusText);\n\t\t\ttry {\n\t\t\t\targ.error && arg.error(JSON.parse(xhr.responseText));\n\t\t\t\targ = null;\n\t\t\t} catch (e) {\n\t\t\t\targ.error && arg.error();\n\t\t\t\targ = null;\n\t\t\t}\n\t\t}\n\t});\n};\n\nfunction _historyMessageProcessor(data, arg) {\n\t_manager.YYIMChat.log(\"历史记录：data\", 2, data);\n\tvar hisMsgArr = [];\n\tfor (var i in data.list) {\n\t\tif (data.list.hasOwnProperty(i)) {\n\t\t\tvar item = data.list[i];\n\t\t\tvar message = parseMessageBody(item, arg.type);\n\t\t\thisMsgArr.push(message);\n\t\t}\n\t}\n\n\targ.success && arg.success({\n\t\tcontactReadVersion: data.contactReadVersion,\n\t\ttotal: data.total,\n\t\tresult: hisMsgArr\n\t});\n};\n\nfunction revokeMessage(arg) {\n\tvar url, param;\n\tif (arg.type == _manager.YYIMChat.getConstants().CHAT_TYPE.GROUP_CHAT) {\n\t\turl = _manager.YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + _manager.YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + _manager.YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/revokeservice/groupmessage/' + arg.id;\n\t\tparam = {\n\t\t\ttoken: _manager.YYIMChat.getToken(),\n\t\t\tuserid: _manager.YYIMChat.getUserNode(),\n\t\t\tmucid: _manager.YYIMChat.getJIDUtil().getNode(arg.to)\n\t\t};\n\t} else {\n\t\turl = _manager.YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + _manager.YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + _manager.YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/revokeservice/personalmessage/' + arg.id;\n\t\tparam = {\n\t\t\ttoken: _manager.YYIMChat.getToken(),\n\t\t\tfromuserid: _manager.YYIMChat.getUserNode(),\n\t\t\ttouserid: _manager.YYIMChat.getJIDUtil().getNode(arg.to)\n\t\t};\n\t}\n\n\turl += '?' + jQuery.param(param);\n\n\tjQuery.ajax({\n\t\turl: url,\n\t\ttype: 'post',\n\t\tcache: false,\n\t\tsuccess: function success(data) {\n\t\t\targ.success && arg.success({\n\t\t\t\tid: arg.id\n\t\t\t});\n\t\t\targ = null;\n\t\t},\n\t\terror: function error(xhr) {\n\t\t\ttry {\n\t\t\t\targ.error && arg.error(JSON.parse(xhr.responseText));\n\t\t\t\targ = null;\n\t\t\t} catch (e) {\n\t\t\t\targ.error && arg.error();\n\t\t\t\targ = null;\n\t\t\t}\n\t\t}\n\t});\n}\n\nexports.monitor = monitor;\nexports.sendMessage = sendMessage;\nexports.getHistoryMessage = getHistoryMessage;\nexports.revokeMessage = revokeMessage;\nexports.sendReceiptsPacket = sendReceiptsPacket;\n\n//# sourceURL=webpack:///./src/module/message/Manager.js?");
+
+/***/ }),
+
+/***/ "./src/module/profile/Extender.js":
+/*!****************************************!*\
+  !*** ./src/module/profile/Extender.js ***!
+  \****************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+eval("\n\nvar _manager = __webpack_require__(/*! ../../core/manager */ \"./src/core/manager.js\");\n\nvar _Manager = __webpack_require__(/*! ./Manager */ \"./src/module/profile/Manager.js\");\n\n_manager.YYIMManager.prototype.getProfile = function (arg) {\n\t(0, _Manager.getProfile)({\n\t\tsuccess: function success(data) {\n\t\t\tvar intelligentable = data.intelligentable;\n\t\t\tvar intelligentWordsTime = data.intelligentWordsTime;\n\t\t\tif (intelligentable != 'undefined') {}\n\t\t\tif (intelligentWordsTime) {\n\t\t\t\t_manager.YYIMChat.setDictionaries(intelligentWordsTime);\n\t\t\t}\n\n\t\t\targ.success && arg.success(data);\n\t\t},\n\t\terror: function error(_error) {\n\t\t\targ.error && arg.error(errot);\n\t\t}\n\t});\n};\n\n_manager.YYIMManager.prototype.mute = function (arg) {\n\targ = arg || {};\n\tif (!!arg.to) {\n\t\targ.handle = 'mute';\n\t\t(0, _Manager.muteStick)(arg);\n\t} else {\n\t\targ.error && arg.error();\n\t}\n};\n\n_manager.YYIMManager.prototype.stick = function (arg) {\n\targ = arg || {};\n\tif (!!arg.to) {\n\t\targ.handle = 'stick';\n\t\t(0, _Manager.muteStick)(arg);\n\t} else {\n\t\targ.error && arg.error();\n\t}\n};\n\n_manager.YYIMManager.prototype.cancelMute = function (arg) {\n\tvar that = this;\n\tif (arg && arg.to) {\n\t\t(0, _Manager.cancelMuteStick)({\n\t\t\tto: arg.to,\n\t\t\ttype: arg.type,\n\t\t\thandle: 'mute',\n\t\t\tsuccess: function success(data) {\n\t\t\t\tif (arg.type == that.getConstants().CHAT_TYPE.GROUP_CHAT) {\n\t\t\t\t\tthat.removeGroupAssistant({\n\t\t\t\t\t\tid: arg.to,\n\t\t\t\t\t\tsuccess: function success() {\n\t\t\t\t\t\t\targ.success && arg.success(data);\n\t\t\t\t\t\t},\n\t\t\t\t\t\terror: arg.error\n\t\t\t\t\t});\n\t\t\t\t} else {\n\t\t\t\t\targ.success && arg.success(data);\n\t\t\t\t}\n\t\t\t},\n\t\t\terror: arg.error\n\t\t});\n\t} else {\n\t\targ && arg.error && arg.error();\n\t}\n};\n\n_manager.YYIMManager.prototype.cancelStick = function (arg) {\n\tif (arg && arg.to) {\n\t\targ.handle = 'stick';\n\t\t(0, _Manager.cancelMuteStick)(arg);\n\t} else {\n\t\targ && arg.error && arg.error();\n\t}\n};\n\n_manager.YYIMManager.prototype.createProfile = function (arg) {\n\targ = arg || {};\n\tif (!!arg.profile) {\n\t\t(0, _Manager.createProfile)(arg);\n\t} else {\n\t\targ.error && arg.error();\n\t}\n};\n\n_manager.YYIMManager.prototype.removeProfile = function (arg) {\n\targ = arg || {};\n\tif (YYIMArrayUtil.isArray(arg.profiles)) {\n\t\t(0, _Manager.removeProfile)(arg);\n\t} else {\n\t\targ.error && arg.error();\n\t}\n};\n\n_manager.YYIMManager.prototype.clearProfile = function (arg) {\n\t(0, _Manager.clearProfile)(arg || {});\n};\n\n_manager.YYIMManager.prototype.removeGroupAssistant = function (arg) {\n\tif (arg && arg.id) {\n\t\t(0, _Manager.removeGroupAssistant)(arg);\n\t} else {\n\t\targ && arg.error && arg.error();\n\t}\n};\n\n//# sourceURL=webpack:///./src/module/profile/Extender.js?");
+
+/***/ }),
+
+/***/ "./src/module/profile/Manager.js":
+/*!***************************************!*\
+  !*** ./src/module/profile/Manager.js ***!
+  \***************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+eval("\n\nObject.defineProperty(exports, \"__esModule\", {\n\tvalue: true\n});\nexports.removeGroupAssistant = exports.clearProfile = exports.removeProfile = exports.createProfile = exports.cancelMuteStick = exports.muteStick = exports.getProfile = undefined;\n\nvar _stringify = __webpack_require__(/*! babel-runtime/core-js/json/stringify */ \"./node_modules/_babel-runtime@6.26.0@babel-runtime/core-js/json/stringify.js\");\n\nvar _stringify2 = _interopRequireDefault(_stringify);\n\nvar _manager = __webpack_require__(/*! ../../core/manager */ \"./src/core/manager.js\");\n\nfunction _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }\n\nfunction getProfile(arg) {\n\tvar apiKeyParam = _manager.YYIMManager.getInstance().getApiKey();\n\tif (apiKeyParam) {\n\t\tapiKeyParam = '&apiKey=' + apiKeyParam;\n\t}\n\tjQuery.ajax({\n\t\turl: _manager.YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + _manager.YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + _manager.YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + _manager.YYIMManager.getInstance().getUserID() + '/profile?token=' + _manager.YYIMManager.getInstance().getToken() + apiKeyParam,\n\t\ttype: 'get',\n\t\tcache: false,\n\t\tdatatype: 'json',\n\t\tsuccess: function success(data) {\n\t\t\tif (data.muteItems) {\n\t\t\t\tvar temp = {};\n\t\t\t\tfor (var x in data.muteItems) {\n\t\t\t\t\tvar id = _manager.YYIMChat.getJIDUtil().getID(data.muteItems[x]);\n\t\t\t\t\tvar type = _manager.YYIMChat.getJIDUtil().getChatTypeByJid(data.muteItems[x]);\n\t\t\t\t\ttemp[id] = {\n\t\t\t\t\t\tid: id,\n\t\t\t\t\t\ttype: type\n\t\t\t\t\t};\n\t\t\t\t}\n\t\t\t\tdata.muteItems = temp;\n\t\t\t}\n\n\t\t\tif (data.stickItems) {\n\t\t\t\tvar temp = {};\n\t\t\t\tfor (var x in data.stickItems) {\n\t\t\t\t\tvar id = _manager.YYIMChat.getJIDUtil().getID(data.stickItems[x]);\n\t\t\t\t\tvar type = _manager.YYIMChat.getJIDUtil().getChatTypeByJid(data.stickItems[x]);\n\t\t\t\t\ttemp[id] = {\n\t\t\t\t\t\tid: id,\n\t\t\t\t\t\ttype: type\n\t\t\t\t\t};\n\t\t\t\t}\n\t\t\t\tdata.stickItems = temp;\n\t\t\t}\n\t\t\tif (data.userId) {\n\t\t\t\tdata.userId = _manager.YYIMChat.getJIDUtil().getID(data.userId);\n\t\t\t}\n\t\t\targ.success && arg.success(data);\n\t\t\targ = null;\n\t\t},\n\t\terror: function error(xhr) {\n\t\t\ttry {\n\t\t\t\targ.error && arg.error(JSON.parse(xhr.responseText));\n\t\t\t\targ = null;\n\t\t\t} catch (e) {\n\t\t\t\targ.error && arg.error();\n\t\t\t\targ = null;\n\t\t\t}\n\t\t}\n\t});\n}\n\nfunction muteStick(arg) {\n\tvar to;\n\tif (arg.type == _manager.YYIMChat.getConstants().CHAT_TYPE.GROUP_CHAT) {\n\t\tto = _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));\n\t} else if (arg.type == _manager.YYIMChat.getConstants().CHAT_TYPE.PUB_ACCOUNT) {\n\t\tto = _manager.YYIMChat.getJIDUtil().buildPubAccountJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));\n\t} else {\n\t\tto = _manager.YYIMChat.getJIDUtil().buildUserJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));\n\t}\n\targ.handle = arg.handle === 'mute' ? arg.handle : 'stick';\n\tjQuery.ajax({\n\t\turl: _manager.YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + _manager.YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + _manager.YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + _manager.YYIMManager.getInstance().getUserID() + '/profile/' + arg.handle + '?token=' + _manager.YYIMManager.getInstance().getToken(),\n\t\ttype: 'post',\n\t\tdata: (0, _stringify2.default)({ bareJID: to }),\n\t\tdataType: 'json',\n\t\tcache: false,\n\t\tprocessData: false,\n\t\tcontentType: \"application/json\",\n\t\tsuccess: function success(data) {\n\t\t\targ.success && arg.success({\n\t\t\t\tid: arg.to,\n\t\t\t\ttype: arg.type\n\t\t\t});\n\t\t\targ = null;\n\t\t},\n\t\terror: function error(xhr) {\n\t\t\ttry {\n\t\t\t\targ.error && arg.error(JSON.parse(xhr.responseText));\n\t\t\t\targ = null;\n\t\t\t} catch (e) {\n\t\t\t\targ.error && arg.error();\n\t\t\t\targ = null;\n\t\t\t}\n\t\t}\n\t});\n}\n\nfunction cancelMuteStick(arg) {\n\tvar to;\n\tif (arg.type == _manager.YYIMChat.getConstants().CHAT_TYPE.GROUP_CHAT) {\n\t\tto = _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));\n\t} else if (arg.type == _manager.YYIMChat.getConstants().CHAT_TYPE.PUB_ACCOUNT) {\n\t\tto = _manager.YYIMChat.getJIDUtil().buildPubAccountJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));\n\t} else {\n\t\tto = _manager.YYIMChat.getJIDUtil().buildUserJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));\n\t}\n\tjQuery.ajax({\n\t\turl: _manager.YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + _manager.YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + _manager.YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + _manager.YYIMManager.getInstance().getUserID() + '/profile/' + (arg.handle === 'mute' ? 'mute' : 'stick') + '?token=' + _manager.YYIMManager.getInstance().getToken() + '&bareJID=' + to,\n\t\ttype: 'DELETE',\n\t\tdataType: 'json',\n\t\tsuccess: function success(data) {\n\t\t\targ.success && arg.success({\n\t\t\t\tid: arg.to,\n\t\t\t\ttype: arg.type\n\t\t\t});\n\t\t\targ = null;\n\t\t},\n\t\terror: function error(xhr) {\n\t\t\ttry {\n\t\t\t\targ.error && arg.error(JSON.parse(xhr.responseText));\n\t\t\t\targ = null;\n\t\t\t} catch (e) {\n\t\t\t\targ.error && arg.error();\n\t\t\t\targ = null;\n\t\t\t}\n\t\t}\n\t});\n}\n\nfunction createProfile(arg) {\n\tjQuery.ajax({\n\t\turl: _manager.YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + _manager.YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + _manager.YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + _manager.YYIMManager.getInstance().getUserID() + '/profile?token=' + _manager.YYIMManager.getInstance().getToken(),\n\t\ttype: 'post',\n\t\tdata: (0, _stringify2.default)(arg.profile),\n\t\tdataType: 'json',\n\t\tcache: false,\n\t\tprocessData: false,\n\t\tcontentType: \"application/json\",\n\t\tsuccess: function success(data) {\n\t\t\targ.success && arg.success(arg.profile);\n\t\t\targ = null;\n\t\t},\n\t\terror: function error(xhr) {\n\t\t\ttry {\n\t\t\t\targ.error && arg.error(JSON.parse(xhr.responseText));\n\t\t\t\targ = null;\n\t\t\t} catch (e) {\n\t\t\t\targ.error && arg.error();\n\t\t\t\targ = null;\n\t\t\t}\n\t\t}\n\t});\n}\n\nfunction removeProfile(arg) {\n\tjQuery.ajax({\n\t\turl: _manager.YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + _manager.YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + _manager.YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + _manager.YYIMManager.getInstance().getUserID() + '/profile?token=' + _manager.YYIMManager.getInstance().getToken(),\n\t\ttype: 'PUT',\n\t\tdata: (0, _stringify2.default)(arg.profiles),\n\t\tdataType: 'json',\n\t\tcache: false,\n\t\tprocessData: false,\n\t\tcontentType: \"application/json\",\n\t\tsuccess: function success(data) {\n\t\t\targ.success && arg.success(arg.profiles);\n\t\t\targ = null;\n\t\t},\n\t\terror: function error(xhr) {\n\t\t\ttry {\n\t\t\t\targ.error && arg.error(JSON.parse(xhr.responseText));\n\t\t\t\targ = null;\n\t\t\t} catch (e) {\n\t\t\t\targ.error && arg.error();\n\t\t\t\targ = null;\n\t\t\t}\n\t\t}\n\t});\n}\n\nfunction clearProfile(arg) {\n\tjQuery.ajax({\n\t\turl: _manager.YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + _manager.YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + _manager.YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + _manager.YYIMManager.getInstance().getUserID() + '/profile?token=' + _manager.YYIMManager.getInstance().getToken(),\n\t\ttype: 'DELETE',\n\t\tdataType: 'json',\n\t\tcache: false,\n\t\tsuccess: function success(data) {\n\t\t\targ.success && arg.success();\n\t\t\targ = null;\n\t\t},\n\t\terror: function error(xhr) {\n\t\t\ttry {\n\t\t\t\targ.error && arg.error(JSON.parse(xhr.responseText));\n\t\t\t\targ = null;\n\t\t\t} catch (e) {\n\t\t\t\targ.error && arg.error();\n\t\t\t\targ = null;\n\t\t\t}\n\t\t}\n\t});\n}\n\nfunction removeGroupAssistant(arg) {\n\tjQuery.ajax({\n\t\turl: _manager.YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + _manager.YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + _manager.YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + _manager.YYIMManager.getInstance().getUserID() + '/profile/groupassistant?token=' + _manager.YYIMManager.getInstance().getToken() + '&bareJID=' + _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.id)),\n\t\ttype: 'DELETE',\n\t\tdataType: 'json',\n\t\tcache: false,\n\t\tsuccess: function success(data) {\n\t\t\targ.success && arg.success();\n\t\t\targ = null;\n\t\t},\n\t\terror: function error(xhr) {\n\t\t\ttry {\n\t\t\t\targ.error && arg.error(JSON.parse(xhr.responseText));\n\t\t\t\targ = null;\n\t\t\t} catch (e) {\n\t\t\t\targ.error && arg.error();\n\t\t\t\targ = null;\n\t\t\t}\n\t\t}\n\t});\n}\n\nexports.getProfile = getProfile;\nexports.muteStick = muteStick;\nexports.cancelMuteStick = cancelMuteStick;\nexports.createProfile = createProfile;\nexports.removeProfile = removeProfile;\nexports.clearProfile = clearProfile;\nexports.removeGroupAssistant = removeGroupAssistant;\n\n//# sourceURL=webpack:///./src/module/profile/Manager.js?");
+
+/***/ }),
+
+/***/ "./src/module/pubaccount/Extender.js":
+/*!*******************************************!*\
+  !*** ./src/module/pubaccount/Extender.js ***!
+  \*******************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+eval("\n\nvar _manager = __webpack_require__(/*! ../../core/manager */ \"./src/core/manager.js\");\n\nvar _Manager = __webpack_require__(/*! ./Manager */ \"./src/module/pubaccount/Manager.js\");\n\n_manager.YYIMChat.setBackhander({\n  'monitor': {\n    'pubaccountMonitor': _Manager.monitor\n  },\n  'initCallback': {\n    'pubaccount': function pubaccount(options) {\n      _manager.YYIMChat.onPubaccountUpdate = options.onPubaccountUpdate || function () {};\n    }\n  }\n});\n\n_manager.YYIMManager.prototype.getPubAccount = function (arg) {\n  (0, _Manager.getPubAccountItems)(arg);\n};\n\n_manager.YYIMManager.prototype.getPubAccounts = function (arg) {\n  if (YYIMUtil['isWhateType'](arg.ids, 'Array')) {\n    (0, _Manager.getPubAccounts)(arg);\n  } else {\n    arg && arg.error && arg.error();\n  }\n};\n\nvar batchInfosList = new BaseList();\nvar batchInfosTimer;\nvar getBatchInfos = function getBatchInfos() {\n  var handler = batchInfosList;\n  batchInfosList = new BaseList();\n  (0, _Manager.getPubAccounts)({\n    ids: handler.keys(),\n    success: function success(list, data) {\n      handler.forEach(function (item, index) {\n        try {\n          item && item.success && item.success(data[item.id]);\n        } catch (e) {\n          _manager.YYIMChat.log('SuccessHandleBatchPubaccountInfoError.', 0, e);\n        }\n      });\n      handler.clear();\n      handler = null;\n    },\n    error: function error(err) {\n      handler.forEach(function (item, index) {\n        try {\n          item && item.error && item.error(err);\n        } catch (e) {\n          _manager.YYIMChat.log('ErrorHandleBatchPubaccountInfoError.', 0, e);\n        }\n      });\n      handler.clear();\n      handler = null;\n    }\n  });\n};\n\n_manager.YYIMManager.prototype.getBatchPubInfos = function (arg) {\n  if (arg && arg.id && !batchInfosList.get(arg.id)) {\n    batchInfosList.set(arg.id, arg);\n    clearTimeout(batchInfosTimer);\n    if (batchInfosList.length() >= this.getConfig().BETCH_MAXLIMIT.PUBACCOUNT) {\n      getBatchInfos();\n    } else {\n      batchInfosTimer = setTimeout(function () {\n        getBatchInfos();\n      }, 200);\n    }\n  } else {\n    arg.error && arg.error();\n  }\n};\n\n_manager.YYIMManager.prototype.getPubAccountInfo = function (arg) {\n  if (YYIMCommonUtil.isStringAndNotEmpty(arg.id)) {\n    (0, _Manager.getPubAccountInfo)(arg);\n  } else {\n    arg && arg.error && arg.error();\n  }\n};\n\n_manager.YYIMManager.prototype.addPubaccount = function (arg) {\n  if (YYIMCommonUtil.isStringAndNotEmpty(arg.id)) {\n    (0, _Manager.addPubAccount)({\n      jid: _manager.YYIMChat.getJIDUtil().buildPubAccountJID(_manager.YYIMChat.getJIDUtil().getNode(arg.id)),\n      success: arg.success,\n      error: arg.error\n    });\n  } else {\n    arg && arg.error && arg.error();\n  }\n};\n\n_manager.YYIMManager.prototype.removePubaccount = function (arg) {\n  if (YYIMCommonUtil.isStringAndNotEmpty(arg.id)) {\n    (0, _Manager.removePubAccount)({\n      id: Math.uuid(),\n      to: _manager.YYIMChat.getJIDUtil().buildPubAccountJID(_manager.YYIMChat.getJIDUtil().getNode(arg.id)),\n      success: arg.success,\n      error: arg.error\n    });\n  } else {\n    arg && arg.error && arg.error();\n  }\n};\n\n_manager.YYIMManager.prototype.queryPubaccount = function (arg) {\n  if (YYIMCommonUtil.isStringAndNotEmpty(arg.keyword)) {\n    (0, _Manager.queryPubaccount)(arg);\n  } else {\n    arg && arg.error && arg.error();\n  }\n};\n\n//# sourceURL=webpack:///./src/module/pubaccount/Extender.js?");
+
+/***/ }),
+
+/***/ "./src/module/pubaccount/Manager.js":
+/*!******************************************!*\
+  !*** ./src/module/pubaccount/Manager.js ***!
+  \******************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+eval("\n\nObject.defineProperty(exports, \"__esModule\", {\n    value: true\n});\nexports.queryPubaccount = exports.removePubAccount = exports.getPubAccountInfo = exports.getPubAccountItems = exports.getPubAccounts = exports.addPubAccount = exports.monitor = undefined;\n\nvar _stringify = __webpack_require__(/*! babel-runtime/core-js/json/stringify */ \"./node_modules/_babel-runtime@6.26.0@babel-runtime/core-js/json/stringify.js\");\n\nvar _stringify2 = _interopRequireDefault(_stringify);\n\nvar _manager = __webpack_require__(/*! ../../core/manager */ \"./src/core/manager.js\");\n\nfunction _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }\n\nfunction getPubAccountItems(arg) {\n    var jumpPacket = new JumpPacket({\n        type: _manager.YYIMChat.getConstants().TYPE.GET,\n        ns: NS_PUBACCOUNT,\n        to: _manager.YYIMChat.getConfig().DOMAIN.PUBACCOUNT\n    }, OPCODE.PUBACCOUNT_LIST.SEND);\n\n    _manager.YYIMChat.getConnection().send(jumpPacket, function (pubaccountListResult, _arg) {\n        if (!_arg) return;\n\n        _arg.complete && _arg.complete();\n        var items = pubaccountListResult.items || [];\n        var i = items.length || 0;\n        while (i--) {\n            items[i].id = _manager.YYIMChat.getJIDUtil().getID(items[i].jid);\n        }\n        _arg.success && _arg.success((0, _stringify2.default)(items));\n    }, arg);\n}\n\nfunction getPubAccounts(arg) {\n    jQuery.ajax({\n        url: _manager.YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + _manager.YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + _manager.YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/pubaccount/' + _manager.YYIMChat.getUserID() + '/items',\n        dataType: 'json',\n        data: {\n            token: _manager.YYIMChat.getToken(),\n            pubIds: (0, _stringify2.default)(arg.ids)\n        },\n        cache: false,\n        success: function success(result) {\n            var data = {};\n            result = result || [];\n            var i = result.length || 0;\n            while (i--) {\n                result[i].id = _manager.YYIMChat.getJIDUtil().getID(result[i].jid);\n                data[result[i].id] = result[i];\n            }\n            arg.success && arg.success(result, data);\n            arg = null;\n        },\n        error: function error(xhr) {\n            try {\n                arg.error && arg.error(JSON.parse(xhr.responseText));\n                arg = null;\n            } catch (e) {\n                arg.error && arg.error();\n                arg = null;\n            }\n        }\n    });\n}\n\nfunction getPubAccountInfo(arg) {\n    jQuery.ajax({\n        url: _manager.YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + _manager.YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + _manager.YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + arg.id + '/' + _manager.YYIMChat.getUserID() + '/pubaccount/info',\n        dataType: 'json',\n        data: {\n            token: _manager.YYIMChat.getToken()\n        },\n        cache: false,\n        success: function success(result) {\n            if (result && result.data) {\n                result.data.id = _manager.YYIMChat.getJIDUtil().getID(result.data.jid);\n                arg.success && arg.success(result.data);\n                arg = null;\n            }\n        },\n        error: function error(xhr) {\n            try {\n                arg.error && arg.error(JSON.parse(xhr.responseText));\n                arg = null;\n            } catch (e) {\n                arg.error && arg.error();\n                arg = null;\n            }\n        }\n    });\n}\n\nfunction queryPubaccount(arg) {\n    var iqBody = {\n        start: YYIMCommonUtil.isNumber(arg.start) ? arg.start : 0,\n        size: YYIMCommonUtil.isNumber(arg.size) ? arg.size : 20,\n        fields: [\"Accountname\", \"Name\"],\n        search: arg.keyword\n    };\n    _manager.YYIMChat.getConnection().send(new JumpPacket(iqBody, OPCODE.QUERY_PUBACCOUNT.SEND), function (queryResult, _arg) {\n        var items = queryResult.items || [],\n            result = [],\n            i = items.length;\n        while (i--) {\n            var item = items[i],\n                jid = item.jid;\n            result.push({\n                id: _manager.YYIMChat.getJIDUtil().getID(jid),\n                name: YYIMCommonUtil.isStringAndNotEmpty(item.name) ? item.name : _manager.YYIMChat.getJIDUtil().getID(jid),\n                type: item.type\n            });\n        }\n        _arg.complete && _arg.complete();\n        _arg.success && _arg.success({\n            start: queryResult.start,\n            total: queryResult.total,\n            items: result\n        });\n    }, arg);\n}\n\nfunction addPubAccount(arg) {\n    _manager.YYIMChat.getConnection().send(new JumpPacket({\n        type: _manager.YYIMChat.getConstants().PRESENCE_TYPE.SUBSCRIBE,\n        to: arg.jid\n    }, OPCODE.PRESENCE.SEND), function (addResult, _arg) {\n        _arg.complete && _arg.complete();\n        addResult.from = _manager.YYIMChat.getJIDUtil().getID(addResult.from);\n        addResult.to = _manager.YYIMChat.getJIDUtil().getID(addResult.to);\n        _arg.success && _arg.success(addResult);\n    }, arg);\n}\n\nfunction removePubAccount(arg) {\n    _manager.YYIMChat.getConnection().send(new JumpPacket({\n        id: arg.id,\n        type: _manager.YYIMChat.getConstants().PRESENCE_TYPE.UNSUBSCRIBE,\n        to: arg.to\n    }, OPCODE.PRESENCE.SEND), function (addResult, _arg) {\n        _arg.complete && _arg.complete();\n        addResult.from = _manager.YYIMChat.getJIDUtil().getID(addResult.from);\n        addResult.to = _manager.YYIMChat.getJIDUtil().getID(addResult.to) || _manager.YYIMChat.getUserID();\n        _arg.success && _arg.success(addResult);\n    }, arg);\n}\n\nfunction monitor() {\n    _manager.YYIMChat.getConnection().registerHandler(OPCODE.PUBACCOUNT_LIST.KEY, function (packet) {\n        var items = packet.items;\n        if ((items && items.length || 0) === 0) return;\n        var pubaccounts = [],\n            i = items.length;\n        while (i--) {\n            var item = items[i];\n            item.id = _manager.YYIMChat.getJIDUtil().getID(item.jid), pubaccounts.push(item);\n        }\n        _manager.YYIMChat.onPubaccountUpdate(pubaccounts);\n    });\n}\n\nexports.monitor = monitor;\nexports.addPubAccount = addPubAccount;\nexports.getPubAccounts = getPubAccounts;\nexports.getPubAccountItems = getPubAccountItems;\nexports.getPubAccountInfo = getPubAccountInfo;\nexports.removePubAccount = removePubAccount;\nexports.queryPubaccount = queryPubaccount;\n\n//# sourceURL=webpack:///./src/module/pubaccount/Manager.js?");
+
+/***/ }),
+
+/***/ "./src/module/roster/Extender.js":
+/*!***************************************!*\
+  !*** ./src/module/roster/Extender.js ***!
+  \***************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+eval("\n\nvar _stringify = __webpack_require__(/*! babel-runtime/core-js/json/stringify */ \"./node_modules/_babel-runtime@6.26.0@babel-runtime/core-js/json/stringify.js\");\n\nvar _stringify2 = _interopRequireDefault(_stringify);\n\nvar _manager = __webpack_require__(/*! ../../core/manager */ \"./src/core/manager.js\");\n\nvar _Manager = __webpack_require__(/*! ./Manager */ \"./src/module/roster/Manager.js\");\n\nfunction _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }\n\n_manager.YYIMChat.setBackhander({\n\t'monitor': {\n\t\t'rosterMonitor': _Manager.monitor\n\t},\n\t'initCallback': {\n\t\t'roster': function roster(options) {\n\t\t\t_manager.YYIMChat.onPresence = options.onPresence || function () {};\n\t\t\t_manager.YYIMChat.onSubscribe = options.onSubscribe || function () {};\n\t\t\t_manager.YYIMChat.onRosterDeleted = options.onRosterDeleted || function () {};\n\t\t\t_manager.YYIMChat.onRosterUpdateded = options.onRosterUpdateded || function () {};\n\t\t\t_manager.YYIMChat.onRosterFavorited = options.onRosterFavorited || function () {};\n\t\t}\n\t}\n});\n\n_manager.YYIMManager.prototype.setPresence = function (arg) {\n\tvar presence = {};\n\tif (arg && arg.show && this.getConstants().STATUS[arg.show.toUpperCase()]) {\n\t\tpresence.show = arg.show;\n\t}\n\tif (arg && arg.status) {\n\t\tpresence.status = arg.status;\n\t}\n\t(0, _Manager.setPresence)(presence);\n};\n\n_manager.YYIMManager.prototype.getVCard = function (arg) {\n\targ = arg || {};\n\tif (arg) {\n\t\t(0, _Manager.getVCard)({\n\t\t\tid: arg.id,\n\t\t\tsuccess: arg.success,\n\t\t\terror: arg.error\n\t\t});\n\t} else {\n\t\targ.error && arg.error();\n\t}\n};\n\nvar batchVcardsList = new BaseList();\nvar batchVcardsTimer = void 0;\nvar _getBatchVCards = function _getBatchVCards() {\n\tvar handler = batchVcardsList;\n\tbatchVcardsList = new BaseList();\n\t(0, _Manager.getBatchVCards)({\n\t\tids: (0, _stringify2.default)(handler.keys()),\n\t\tsuccess: function success(vcards) {\n\t\t\thandler.forEach(function (item, index) {\n\t\t\t\ttry {\n\t\t\t\t\titem && item.success && item.success(vcards[item.id]);\n\t\t\t\t} catch (e) {\n\t\t\t\t\t_manager.YYIMChat.log('SuccessHandleBatchVCardsError.', 0, e);\n\t\t\t\t}\n\t\t\t});\n\t\t\thandler.clear();\n\t\t\thandler = null;\n\t\t},\n\t\terror: function error(err) {\n\t\t\thandler.forEach(function (item, index) {\n\t\t\t\ttry {\n\t\t\t\t\titem && item.error && item.error(err);\n\t\t\t\t} catch (e) {\n\t\t\t\t\t_manager.YYIMChat.log('ErrorHandleBatchVCardsError.', 0, e);\n\t\t\t\t}\n\t\t\t});\n\t\t\thandler.clear();\n\t\t\thandler = null;\n\t\t}\n\t});\n};\n\n_manager.YYIMManager.prototype.getBatchVCards = function (arg) {\n\tif (arg && arg.id && !batchVcardsList.get(arg.id)) {\n\t\tbatchVcardsList.set(arg.id, arg);\n\t\tclearTimeout(batchVcardsTimer);\n\t\tif (batchVcardsList.length() >= this.getConfig().BETCH_MAXLIMIT.ROSTER) {\n\t\t\t_getBatchVCards();\n\t\t} else {\n\t\t\tbatchVcardsTimer = setTimeout(function () {\n\t\t\t\t_getBatchVCards();\n\t\t\t}, 200);\n\t\t}\n\t} else {\n\t\targ.error && arg.error();\n\t}\n};\n\n_manager.YYIMManager.prototype.getVCards = function (arg) {\n\tif (arg) {\n\t\t(0, _Manager.getVCards)({\n\t\t\tsuccess: arg.success,\n\t\t\terror: arg.error,\n\t\t\tcomplete: arg.complete\n\t\t});\n\t} else {\n\t\targ.error && arg.error();\n\t}\n};\n\n_manager.YYIMManager.prototype.setVCard = function (arg) {\n\t(0, _Manager.setVCard)({\n\t\tvcard: {\n\t\t\tnickname: arg.nickname,\n\t\t\tphoto: arg.photo,\n\t\t\temail: arg.email,\n\t\t\tmobile: arg.mobile,\n\t\t\ttelephone: arg.telephone,\n\t\t\torganization: arg.organization,\n\t\t\tgender: arg.gender,\n\t\t\tnumber: arg.number,\n\t\t\tremarks: arg.remarks,\n\t\t\tlocation: arg.location,\n\t\t\tposition: arg.position\n\t\t},\n\t\tsuccess: arg.success,\n\t\terror: arg.error\n\t});\n};\n\n_manager.YYIMManager.prototype.setVCardTag = function (arg) {\n\targ = arg || {};\n\tif (YYIMArrayUtil.isArray(arg.tag)) {\n\t\tvar that = this;\n\t\t(0, _Manager.setTag)({\n\t\t\ttag: arg.tag,\n\t\t\tsuccess: function success(targetId) {\n\t\t\t\tthat.getVCard({\n\t\t\t\t\tid: targetId,\n\t\t\t\t\tsuccess: function success(vcard) {\n\t\t\t\t\t\targ.success && arg.success(vcard);\n\t\t\t\t\t}\n\t\t\t\t});\n\t\t\t},\n\t\t\terror: arg.error\n\t\t});\n\t} else {\n\t\targ.error && arg.error();\n\t}\n};\n\n_manager.YYIMManager.prototype.removeVCardTag = function (arg) {\n\targ = arg || {};\n\tif (YYIMArrayUtil.isArray(arg.tag)) {\n\t\tvar that = this;\n\t\t(0, _Manager.removeTag)({\n\t\t\ttag: arg.tag,\n\t\t\tsuccess: function success(targetId) {\n\t\t\t\tthat.getVCard({\n\t\t\t\t\tid: targetId,\n\t\t\t\t\tsuccess: function success(vcard) {\n\t\t\t\t\t\targ.success && arg.success(vcard);\n\t\t\t\t\t}\n\t\t\t\t});\n\t\t\t},\n\t\t\terror: arg.error\n\t\t});\n\t} else {\n\t\targ.error && arg.error();\n\t}\n};\n\n_manager.YYIMManager.prototype.setRosterTag = function (arg) {\n\targ = arg || {};\n\tif (arg.id && YYIMArrayUtil.isArray(arg.tag) && arg.id != this.getUserID()) {\n\t\t(0, _Manager.setTag)({\n\t\t\tid: arg.id,\n\t\t\ttag: arg.tag,\n\t\t\tsuccess: function success(targetId) {\n\t\t\t\targ.success && arg.success(targetId);\n\t\t\t},\n\t\t\terror: arg.error\n\t\t});\n\t} else {\n\t\targ.error && arg.error();\n\t}\n};\n\n_manager.YYIMManager.prototype.removeRosterTag = function (arg) {\n\targ = arg || {};\n\tif (arg.id && YYIMArrayUtil.isArray(arg.tag) && arg.id != this.getUserID()) {\n\t\t(0, _Manager.removeTag)({\n\t\t\tid: arg.id,\n\t\t\ttag: arg.tag,\n\t\t\tsuccess: function success(targetId) {\n\t\t\t\targ.success && arg.success(targetId);\n\t\t\t},\n\t\t\terror: arg.error\n\t\t});\n\t} else {\n\t\targ.error && arg.error();\n\t}\n};\n\n_manager.YYIMManager.prototype.getRosterItems = function (arg) {\n\t(0, _Manager.getRosterItems)(arg);\n};\n\n_manager.YYIMManager.prototype.addRosterItem = function (id) {\n\tif (YYIMCommonUtil.isStringAndNotEmpty(id)) {\n\t\t(0, _Manager.addRosterItem)(_manager.YYIMChat.getJIDUtil().buildUserJID(_manager.YYIMChat.getJIDUtil().getNode(id)));\n\t}\n};\n\n_manager.YYIMManager.prototype.approveSubscribe = function (id) {\n\tif (YYIMCommonUtil.isStringAndNotEmpty(id)) {\n\t\t(0, _Manager.approveSubscribe)(_manager.YYIMChat.getJIDUtil().buildUserJID(_manager.YYIMChat.getJIDUtil().getNode(id)));\n\t}\n};\n\n_manager.YYIMManager.prototype.rejectSubscribe = function (id) {\n\tif (YYIMCommonUtil.isStringAndNotEmpty(id)) {\n\t\t(0, _Manager.rejectSubscribe)(_manager.YYIMChat.getJIDUtil().buildUserJID(_manager.YYIMChat.getJIDUtil().getNode(id)));\n\t}\n};\n\n_manager.YYIMManager.prototype.deleteRosterItem = function (arg) {\n\tif (YYIMCommonUtil.isStringAndNotEmpty(arg.id)) {\n\t\t(0, _Manager.deleteRosterItem)({\n\t\t\tjid: _manager.YYIMChat.getJIDUtil().buildUserJID(_manager.YYIMChat.getJIDUtil().getNode(arg.id)),\n\t\t\tsuccess: arg.success,\n\t\t\terror: arg.error\n\t\t});\n\t}\n};\n\n_manager.YYIMManager.prototype.queryRosterItem = function (arg) {\n\tif (YYIMCommonUtil.isStringAndNotEmpty(arg.keyword)) {\n\t\t(0, _Manager.queryRosterItem)(arg);\n\t}\n};\n\n_manager.YYIMManager.prototype.getRostersPresence = function (arg) {\n\tif (YYIMArrayUtil.isArray(arg.username)) {\n\t\targ.username = (0, _stringify2.default)(arg.username);\n\t\t(0, _Manager.getRostersPresence)(arg);\n\t}\n};\n\n_manager.YYIMManager.prototype.updateRosterItem = function (arg) {\n\tif (arg && arg.roster && YYIMCommonUtil.isStringAndNotEmpty(arg.roster.id)) {\n\t\t(0, _Manager.updateRosterItem)({\n\t\t\troster: {\n\t\t\t\tjid: _manager.YYIMChat.getJIDUtil().buildUserJID(_manager.YYIMChat.getJIDUtil().getNode(arg.roster.id)),\n\t\t\t\tname: arg.roster.name,\n\t\t\t\tgroups: arg.roster.groups\n\t\t\t},\n\t\t\tsuccess: arg.success,\n\t\t\terror: arg.error\n\t\t});\n\t}\n};\n\n_manager.YYIMManager.prototype.favoriteRoster = function (id, type) {\n\tif (YYIMUtil['isWhateType'](id, 'String')) {\n\t\tvar jid = _manager.YYIMChat.getJIDUtil().buildUserJID(_manager.YYIMChat.getJIDUtil().getNode(id));\n\t\tif (type == _manager.YYIMChat.getConstants().FAVORITE_TYPE.REMOVE) {\n\t\t\t(0, _Manager.cancelFavoriteRoster)(jid);\n\t\t} else {\n\t\t\t(0, _Manager.favoriteRoster)(jid);\n\t\t}\n\t}\n};\n\n_manager.YYIMManager.prototype.updateFavoriteRoster = function (id, name) {\n\tif (YYIMUtil['isWhateType'](id, 'String') && YYIMUtil['isWhateType'](name, 'String')) {\n\t\tvar jid = _manager.YYIMChat.getJIDUtil().buildUserJID(_manager.YYIMChat.getJIDUtil().getNode(id));\n\t\t(0, _Manager.updateFavoriteRoster)(jid, name);\n\t}\n};\n\n_manager.YYIMManager.prototype.getFavoriteRosterList = function (arg) {\n\targ = arg || {};\n\t(0, _Manager.getFavoriteRosterList)({\n\t\tsuccess: arg.success,\n\t\terror: arg.error\n\t});\n};\n\n//# sourceURL=webpack:///./src/module/roster/Extender.js?");
+
+/***/ }),
+
+/***/ "./src/module/roster/Manager.js":
+/*!**************************************!*\
+  !*** ./src/module/roster/Manager.js ***!
+  \**************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+eval("\n\nObject.defineProperty(exports, \"__esModule\", {\n\tvalue: true\n});\nexports.removeTag = exports.setTag = exports.getRosterItems = exports.getFavoriteRosterList = exports.updateFavoriteRoster = exports.cancelFavoriteRoster = exports.favoriteRoster = exports.addRosterItem = exports.setVCard = exports.getVCards = exports.getBatchVCards = exports.getVCard = exports.setPresence = exports.updateRosterItem = exports.getRostersPresence = exports.queryRosterItem = exports.deleteRosterItem = exports.rejectSubscribe = exports.approveSubscribe = exports.monitor = undefined;\n\nvar _stringify = __webpack_require__(/*! babel-runtime/core-js/json/stringify */ \"./node_modules/_babel-runtime@6.26.0@babel-runtime/core-js/json/stringify.js\");\n\nvar _stringify2 = _interopRequireDefault(_stringify);\n\nvar _manager = __webpack_require__(/*! ../../core/manager */ \"./src/core/manager.js\");\n\nfunction _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }\n\nfunction getVCard(arg) {\n\tvar vcardBody = {\n\t\ttype: _manager.YYIMChat.getConstants().TYPE.GET\n\t};\n\n\tif (arg && arg.id) {\n\t\tvcardBody.to = _manager.YYIMChat.getJIDUtil().buildUserJID(_manager.YYIMChat.getJIDUtil().getNode(arg.id));\n\t}\n\n\t_manager.YYIMChat.getConnection().send(new JumpPacket(vcardBody, OPCODE.VCARD.SEND), function (vcardResult, _arg) {\n\t\t_arg.complete && _arg.complete();\n\t\tvar vcard = vcardResult.vcard || {};\n\t\tvcard.id = vcard.userId = _manager.YYIMChat.getJIDUtil().getID(vcard.username);\n\t\tif (!!vcardResult.enableFields) {\n\t\t\tvcard.enableFields = !!vcardResult.enableFields;\n\t\t}\n\t\t_arg.success && _arg.success(vcard);\n\t}, arg);\n}\n\nfunction getBatchVCards(arg) {\n\tvar url = _manager.YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + _manager.YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + _manager.YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + _manager.YYIMChat.getUserID() + '/vcard?token=' + _manager.YYIMChat.getToken() + '&userids=' + arg.ids;\n\tjQuery.ajax({\n\t\turl: url,\n\t\ttype: 'get',\n\t\tdataType: 'json',\n\t\tcache: false,\n\t\tsuccess: function success(result) {\n\t\t\tvar map = {};\n\t\t\tif (result && result.list) {\n\t\t\t\tfor (var x in result.list) {\n\t\t\t\t\tif (result.list.hasOwnProperty(x)) {\n\t\t\t\t\t\tvar vcard = result.list[x];\n\t\t\t\t\t\tvcard.id = _manager.YYIMChat.getJIDUtil().getID(vcard.username);\n\t\t\t\t\t\tmap[vcard.id] = vcard;\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t}\n\t\t\targ.success && arg.success(map);\n\t\t\targ = null;\n\t\t},\n\t\terror: function error(xhr) {\n\t\t\ttry {\n\t\t\t\targ.error && arg.error(JSON.parse(xhr.responseText));\n\t\t\t\targ = null;\n\t\t\t} catch (e) {\n\t\t\t\targ.error && arg.error();\n\t\t\t\targ = null;\n\t\t\t}\n\t\t}\n\t});\n}\n\nfunction getVCards(arg) {\n\tvar iqBody = {\n\t\ttype: 'roster'\n\t};\n\n\t_manager.YYIMChat.getConnection().send(new JumpPacket(iqBody, OPCODE.VCARDS.SEND), function (vcardsResult, _arg) {\n\t\tvar results = vcardsResult.vcards || [];\n\t\tvcards = [], i = results.length;\n\t\twhile (i--) {\n\t\t\tvar vcard = results[i];\n\t\t\tvcard.id = vcard.userId = _manager.YYIMChat.getJIDUtil().getID(vcard.username);\n\t\t\tvcards.push(vcard);\n\t\t}\n\t\t_arg.complete && _arg.complete();\n\t\t_arg.success && _arg.success(vcards);\n\t}, arg);\n}\n\nfunction setVCard(arg) {\n\t_manager.YYIMChat.getConnection().send(new JumpPacket({\n\t\ttype: _manager.YYIMChat.getConstants().TYPE.SET,\n\t\tvcard: arg.vcard\n\t}, OPCODE.VCARD.SEND), function (vcardResult, _arg) {\n\t\t_arg.complete && _arg.complete();\n\t\t_arg.success && _arg.success();\n\t}, arg);\n}\n\nfunction setTag(arg) {\n\tvar url;\n\tif (!arg.id || arg.id === _manager.YYIMChat.getUserID()) {\n\t\turl = _manager.YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + _manager.YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + _manager.YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + _manager.YYIMChat.getUserID() + '/vcard/tag?token=' + _manager.YYIMChat.getToken();\n\t} else {\n\t\turl = _manager.YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + _manager.YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + _manager.YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + _manager.YYIMChat.getUserID() + '/' + arg.id + '/roster/tag?token=' + _manager.YYIMChat.getToken();\n\t}\n\n\tjQuery.ajax({\n\t\turl: url,\n\t\ttype: 'post',\n\t\tdata: (0, _stringify2.default)({\n\t\t\ttag: arg.tag\n\t\t}),\n\t\tdataType: 'json',\n\t\tcache: false,\n\t\tprocessData: false,\n\t\tcontentType: \"application/json\",\n\t\tsuccess: function success(data) {\n\t\t\targ.success && arg.success(arg.id);\n\t\t\targ = null;\n\t\t},\n\t\terror: function error(xhr) {\n\t\t\ttry {\n\t\t\t\targ.error && arg.error(JSON.parse(xhr.responseText));\n\t\t\t\targ = null;\n\t\t\t} catch (e) {\n\t\t\t\targ.error && arg.error();\n\t\t\t\targ = null;\n\t\t\t}\n\t\t}\n\t});\n};\n\nfunction removeTag(arg) {\n\tvar url;\n\tif (!arg.id || arg.id === _manager.YYIMChat.getUserID()) {\n\t\turl = _manager.YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + _manager.YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + _manager.YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + _manager.YYIMChat.getUserID() + '/vcard/tag?token=' + _manager.YYIMChat.getToken() + '&tag=' + (0, _stringify2.default)(arg.tag);\n\t} else {\n\t\turl = _manager.YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + _manager.YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + _manager.YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + _manager.YYIMChat.getUserID() + '/' + arg.id + '/roster/tag?token=' + _manager.YYIMChat.getToken() + '&tag=' + (0, _stringify2.default)(arg.tag);\n\t}\n\tjQuery.ajax({\n\t\turl: url,\n\t\ttype: 'delete',\n\t\tdataType: 'json',\n\t\tcache: false,\n\t\tsuccess: function success(data) {\n\t\t\targ.success && arg.success(arg.id);\n\t\t\targ = null;\n\t\t},\n\t\terror: function error(xhr) {\n\t\t\ttry {\n\t\t\t\targ.error && arg.error(JSON.parse(xhr.responseText));\n\t\t\t\targ = null;\n\t\t\t} catch (e) {\n\t\t\t\targ.error && arg.error();\n\t\t\t\targ = null;\n\t\t\t}\n\t\t}\n\t});\n};\n\nfunction getRostersPresence(arg) {\n\tjQuery.ajax({\n\t\turl: _manager.YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + _manager.YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + _manager.YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + _manager.YYIMChat.getUserID() + '/presence/detail?token=' + _manager.YYIMChat.getToken() + '&username=' + arg.username,\n\t\ttype: 'get',\n\t\tdataType: 'json',\n\t\tcache: false,\n\t\ttimeout: 5000,\n\t\tsuccess: function success(data) {\n\t\t\targ.success && arg.success(data);\n\t\t\targ = null;\n\t\t},\n\t\terror: function error(xhr) {\n\t\t\ttry {\n\t\t\t\targ.error && arg.error(JSON.parse(xhr.responseText));\n\t\t\t\targ = null;\n\t\t\t} catch (e) {\n\t\t\t\targ.error && arg.error();\n\t\t\t\targ = null;\n\t\t\t}\n\t\t}\n\t});\n}\n\nfunction getRosterItems(arg) {\n\tvar jumpPacket = new JumpPacket({}, OPCODE.ROSTER_LIST.SEND);\n\n\t_manager.YYIMChat.getConnection().send(jumpPacket, function (rosterListPacket, _arg) {\n\t\tif (!_arg) return;\n\n\t\t_arg.complete && _arg.complete();\n\n\t\tvar items = rosterListPacket.items || [];\n\n\t\tvar rosters = [],\n\t\t    i = items.length || 0,\n\t\t    friquest = {};\n\n\t\twhile (i--) {\n\t\t\tvar item = items[i],\n\t\t\t    jid = item.jid,\n\t\t\t    roster = {\n\t\t\t\tid: _manager.YYIMChat.getJIDUtil().getID(jid),\n\t\t\t\tresource: _manager.YYIMChat.getJIDUtil().getResource(jid),\n\t\t\t\task: item.ask,\n\t\t\t\trecv: item.recv,\n\t\t\t\tname: item.name,\n\t\t\t\tphoto: item.photo,\n\t\t\t\tsubscription: item.subscription,\n\t\t\t\tgroup: item.groups,\n\t\t\t\ttag: item.tag\n\t\t\t};\n\n\t\t\tif (_manager.YYIMChat.getJIDUtil().getDomain(jid) !== _manager.YYIMChat.getConfig().DOMAIN.PUBACCOUNT) {\n\t\t\t\trosters.push(roster);\n\n\t\t\t\tif (!friquest[roster.id] && roster.subscription === 'none') {\n\t\t\t\t\tif (roster.recv === 1) {\n\t\t\t\t\t\tfriquest[roster.id] = roster;\n\t\t\t\t\t} else if (roster.ask === 1) {}\n\t\t\t\t}\n\t\t\t}\n\t\t}\n\n\t\tfor (var x in friquest) {\n\t\t\tif (friquest[x].id) {\n\t\t\t\t_manager.YYIMChat.onSubscribe({\n\t\t\t\t\tfrom: friquest[x].id,\n\t\t\t\t\ttype: _manager.YYIMChat.getConstants().PRESENCE_TYPE.SUBSCRIBE\n\t\t\t\t});\n\t\t\t}\n\t\t}\n\n\t\t_arg.success && _arg.success((0, _stringify2.default)(rosters));\n\t}, arg);\n}\n\nfunction deleteRosterItem(arg) {\n\tvar iqBody = {\n\t\ttype: _manager.YYIMChat.getConstants().TYPE.SET,\n\t\tns: NS_ROSTER,\n\t\titem: {\n\t\t\tjid: arg.jid,\n\t\t\tsubscription: 'remove'\n\t\t}\n\t};\n\n\t_manager.YYIMChat.getConnection().send(new JumpPacket(iqBody, OPCODE.UPDATE_ROSTER.SEND), function (deleteResult, _arg) {\n\t\t_arg.complete && _arg.complete();\n\t\t_arg.success && _arg.success(_manager.YYIMChat.getJIDUtil().getID(_arg.jid));\n\t}, arg);\n}\n\nfunction updateRosterItem(arg) {\n\tvar roster = arg.roster,\n\t    iqBody = {\n\t\titem: {\n\t\t\tjid: roster.jid,\n\t\t\tname: roster.name,\n\t\t\tgroups: []\n\t\t}\n\t},\n\t    groups = roster.groups,\n\t    i = groups ? groups.length : 0;\n\twhile (i-- && YYIMCommonUtil.isStringAndNotEmpty(groups[i])) {\n\t\tiqBody.item.groups = iqBody.item.groups.concat(groups[i]);\n\t}_manager.YYIMChat.getConnection().send(new JumpPacket(iqBody, OPCODE.UPDATE_ROSTER.SEND), function (updateResult, _arg) {\n\t\t_arg.complete && _arg.complete();\n\n\t\tif (updateResult.code === 400) {\n\t\t\t_arg.error && _arg.error(updateResult);\n\t\t} else {\n\t\t\tupdateResult.to = _manager.YYIMChat.getJIDUtil().getID(updateResult.to);\n\t\t\t_arg.success && _arg.success(updateResult);\n\t\t}\n\t}, arg);\n}\n\nfunction queryRosterItem(arg) {\n\tvar iqBody = {\n\t\tstart: YYIMCommonUtil.isNumber(arg.start) ? arg.start : 0,\n\t\tsize: YYIMCommonUtil.isNumber(arg.size) ? arg.size : 20,\n\t\tfields: [\"Username\", \"Name\"],\n\t\tsearch: arg.keyword\n\t};\n\t_manager.YYIMChat.getConnection().send(new JumpPacket(iqBody, OPCODE.QUERY_USER.SEND), function (queryResult, _arg) {\n\t\tvar items = queryResult.items || [],\n\t\t    result = [],\n\t\t    i = items.length;\n\t\twhile (i--) {\n\t\t\tvar item = items[i],\n\t\t\t    jid = item.jid;\n\t\t\tif (jid === _manager.YYIMChat.getUserBareJID()) continue;\n\t\t\tresult.push({\n\t\t\t\tid: _manager.YYIMChat.getJIDUtil().getID(jid),\n\t\t\t\tname: YYIMCommonUtil.isStringAndNotEmpty(item.name) ? item.name : _manager.YYIMChat.getJIDUtil().getID(jid),\n\t\t\t\tphoto: item.photo,\n\t\t\t\temail: item.email\n\t\t\t});\n\t\t}\n\t\t_arg.complete && _arg.complete();\n\t\t_arg.success && _arg.success({\n\t\t\tstart: queryResult.start,\n\t\t\ttotal: queryResult.total,\n\t\t\titems: result\n\t\t});\n\t}, arg);\n}\n\nfunction getFavoriteRosterList(arg) {\n\tjQuery.ajax({\n\t\turl: _manager.YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + _manager.YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + _manager.YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + _manager.YYIMChat.getUserID() + '/favoritedRosters',\n\t\ttype: 'get',\n\t\tdata: {\n\t\t\ttoken: _manager.YYIMChat.getToken()\n\t\t},\n\t\tdataType: 'json',\n\t\tcache: false,\n\t\tsuccess: function success(data) {\n\t\t\tif (data && data.items) {\n\t\t\t\tvar i = data.items.length;\n\t\t\t\twhile (i--) {\n\t\t\t\t\tdata.items[i].id = _manager.YYIMChat.getJIDUtil().getID(data.items[i].jid);\n\t\t\t\t}\n\t\t\t}\n\t\t\targ.success && arg.success(data.items);\n\t\t\targ = null;\n\t\t},\n\t\terror: function error(xhr) {\n\t\t\ttry {\n\t\t\t\targ.error && arg.error(JSON.parse(xhr.responseText));\n\t\t\t\targ = null;\n\t\t\t} catch (e) {\n\t\t\t\targ.error && arg.error();\n\t\t\t\targ = null;\n\t\t\t}\n\t\t}\n\t});\n}\n\nfunction setPresence(arg) {\n\t_manager.YYIMChat.getConnection().send(new JumpPacket(arg, OPCODE.PRESENCE.SEND));\n}\n\nfunction favoriteRoster(jid) {\n\t_manager.YYIMChat.getConnection().send(new JumpPacket({\n\t\ttype: _manager.YYIMChat.getConstants().PRESENCE_TYPE.COLLECT,\n\t\tto: jid\n\t}, OPCODE.PRESENCE.SEND));\n}\n\nfunction cancelFavoriteRoster(jid) {\n\t_manager.YYIMChat.getConnection().send(new JumpPacket({\n\t\tfavoritedRosterItem: {\n\t\t\tjid: jid,\n\t\t\tsubscription: _manager.YYIMChat.getConstants().FAVORITE_TYPE.REMOVE\n\t\t},\n\t\tfrom: _manager.YYIMChat.getUserFullJID()\n\t}, OPCODE.FAVORITED_ROSTERT.SEND));\n}\n\nfunction updateFavoriteRoster(jid, name) {\n\t_manager.YYIMChat.getConnection().send(new JumpPacket({\n\t\tfavoritedRosterItem: {\n\t\t\tjid: jid,\n\t\t\tname: name,\n\t\t\tsubscription: _manager.YYIMChat.getConstants().FAVORITE_TYPE.FAVORITE\n\t\t},\n\t\tfrom: _manager.YYIMChat.getUserFullJID()\n\t}, OPCODE.FAVORITED_ROSTERT.SEND));\n}\n\nfunction addRosterItem(jid) {\n\t_manager.YYIMChat.getConnection().send(new JumpPacket({\n\t\ttype: _manager.YYIMChat.getConstants().PRESENCE_TYPE.SUBSCRIBE,\n\t\tto: jid\n\t}, OPCODE.PRESENCE.SEND));\n}\n\nfunction approveSubscribe(jid) {\n\t_manager.YYIMChat.getConnection().send(new JumpPacket({\n\t\ttype: _manager.YYIMChat.getConstants().PRESENCE_TYPE.SUBSCRIBED,\n\t\tto: jid\n\t}, OPCODE.PRESENCE.SEND));\n}\n\nfunction rejectSubscribe(jid) {\n\t_manager.YYIMChat.getConnection().send(new JumpPacket({\n\t\ttype: _manager.YYIMChat.getConstants().PRESENCE_TYPE.UNSUBSCRIBED,\n\t\tto: jid\n\t}, OPCODE.PRESENCE.SEND));\n}\n\nfunction monitor() {\n\t_manager.YYIMChat.getConnection().registerHandler(OPCODE.FAVORITED_ROSTERT.KEY, function (packet) {\n\t\tif (packet && packet.favoritedRosterItem) {\n\t\t\tpacket.favoritedRosterItem.id = _manager.YYIMChat.getJIDUtil().getID(packet.favoritedRosterItem.jid);\n\t\t}\n\t\tif (packet && packet.to) {\n\t\t\tpacket.to = _manager.YYIMChat.getJIDUtil().getID(packet.to);\n\t\t}\n\t\t_manager.YYIMChat.onRosterFavorited(packet);\n\t});\n\n\t_manager.YYIMChat.getConnection().registerHandler(OPCODE.UPDATE_ROSTER.KEY, function (packet) {\n\t\tvar item = packet.item,\n\t\t    id = _manager.YYIMChat.getJIDUtil().getID(packet.item.jid);\n\n\t\tif (item.subscription === 'both') {\n\t\t\t_manager.YYIMChat.log('update or add: ' + (0, _stringify2.default)(item));\n\t\t\titem.id = id;\n\t\t\t_manager.YYIMChat.onRosterUpdateded(item);\n\t\t} else if (item.subscription === 'none') {\n\t\t\t\t_manager.YYIMChat.log('delete: ' + (0, _stringify2.default)(item));\n\t\t\t\titem.id = id;\n\t\t\t\t_manager.YYIMChat.onRosterDeleted(item);\n\t\t\t} else if (item.subscription === 'remove') {}\n\t});\n\n\t_manager.YYIMChat.getConnection().registerHandler(OPCODE.PRESENCE.KEY, function (packet) {\n\t\tif (packet.type && packet.type != _manager.YYIMChat.getConstants().TYPE.UNAVAILABLE) {\n\t\t\t_manager.YYIMChat.onSubscribe({\n\t\t\t\tfrom: _manager.YYIMChat.getJIDUtil().getID(packet.from),\n\t\t\t\ttype: packet.type\n\t\t\t});\n\t\t\treturn;\n\t\t}\n\n\t\tvar ps = {\n\t\t\tfrom: _manager.YYIMChat.getJIDUtil().getID(packet.from),\n\t\t\tresource: _manager.YYIMChat.getJIDUtil().getResource(packet.from),\n\t\t\ttype: packet.type,\n\t\t\tshow: packet.show,\n\t\t\tstatus: packet.status\n\t\t};\n\t\tif (packet.type && packet.type == _manager.YYIMChat.getConstants().TYPE.UNAVAILABLE) {\n\t\t\tps.show = _manager.YYIMChat.getConstants().STATUS.UNAVAILABLE;\n\t\t\tps.status = _manager.YYIMChat.getConstants().STATUS.UNAVAILABLE;\n\t\t\tremoveFromOnline(ps.from);\n\t\t}\n\n\t\tif (!YYIMCommonUtil.isStringAndNotEmpty(ps.status)) {\n\t\t\tps.show = _manager.YYIMChat.getConstants().STATUS.CHAT;\n\t\t\tps.status = _manager.YYIMChat.getConstants().STATUS.CHAT;\n\t\t};\n\t\t_manager.YYIMChat.onPresence(ps);\n\t});\n}\n\nexports.monitor = monitor;\nexports.approveSubscribe = approveSubscribe;\nexports.rejectSubscribe = rejectSubscribe;\nexports.deleteRosterItem = deleteRosterItem;\nexports.queryRosterItem = queryRosterItem;\nexports.getRostersPresence = getRostersPresence;\nexports.updateRosterItem = updateRosterItem;\nexports.setPresence = setPresence;\nexports.getVCard = getVCard;\nexports.getBatchVCards = getBatchVCards;\nexports.getVCards = getVCards;\nexports.setVCard = setVCard;\nexports.addRosterItem = addRosterItem;\nexports.favoriteRoster = favoriteRoster;\nexports.cancelFavoriteRoster = cancelFavoriteRoster;\nexports.updateFavoriteRoster = updateFavoriteRoster;\nexports.getFavoriteRosterList = getFavoriteRosterList;\nexports.getRosterItems = getRosterItems;\nexports.setTag = setTag;\nexports.removeTag = removeTag;\n\n//# sourceURL=webpack:///./src/module/roster/Manager.js?");
+
+/***/ }),
+
+/***/ "./src/module/todo/Extender.js":
+/*!*************************************!*\
+  !*** ./src/module/todo/Extender.js ***!
+  \*************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+eval("\n\nvar _manager = __webpack_require__(/*! ../../core/manager */ \"./src/core/manager.js\");\n\nvar _Manager = __webpack_require__(/*! ./Manager */ \"./src/module/todo/Manager.js\");\n\n_manager.YYIMManager.prototype.getTodoDigset = function (arg) {\n  (0, _Manager.getTodoDigset)(arg);\n};\n\n_manager.YYIMManager.prototype.sendToDoReceipts = function (arg) {\n  (0, _Manager.sendToDoReceipts)(arg);\n};\n\n_manager.YYIMManager.prototype.getHistoryTodo = function (arg) {\n  (0, _Manager.getHistoryTodo)(arg);\n};\n\n//# sourceURL=webpack:///./src/module/todo/Extender.js?");
+
+/***/ }),
+
+/***/ "./src/module/todo/Manager.js":
+/*!************************************!*\
+  !*** ./src/module/todo/Manager.js ***!
+  \************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+eval("\n\nObject.defineProperty(exports, \"__esModule\", {\n\tvalue: true\n});\nexports.sendToDoReceipts = exports.getHistoryTodo = exports.getTodoDigset = undefined;\n\nvar _stringify = __webpack_require__(/*! babel-runtime/core-js/json/stringify */ \"./node_modules/_babel-runtime@6.26.0@babel-runtime/core-js/json/stringify.js\");\n\nvar _stringify2 = _interopRequireDefault(_stringify);\n\nvar _manager = __webpack_require__(/*! ../../core/manager */ \"./src/core/manager.js\");\n\nfunction _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }\n\nfunction sendToDoReceipts(arg) {\n\tjQuery.ajax({\n\t\turl: _manager.YYIMChat.getConfig().SERVLET.REST_TODO_USER + 'read/latest?token=' + _manager.YYIMChat.getToken() + '&userId=' + _manager.YYIMChat.getUserID(),\n\t\ttype: 'post',\n\t\tdata: (0, _stringify2.default)({\n\t\t\tlatestReadTs: arg.latestReadTs || 0\n\t\t}),\n\t\tdataType: 'json',\n\t\tcache: false,\n\t\tprocessData: false,\n\t\tcontentType: \"application/json\",\n\t\tsuccess: function success() {\n\t\t\targ && arg.success && arg.success();\n\t\t\targ && (arg = null);\n\t\t},\n\t\terror: function error(xhr) {\n\t\t\ttry {\n\t\t\t\targ && arg.error && arg.error(JSON.parse(xhr.responseText));\n\t\t\t\targ && (arg = null);\n\t\t\t} catch (e) {\n\t\t\t\targ && arg.error && arg.error();\n\t\t\t\targ && (arg = null);\n\t\t\t}\n\t\t}\n\t});\n}\n\nfunction getTodoDigset(arg) {\n\tjQuery.ajax({\n\t\turl: _manager.YYIMChat.getConfig().SERVLET.REST_TODO_USER + 'abstract',\n\t\ttype: 'get',\n\t\tdata: {\n\t\t\ttoken: _manager.YYIMChat.getToken(),\n\t\t\tuserId: _manager.YYIMChat.getUserID()\n\t\t},\n\t\tdataType: 'json',\n\t\tcache: false,\n\t\tsuccess: function success(data) {\n\t\t\tvar result;\n\t\t\tif (data && data.result && data.result['abstractItem']) {\n\n\t\t\t\tresult = data.result['abstractItem'] || {};\n\t\t\t\tresult['todoCount'] = data.result['todoCount'] || 0;\n\t\t\t\tresult['unReadCount'] = data.result['unReadCount'] || 0;\n\t\t\t\tresult['latestReadTs'] = data.result['latestReadTs'] || 0;\n\t\t\t}\n\t\t\targ && arg.success && arg.success(result);\n\t\t\targ && (arg = null);\n\t\t},\n\t\terror: function error(xhr) {\n\t\t\ttry {\n\t\t\t\targ && arg.error && arg.error(JSON.parse(xhr.responseText));\n\t\t\t\targ && (arg = null);\n\t\t\t} catch (e) {\n\t\t\t\targ && arg.error && arg.error();\n\t\t\t\targ && (arg = null);\n\t\t\t}\n\t\t}\n\t});\n}\n\nfunction getHistoryTodo(arg) {\n\tjQuery.ajax({\n\t\turl: _manager.YYIMChat.getConfig().SERVLET.REST_TODO_USER + 'items',\n\t\ttype: 'get',\n\t\tdata: {\n\t\t\ttoken: _manager.YYIMChat.getToken(),\n\t\t\tuserId: _manager.YYIMChat.getUserID(),\n\t\t\tbeforeTs: arg && Number(arg.beforeTs) || '',\n\t\t\ttodoState: arg && arg.todoState || '',\n\t\t\tpageSize: arg && Number(arg.pageSize) || 10\n\t\t},\n\t\tdataType: 'json',\n\t\tcache: false,\n\t\tsuccess: function success(data) {\n\t\t\tvar result = [];\n\t\t\tif (data && data.result && data.result.length) {\n\n\t\t\t\tresult = data.result;\n\t\t\t}\n\t\t\targ && arg.success && arg.success(result);\n\t\t\targ && (arg = null);\n\t\t},\n\t\terror: function error(xhr) {\n\t\t\ttry {\n\t\t\t\targ && arg.error && arg.error(JSON.parse(xhr.responseText));\n\t\t\t\targ && (arg = null);\n\t\t\t} catch (e) {\n\t\t\t\targ && arg.error && arg.error();\n\t\t\t\targ && (arg = null);\n\t\t\t}\n\t\t}\n\t});\n}\n\nexports.getTodoDigset = getTodoDigset;\nexports.getHistoryTodo = getHistoryTodo;\nexports.sendToDoReceipts = sendToDoReceipts;\n\n//# sourceURL=webpack:///./src/module/todo/Manager.js?");
+
+/***/ }),
+
+/***/ "./src/module/upload/Extender.js":
+/*!***************************************!*\
+  !*** ./src/module/upload/Extender.js ***!
+  \***************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+eval("\n\nvar _manager = __webpack_require__(/*! ../../core/manager */ \"./src/core/manager.js\");\n\nvar _FileUpload = __webpack_require__(/*! ./FileUpload */ \"./src/module/upload/FileUpload.js\");\n\n__webpack_require__(/*! ./YYIMUploader */ \"./src/module/upload/YYIMUploader.js\");\n\n_manager.YYIMManager.prototype.startUpload = function (file) {\n\t_FileUpload.FileUpload.getInstance().start(file);\n};\n\n_manager.YYIMManager.prototype.cancelUpload = function (file) {\n\t_FileUpload.FileUpload.getInstance().end(file);\n};\n\n_manager.YYIMManager.prototype.getUploadingSize = function () {\n\treturn _FileUpload.FileUpload.getInstance().getUploadingSize();\n};\n\n_manager.YYIMManager.prototype.previewLocalImage = function (arg) {\n\targ = arg || {};\n\tvar file = arg.file;\n\tif (file && /image\\//.test(file.type)) {\n\t\tvar that = this;\n\t\ttry {\n\t\t\tif (file.type == 'image/gif') {\n\t\t\t\tvar fr = new moxie.file.FileReader();\n\t\t\t\tfr.onload = function () {\n\t\t\t\t\targ.success && arg.success(fr.result);\n\t\t\t\t\tfr.destroy();\n\t\t\t\t\tfr = null;\n\t\t\t\t};\n\t\t\t\tfr.readAsDataURL(file.getSource());\n\t\t\t} else {\n\t\t\t\tvar preloader = new moxie.image.Image();\n\t\t\t\tpreloader.onload = function () {\n\t\t\t\t\tvar imgsrc = preloader.type == 'image/jpeg' ? preloader.getAsDataURL('image/jpeg', 80) : preloader.getAsDataURL();\n\t\t\t\t\targ.success && arg.success(imgsrc);\n\t\t\t\t\tpreloader.destroy();\n\t\t\t\t\tpreloader = null;\n\t\t\t\t};\n\t\t\t\tpreloader.load(file.getSource());\n\t\t\t}\n\t\t} catch (e) {\n\t\t\targ.error && arg.error('Local address parsing errors.');\n\t\t}\n\t} else {\n\t\targ.error && arg.error('The file isn`t Image.');\n\t}\n};\n\n//# sourceURL=webpack:///./src/module/upload/Extender.js?");
+
+/***/ }),
+
+/***/ "./src/module/upload/FileUpload.js":
+/*!*****************************************!*\
+  !*** ./src/module/upload/FileUpload.js ***!
+  \*****************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+eval("\n\nObject.defineProperty(exports, \"__esModule\", {\n\tvalue: true\n});\nexports.FileUpload = undefined;\n\nvar _manager = __webpack_require__(/*! ../../core/manager */ \"./src/core/manager.js\");\n\nfunction FileUpload() {}\n\nFileUpload.prototype = new BaseList();\n\nFileUpload.getInstance = function () {\n\tif (!this._instance) {\n\t\tthis._instance = new FileUpload();\n\t}\n\treturn this._instance;\n};\n\nFileUpload.prototype.init = function (options, events) {\n\tvar settings = {\n\t\tbrowse_button: 'fileUpload',\n\t\tfile_data_name: 'file',\n\t\turl: this.getBaseUrl(),\n\t\tfilters: {\n\t\t\tmax_file_size: '100mb',\n\t\t\tprevent_duplicates: !!_manager.YYIMChat.getConfig().UPLOAD.PREVENT_DUPLICATES },\n\t\tflash_swf_url: _manager.YYIMChat.getConfig().UPLOAD.FLASH_SWF_URL,\n\t\tsilverlight_xap_url: _manager.YYIMChat.getConfig().UPLOAD.SILVERLIGHT_XAP_URL,\n\t\tmulti_selection: !!_manager.YYIMChat.getConfig().UPLOAD.MULTI_SELECTION,\n\t\tmultipart: true,\n\t\tmax_retries: 1,\n\t\tchunk_size: 0,\n\t\truntimes: 'gears,html5,flash,silverlight,browserplus'\n\t};\n\n\tif (options['mediaType'] == _manager.YYIMChat.getConfig().UPLOAD.MEDIATYPE.IMAGE) {\n\t\tsettings['filters']['mime_types'] = [{ title: \"Image files\", extensions: \"jpg,gif,png,jpeg,bmp\" }];\n\t} else {\n\t\tsettings['filters']['mime_types'] = undefined;\n\t}\n\n\tjQuery.extend(settings, options);\n\tvar id = settings['browse_button'];\n\tvar uploader = new plupload.Uploader(settings);\n\tuploader.init();\n\tuploader.refresh();\n\tthis.bindEvents(uploader, events);\n};\n\nFileUpload.prototype.getBaseUrl = function () {\n\treturn _manager.YYIMChat.getServletPath().REST_RESOURCE_SERVLET + _manager.YYIMChat.getTenancy().ETP_KEY + '/' + _manager.YYIMChat.getTenancy().APP_KEY + '/upload';\n};\n\nFileUpload.prototype.getUploadingSize = function () {\n\tvar size = 0;\n\tfor (var x in this.list) {\n\t\tif (this.list.hasOwnProperty(x)) {\n\t\t\tvar uploader = this.list[x];\n\t\t\tif (uploader) {\n\t\t\t\tvar file = uploader.getFile(x);\n\n\t\t\t\tif (file.status != plupload.FAILED && file.status != plupload.STOPPED) {\n\t\t\t\t\tsize++;\n\t\t\t\t}\n\t\t\t}\n\t\t}\n\t}\n\treturn size;\n};\n\nFileUpload.prototype.start = function (file) {\n\tvar uploader;\n\tif (file) {\n\t\tuploader = this.get(file.id || file);\n\t\tif (uploader) {\n\t\t\tfile = uploader.getFile(file.id || file);\n\t\t\tif (file) {\n\t\t\t\tfile.status = 1;\n\t\t\t}\n\t\t\tuploader.start();\n\t\t}\n\t}\n};\n\nFileUpload.prototype.end = function (file) {\n\tvar uploader;\n\tif (file) {\n\t\tvar fileId = file.id || file;\n\t\tuploader = this.get(fileId);\n\t\tif (uploader) {\n\t\t\tfile = uploader.getFile(fileId);\n\t\t\tif (file) {\n\t\t\t\tuploader.removeFile(file);\n\t\t\t}\n\t\t\tthis.remove(fileId);\n\t\t}\n\t} else {\n\t\tthis.forEach(function (uploader) {\n\t\t\tuploader.splice(0);\n\t\t\tuploader.destroy();\n\t\t});\n\t\tthis.clear();\n\t}\n};\n\nFileUpload.prototype.bindEvents = function (uploader, arg) {\n\tvar that = this;\n\n\tuploader.bind('init', function (uploader) {\n\t\targ && arg.init && arg.init(uploader);\n\t});\n\n\tuploader.bind('PostInit', function (uploader) {\n\t\targ && arg.PostInit && arg.PostInit(uploader);\n\t});\n\n\tuploader.bind('Refresh', function (uploader) {\n\t\targ && arg.Refresh && arg.Refresh(uploader);\n\t});\n\n\tuploader.bind('StateChanged', function (uploader) {\n\t\targ && arg.StateChanged && arg.StateChanged(uploader);\n\t});\n\n\tuploader.bind('UploadFile', function (uploader, file) {\n\t\targ && arg.StateChanged && arg.UploadFile(uploader, file);\n\t});\n\n\tuploader.bind('BeforeUpload', function (uploader, file) {\n\t\targ && arg.BeforeUpload && arg.BeforeUpload(uploader, file);\n\t});\n\n\tuploader.bind('QueueChanged', function (uploader) {\n\t\targ && arg.QueueChanged && arg.QueueChanged(uploader);\n\t});\n\n\tuploader.bind('OptionChanged', function (uploader, option_name, new_value, old_value) {\n\t\targ && arg.OptionChanged && arg.OptionChanged(uploader, option_name, new_value, old_value);\n\t});\n\n\tuploader.bind('UploadProgress', function (uploader, file) {\n\t\targ && arg.UploadProgress && arg.UploadProgress(uploader, file);\n\t});\n\n\tuploader.bind('FilesAdded', function (uploader, files) {\n\t\targ && arg.FilesAdded && arg.FilesAdded(uploader, files);\n\t});\n\n\tuploader.bind('FilesRemoved', function (uploader, files) {\n\t\tfiles.forEach(function (file, index) {\n\t\t\tthat.remove(file.id);\n\t\t});\n\t\targ && arg.FilesRemoved && arg.FilesRemoved(uploader, files);\n\t});\n\n\tuploader.bind('FileFiltered', function (uploader, file) {\n\t\tthat.set(file.id, uploader);\n\t\targ && arg.FileFiltered && arg.FileFiltered(uploader, file);\n\t});\n\n\tuploader.bind('FileUploaded', function (uploader, file, responseObject) {\n\t\targ && arg.FileUploaded && arg.FileUploaded(uploader, file, responseObject);\n\t});\n\n\tuploader.bind('ChunkUploaded', function (uploader, file, responseObject) {\n\t\targ && arg.ChunkUploaded && arg.ChunkUploaded(uploader, file, responseObject);\n\t});\n\n\tuploader.bind('UploadComplete', function (uploader, files) {\n\t\targ && arg.UploadComplete && arg.UploadComplete(uploader, files);\n\t});\n\n\tuploader.bind('Error', function (uploader, errObject) {\n\t\targ && arg.Error && arg.Error(uploader, errObject);\n\t});\n\n\tuploader.bind('Destroy', function (uploader) {\n\t\targ && arg.Destroy && arg.Destroy(uploader);\n\t});\n};\n\nexports.FileUpload = FileUpload;\n\n//# sourceURL=webpack:///./src/module/upload/FileUpload.js?");
+
+/***/ }),
+
+/***/ "./src/module/upload/YYIMUploader.js":
+/*!*******************************************!*\
+  !*** ./src/module/upload/YYIMUploader.js ***!
+  \*******************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+eval("\n\nvar _manager = __webpack_require__(/*! ../../core/manager */ \"./src/core/manager.js\");\n\nvar _FileUpload = __webpack_require__(/*! ./FileUpload */ \"./src/module/upload/FileUpload.js\");\n\n_manager.YYIMManager.getInstance().uploader = function (obj, arg) {\n\targ = arg || {};\n\n\tif (typeof obj == 'string') {\n\t\tobj = document.getElementById(obj);\n\t}\n\n\tif (!YYIMUtil['isWhateType'](arg.chatInfo, 'Function')) {\n\t\targ.error && arg.error('chatInfo isn`t Function.');\n\t\treturn;\n\t}\n\n\t_FileUpload.FileUpload.getInstance().init({\n\t\t'mediaType': arg.mediaType || YYIMChat.getConfig().UPLOAD.MEDIATYPE.DOC,\n\t\t'browse_button': obj.id,\n\t\t'drop_element': arg.drop_element\n\t}, {\n\t\t'init': function init(uploader) {\n\t\t\tuploader.addFile(obj);\n\t\t\tobj = null;\n\t\t},\n\n\t\t'PostInit': function PostInit(uploader) {},\n\n\t\t'Refresh': function Refresh(uploader) {},\n\n\t\t'StateChanged': function StateChanged(uploader) {},\n\n\t\t'UploadFile': function UploadFile(uploader, file) {},\n\n\t\t'BeforeUpload': function BeforeUpload(uploader, file) {\n\t\t\tvar chatInfo = uploader.getOption('chatInfo');\n\t\t\tif (chatInfo) {\n\t\t\t\tvar info = chatInfo[file.id];\n\t\t\t\tif (info) {\n\t\t\t\t\ttry {\n\t\t\t\t\t\targ.beforeUpload && arg.beforeUpload({\n\t\t\t\t\t\t\tfile: file,\n\t\t\t\t\t\t\tchatInfo: info\n\t\t\t\t\t\t});\n\t\t\t\t\t} catch (e) {}\n\n\t\t\t\t\tvar mediaType = uploader.getOption('mediaType');\n\n\t\t\t\t\tif (YYIMChat.getConfig().UPLOAD.IMAGE_TYPES.test(file.name)) {\n\t\t\t\t\t\tmediaType = 1;\n\t\t\t\t\t}\n\n\t\t\t\t\tif (info['file_data_name']) {\n\t\t\t\t\t\tuploader.setOption('file_data_name', info['file_data_name']);\n\t\t\t\t\t}\n\n\t\t\t\t\tif (info['required_features']) {\n\t\t\t\t\t\tuploader.setOption('required_features', info['required_features']);\n\t\t\t\t\t}\n\n\t\t\t\t\tif (mediaType === 1 || !info.uploadUrl) {\n\t\t\t\t\t\tvar to = YYIMChat.getJIDUtil().buildUserJID(YYIMChat.getJIDUtil().getNode(info.to));\n\t\t\t\t\t\tif (info.type && info.type == YYIMChat.getConstants().CHAT_TYPE.GROUP_CHAT) {\n\t\t\t\t\t\t\tto = YYIMChat.getJIDUtil().buildChatGroupJID(YYIMChat.getJIDUtil().getNode(info.to));\n\t\t\t\t\t\t}\n\t\t\t\t\t\tuploader.setOption('url', _FileUpload.FileUpload.getInstance().getBaseUrl() + '?' + jQuery.param({\n\t\t\t\t\t\t\ttoken: YYIMChat.getToken(),\n\t\t\t\t\t\t\tname: file.name,\n\t\t\t\t\t\t\tmediaType: mediaType,\n\t\t\t\t\t\t\tcreator: YYIMChat.getUserNode(),\n\t\t\t\t\t\t\treceiver: to,\n\t\t\t\t\t\t\ttype: file.type,\n\t\t\t\t\t\t\tsize: file.size,\n\t\t\t\t\t\t\toriginal: 1\n\t\t\t\t\t\t}));\n\t\t\t\t\t} else {\n\t\t\t\t\t\tuploader.setOption('url', info.uploadUrl);\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t}\n\t\t},\n\n\t\t'QueueChanged': function QueueChanged(uploader) {},\n\n\t\t'OptionChanged': function OptionChanged(uploader, option_name, new_value, old_value) {},\n\n\t\t'UploadProgress': function UploadProgress(uploader, file) {\n\t\t\tvar chatInfo = uploader.getOption('chatInfo'),\n\t\t\t    info;\n\t\t\tif (chatInfo) {\n\t\t\t\tinfo = chatInfo[file.id];\n\t\t\t}\n\n\t\t\targ && arg.progress && arg.progress({\n\t\t\t\tuploaded: uploader.total.uploaded,\n\t\t\t\tqueued: uploader.total.queued,\n\t\t\t\tbytesPerSec: uploader.total.bytesPerSec,\n\t\t\t\tpercent: uploader.total.percent,\n\t\t\t\tsize: uploader.total.size,\n\t\t\t\tloaded: uploader.total.loaded,\n\t\t\t\tfile: file,\n\t\t\t\tchatInfo: info\n\t\t\t});\n\t\t},\n\n\t\t'FilesAdded': function FilesAdded(uploader, files) {\n\t\t\tif (YYIMChat.getConfig().UPLOAD.AUTO_SEND) {\n\t\t\t\tuploader.start();\n\t\t\t}\n\t\t},\n\n\t\t'FilesRemoved': function FilesRemoved(uploader, files) {},\n\n\t\t'FileFiltered': function FileFiltered(uploader, file) {\n\t\t\tvar info = arg.chatInfo({\n\t\t\t\tfileName: file.name\n\t\t\t});\n\t\t\tif (info && info.to) {\n\t\t\t\tif (!YYIMUtil['isWhateType'](info.checkType, 'Function') || info.checkType(file.getSource().type)) {\n\t\t\t\t\tvar chatInfo = uploader.getOption('chatInfo') || {};\n\t\t\t\t\tchatInfo[file.id] = info;\n\t\t\t\t\tuploader.setOption('chatInfo', chatInfo);\n\n\t\t\t\t\targ && arg.fileFiltered && arg.fileFiltered({\n\t\t\t\t\t\tfile: file,\n\t\t\t\t\t\tchatInfo: info\n\t\t\t\t\t});\n\t\t\t\t} else {\n\t\t\t\t\tuploader.removeFile(file);\n\t\t\t\t\targ && arg.error && arg.error({\n\t\t\t\t\t\tfile: file,\n\t\t\t\t\t\tchatInfo: info,\n\t\t\t\t\t\terror: '格式不支持'\n\t\t\t\t\t});\n\t\t\t\t}\n\t\t\t} else {\n\t\t\t\tuploader.removeFile(file);\n\t\t\t\targ && arg.error && arg.error({\n\t\t\t\t\tfile: file,\n\t\t\t\t\tchatInfo: info,\n\t\t\t\t\terror: '请指定接收方'\n\t\t\t\t});\n\t\t\t}\n\t\t},\n\n\t\t'FileUploaded': function FileUploaded(uploader, file, responseObject) {\n\t\t\tif (responseObject.status === 200) {\n\t\t\t\tvar chatInfo = uploader.getOption('chatInfo');\n\t\t\t\tif (file && file.getNative()) {\n\t\t\t\t\tfile.path = file.getNative().path;\n\t\t\t\t}\n\t\t\t\tvar info = chatInfo[file.id];\n\t\t\t\ttry {\n\t\t\t\t\tvar response = JSON.parse(responseObject.response);\n\t\t\t\t\tif (response.code === 0 || response.attachId || response[0]) {\n\t\t\t\t\t\tdelete chatInfo[file.id];\n\t\t\t\t\t\tuploader.setOption('chatInfo', chatInfo);\n\t\t\t\t\t\tuploader.removeFile(file);\n\t\t\t\t\t\t_FileUpload.FileUpload.getInstance().remove(file.id);\n\t\t\t\t\t\targ && arg.success && arg.success({\n\t\t\t\t\t\t\tdata: response,\n\t\t\t\t\t\t\tfile: file,\n\t\t\t\t\t\t\tchatInfo: info\n\t\t\t\t\t\t});\n\t\t\t\t\t} else {\n\t\t\t\t\t\targ && arg.error && arg.error({\n\t\t\t\t\t\t\tdata: response,\n\t\t\t\t\t\t\tfile: file,\n\t\t\t\t\t\t\tchatInfo: info\n\t\t\t\t\t\t});\n\t\t\t\t\t}\n\t\t\t\t} catch (e) {\n\t\t\t\t\targ && arg.error && arg.error({\n\t\t\t\t\t\tdata: e.message,\n\t\t\t\t\t\tfile: file,\n\t\t\t\t\t\tchatInfo: info\n\t\t\t\t\t});\n\t\t\t\t}\n\t\t\t}\n\t\t},\n\n\t\t'ChunkUploaded': function ChunkUploaded(uploader, file, responseObject) {},\n\n\t\t'UploadComplete': function UploadComplete(uploader, files) {},\n\n\t\t'Error': function Error(uploader, errObject) {\n\t\t\tvar file = errObject.file;\n\t\t\tvar chatInfo = uploader.getOption('chatInfo');\n\t\t\tif (chatInfo) {\n\t\t\t\terrObject.chatInfo = chatInfo[file.id];\n\t\t\t}\n\t\t\targ && arg.error && arg.error(errObject);\n\t\t},\n\n\t\t'Destroy': function Destroy(uploader) {}\n\t});\n};\n\n//# sourceURL=webpack:///./src/module/upload/YYIMUploader.js?");
+
+/***/ }),
+
+/***/ "./src/util/YYAIAbility.js":
+/*!*********************************!*\
+  !*** ./src/util/YYAIAbility.js ***!
+  \*********************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+eval("\n\nObject.defineProperty(exports, \"__esModule\", {\n    value: true\n});\n\nvar _classCallCheck2 = __webpack_require__(/*! babel-runtime/helpers/classCallCheck */ \"./node_modules/_babel-runtime@6.26.0@babel-runtime/helpers/classCallCheck.js\");\n\nvar _classCallCheck3 = _interopRequireDefault(_classCallCheck2);\n\nvar _createClass2 = __webpack_require__(/*! babel-runtime/helpers/createClass */ \"./node_modules/_babel-runtime@6.26.0@babel-runtime/helpers/createClass.js\");\n\nvar _createClass3 = _interopRequireDefault(_createClass2);\n\nfunction _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }\n\nvar YYIMAINode = function () {\n    function YYIMAINode(_byte) {\n        (0, _classCallCheck3.default)(this, YYIMAINode);\n\n        this.childs = {};\n        this._byte = _byte || null;\n        this._isWord = false;\n        this._count = 0;\n    }\n\n    (0, _createClass3.default)(YYIMAINode, [{\n        key: 'isWord',\n        value: function isWord() {\n            return this._isWord && this._count == 0;\n        }\n    }, {\n        key: 'asWord',\n        value: function asWord() {\n            this._isWord = true;\n        }\n    }, {\n        key: 'addCount',\n        value: function addCount() {\n            this._count++;\n        }\n    }, {\n        key: 'getCount',\n        value: function getCount() {\n            return this._count;\n        }\n    }]);\n    return YYIMAINode;\n}();\n\nvar YYIMAITrie = function () {\n    function YYIMAITrie() {\n        (0, _classCallCheck3.default)(this, YYIMAITrie);\n\n        this.root = new YYIMAINode(null);\n    }\n\n    (0, _createClass3.default)(YYIMAITrie, [{\n        key: 'toBytes',\n        value: function toBytes(word) {\n            var result = [];\n            for (var i = 0; i < word.length; i++) {\n                var code = word.charCodeAt(i);\n\n                if (code < 0x80) {\n                    result.push(code);\n                } else {\n                    result = result.concat(this.toUTF8(code));\n                }\n            }\n            return result;\n        }\n    }, {\n        key: 'toUTF8',\n        value: function toUTF8(c) {\n            var byte1 = 0xE0 | c >> 12 & 0x0F;\n\n            var byte2 = 0x80 | c >> 6 & 0x3F;\n\n            var byte3 = 0x80 | c & 0x3F;\n\n            return [byte1, byte2, byte3];\n        }\n    }, {\n        key: 'toUTF16',\n        value: function toUTF16(b1, b2, b3) {\n            var byte1 = b1 << 4 | b2 >> 2 & 0x0F;\n            var byte2 = (b2 & 0x03) << 6 | b3 & 0x3F;\n            var utf16 = (byte1 & 0x00FF) << 8 | byte2;\n\n            return utf16;\n        }\n    }, {\n        key: 'add',\n        value: function add(word) {\n            var node = this.root,\n                bytes = this.toBytes(word),\n                len = bytes.length;\n            for (var i = 0; i < len; i++) {\n                var c = bytes[i];\n\n                if (!(c in node.childs)) {\n                    node.childs[c] = new YYIMAINode(c);\n                }\n                node = node.childs[c];\n            }\n            node.asWord();\n        }\n    }, {\n        key: 'search',\n        value: function search(bytes) {\n            var node = this.root,\n                len = bytes.length,\n                result = [];\n            var word = [],\n                j = 0;\n            for (var i = 0; i < len; i++) {\n                var c = bytes[i],\n                    childs = node.childs;\n                if (!(c in childs)) {\n                    return result;\n                }\n\n                if (c < 0x80) {\n                    word.push(String.fromCharCode(c));\n                } else {\n                    j++;\n                    if (j % 3 == 0) {\n                        var b1 = bytes[i - 2];\n                        var b2 = bytes[i - 1];\n                        var b3 = c;\n                        word.push(String.fromCharCode(this.toUTF16(b1, b2, b3)));\n                    }\n                }\n\n                if (word.join('') in stop) {\n                    return result;\n                }\n\n                var cnode = childs[c];\n                if (cnode.isWord()) {\n                    cnode.addCount();\n                    result.push(word.join(''));\n                }\n                node = cnode;\n            }\n\n            return result;\n        }\n    }, {\n        key: 'splitWords',\n        value: function splitWords(words) {\n            var bytes = this.toBytes(words);\n            var start = 0,\n                end = bytes.length - 1,\n                result = [];\n\n            while (start != end) {\n                var word = [];\n                for (var i = start; i <= end; i++) {\n                    var b = bytes[i];\n                    word.push(b);\n\n                    var finds = this.search(word);\n                    if (finds !== false && finds.length > 0) {\n                        result = result.concat(finds);\n                    }\n                }\n                start++;\n            }\n\n            return result;\n        }\n    }, {\n        key: 'init',\n        value: function init(dict) {\n            for (var i = 0; i < dict.length; i++) {\n                this.add(dict[i]);\n            }\n        }\n    }]);\n    return YYIMAITrie;\n}();\n\nvar YYAIAbility = function () {\n    function YYAIAbility() {\n        (0, _classCallCheck3.default)(this, YYAIAbility);\n\n        this.dicts = [];\n        this.stopKeyword = { \"的\": 1 };\n\n        this.isOpenFilter = false;\n\n        this.isAIAbility = true;\n    }\n\n    (0, _createClass3.default)(YYAIAbility, [{\n        key: 'openAIAbility',\n        value: function openAIAbility(isAIAbility) {\n            this.isAIAbility = isAIAbility;\n        }\n    }, {\n        key: 'openFilterWords',\n        value: function openFilterWords(isOpenFilter) {\n            this.isOpenFilter = isOpenFilter;\n        }\n    }, {\n        key: 'setDictionaries',\n        value: function setDictionaries(dictArray) {\n            if (dictArray) {\n                for (var i = 0; i < dictArray.length; i++) {\n                    this.dicts.push(dictArray[i]);\n                }\n            }\n        }\n    }, {\n        key: 'intelligentAnalysis',\n        value: function intelligentAnalysis(keyword) {\n            if (!this.isOpenFilter) {\n                return true;\n            }\n            if (keyword && this.isAIAbility) {\n                var trie = new YYIMAITrie();\n                trie.init(this.dicts);\n                var result = trie.splitWords(keyword);\n                return result.length > 0;\n            }\n            return false;\n        }\n    }]);\n    return YYAIAbility;\n}();\n\nexports.default = new YYAIAbility();\n\n//# sourceURL=webpack:///./src/util/YYAIAbility.js?");
+
+/***/ }),
+
+/***/ "./src/util/YYIMConsoleLogger.js":
+/*!***************************************!*\
+  !*** ./src/util/YYIMConsoleLogger.js ***!
+  \***************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+eval("\n\nObject.defineProperty(exports, \"__esModule\", {\n\tvalue: true\n});\nexports.YYIMConsoleLogger = undefined;\n\nvar _classCallCheck2 = __webpack_require__(/*! babel-runtime/helpers/classCallCheck */ \"./node_modules/_babel-runtime@6.26.0@babel-runtime/helpers/classCallCheck.js\");\n\nvar _classCallCheck3 = _interopRequireDefault(_classCallCheck2);\n\nvar _config = __webpack_require__(/*! ../config/config */ \"./src/config/config.js\");\n\nfunction _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }\n\nvar YYIMConsoleLogger = function YYIMConsoleLogger(level) {\n\tvar _this = this,\n\t    _arguments = arguments;\n\n\t(0, _classCallCheck3.default)(this, YYIMConsoleLogger);\n\n\tthis.level = !level ? level == 0 ? 0 : 3 : level;\n\tthis.start = function () {};\n\n\tthis.log = function (groupname, level, obj1, obj2) {\n\t\tif (!_config.YYIMConfiguration.LOG.ENABLE) {\n\t\t\treturn;\n\t\t}\n\t\tlevel = !level ? level == 0 ? 0 : 3 : level;\n\t\tif (level > _this.level) {\n\t\t\treturn;\n\t\t}\n\t\tif (typeof console == 'undefined' || typeof console.group == 'undefined') {\n\t\t\treturn;\n\t\t}\n\t\ttry {\n\t\t\tconsole.group(groupname);\n\t\t\tswitch (level) {\n\t\t\t\tcase 0:\n\t\t\t\t\tconsole.error(groupname);\n\t\t\t\t\tconsole.trace();\n\t\t\t\t\tbreak;\n\t\t\t\tcase 1:\n\t\t\t\t\tconsole.warn(groupname);\n\t\t\t\t\tconsole.trace();\n\t\t\t\t\tbreak;\n\t\t\t\tcase 2:\n\t\t\t\t\tconsole.info(groupname);\n\t\t\t\t\tbreak;\n\t\t\t\tcase 4:\n\t\t\t\t\tconsole.debug(groupname);\n\t\t\t\t\tbreak;\n\t\t\t\tdefault:\n\t\t\t\t\tconsole.log(groupname);\n\t\t\t\t\tbreak;\n\t\t\t}\n\t\t\tvar argLength = _arguments.length;\n\t\t\tif (argLength > 2) {\n\t\t\t\tfor (var i = 2; i < argLength; i++) {\n\t\t\t\t\tvar obj = _arguments[i];\n\t\t\t\t\tif (obj) {\n\t\t\t\t\t\tif (obj instanceof JSJaCPacket) {\n\t\t\t\t\t\t\tconsole.info(obj.doc.xml);\n\t\t\t\t\t\t} else {\n\t\t\t\t\t\t\tconsole.debug(obj);\n\t\t\t\t\t\t}\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t}\n\t\t\tconsole.groupEnd();\n\t\t} catch (e1) {\n\t\t\ttry {\n\t\t\t\tconsole.error(e1);\n\t\t\t} catch (e2) {}\n\t\t}\n\t};\n\tthis.logParam = function (level) {\n\t\tlevel = level || 3;\n\t\tvar caller = _this.logParam.caller;\n\t\t_this.log(\"arguments:\", level, caller.arguments);\n\t};\n\tthis.setLevel = function (level) {\n\t\t_this.level = level;\n\t\treturn _this;\n\t};\n\tthis.getLevel = function () {\n\t\treturn _this.level;\n\t};\n};\n\nexports.YYIMConsoleLogger = YYIMConsoleLogger;\n\n//# sourceURL=webpack:///./src/util/YYIMConsoleLogger.js?");
+
+/***/ }),
+
+/***/ "./src/util/YYIMJIDUtil.js":
+/*!*********************************!*\
+  !*** ./src/util/YYIMJIDUtil.js ***!
+  \*********************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+eval("\n\nObject.defineProperty(exports, \"__esModule\", {\n\tvalue: true\n});\nexports.YYIMJIDUtil = undefined;\n\nvar _constant = __webpack_require__(/*! ../config/constant */ \"./src/config/constant.js\");\n\nvar _config = __webpack_require__(/*! ../config/config */ \"./src/config/config.js\");\n\nvar _manager = __webpack_require__(/*! ../core/manager */ \"./src/core/manager.js\");\n\nvar getBareJID = function getBareJID(jid) {\n\tvar userBareJid = _manager.YYIMManager.getInstance().getUserBareJID();\n\tvar tmpJid = void 0;\n\tif (jid) {\n\t\tif (jid instanceof JSJaCJID) {\n\t\t\tif (jid.getBareJID() == userBareJid) return jid.toString();\n\t\t\treturn jid.getBareJID();\n\t\t} else if (typeof jid == \"string\") {\n\t\t\ttmpJid = new JSJaCJID(jid);\n\t\t\tif (tmpJid.getBareJID() == userBareJid) return tmpJid.toString();\n\t\t\treturn tmpJid.getBareJID();\n\t\t} else if (jid.jid && jid.jid instanceof JSJaCJID) {\n\t\t\ttmpJid = jid.jid;\n\t\t\tif (tmpJid.getBareJID() == userBareJid) return tmpJid.toString();\n\t\t\treturn tmpJid.getBareJID();\n\t\t}\n\t}\n\tthrow new JSJaCJIDInvalidException(\"invalid jid: \" + jid);\n};\n\nvar getID = function getID(jid) {\n\tvar appkey = void 0,\n\t    tmp = void 0,\n\t    index = void 0,\n\t    id = void 0;\n\tid = YYIMCommonUtil.isStringAndNotEmpty(jid) ? (appkey = _manager.YYIMManager.getInstance().getAppkey(), index = jid.indexOf('@'), index != -1 ? (tmp = jid.substring(0, index), tmp.indexOf(appkey) > 0 ? tmp.replace(appkey, '') : tmp) : jid.indexOf(appkey) > 0 ? jid.replace(appkey, '') : jid) : null;\n\treturn id ? id.toString() : id;\n};\n\nvar YYIMJIDUtil = {\n\tgetNode: function getNode(jid) {\n\t\tjid = jid.toString();\n\t\tif (YYIMCommonUtil.isStringAndNotEmpty(jid)) {\n\t\t\tvar appkey = _manager.YYIMManager.getInstance().getAppkey();\n\t\t\tvar node = jid;\n\n\t\t\tif (node.indexOf('\\@') > -1) {\n\t\t\t\tif (node.indexOf('\\@') === 0) {\n\t\t\t\t\tthrow \"\\\"\" + jid + \"\\\" Can't start with  \\\"@\\\"!\";\n\t\t\t\t} else {\n\t\t\t\t\tnode = node.substring(0, node.indexOf('\\@'));\n\t\t\t\t}\n\t\t\t}\n\n\t\t\tif (node.indexOf('\\.') > -1) {\n\t\t\t\tif (node.indexOf('\\.') === 0) {\n\t\t\t\t\tthrow \"\\\"\" + jid + \"\\\" Can't start with \\\".\\\"!\";\n\t\t\t\t} else {\n\t\t\t\t\tnode = node.substring(0, node.indexOf('\\.'));\n\t\t\t\t}\n\t\t\t}\n\t\t\treturn node ? node + appkey : node;\n\t\t} else {\n\t\t\tthrow \"\\\"\" + jid + \"\\\" Can't be Number Or Empty!\";\n\t\t}\n\t},\n\tgetResource: function getResource(jid) {\n\t\treturn YYIMCommonUtil.isStringAndNotEmpty(jid) ? jid.indexOf('/') != -1 ? jid.substring(jid.indexOf('/') + 1) : null : null;\n\t},\n\tbuildUserJID: function buildUserJID(idOrJid, resource) {\n\t\treturn YYIMCommonUtil.isStringAndNotEmpty(idOrJid) ? idOrJid.indexOf('@') != -1 ? idOrJid : idOrJid + '@' + _config.YYIMConfiguration.YY_IM_DOMAIN + (resource ? '/' + resource : '') : null;\n\t},\n\tgetDomain: function getDomain(jid) {\n\t\treturn YYIMCommonUtil.isStringAndNotEmpty(jid) ? jid.indexOf('@') != -1 ? jid.substring(jid.indexOf('@') + 1) : null : null;\n\t},\n\tbuildChatGroupJID: function buildChatGroupJID(idOrJid) {\n\t\treturn YYIMCommonUtil.isStringAndNotEmpty(idOrJid) ? idOrJid.indexOf('@') != -1 ? idOrJid : idOrJid + '@' + _config.YYIMConfiguration.DOMAIN.CHATROOM : null;\n\t},\n\tbuildPubAccountJID: function buildPubAccountJID(idOrJid) {\n\t\treturn YYIMCommonUtil.isStringAndNotEmpty(idOrJid) ? idOrJid.indexOf('@') != -1 ? idOrJid : idOrJid + '@' + _config.YYIMConfiguration.DOMAIN.PUBACCOUNT : null;\n\t},\n\tgetChatTypeByJid: function getChatTypeByJid(Jid) {\n\t\tif (!!Jid) {\n\t\t\tswitch (YYIMJIDUtil.getDomain(Jid)) {\n\t\t\t\tcase _config.YYIMConfiguration.DOMAIN.CHATROOM:\n\t\t\t\t\treturn _constant.CHAT_TYPE.GROUP_CHAT;\n\t\t\t\tcase _config.YYIMConfiguration.DOMAIN.PUBACCOUNT:\n\t\t\t\t\treturn _constant.CHAT_TYPE.PUB_ACCOUNT;\n\t\t\t\tdefault:\n\t\t\t\t\treturn _constant.CHAT_TYPE.CHAT;\n\t\t\t}\n\t\t}\n\t},\n\n\tgetBareJID: getBareJID,\n\tgetID: getID\n};\n\nexports.YYIMJIDUtil = YYIMJIDUtil;\n\n//# sourceURL=webpack:///./src/util/YYIMJIDUtil.js?");
+
+/***/ })
+
+/******/ });

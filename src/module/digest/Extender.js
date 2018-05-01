@@ -1,3 +1,10 @@
+import { YYIMManager } from '../../core/manager';
+import {
+    getRecentDigset,
+    removeRecentDigest
+
+} from './Manager';
+
 /**
  * 获取最近联系人（群组、公众号）摘要列表 rongqb 20160908
  * @param arg {
@@ -13,7 +20,7 @@ YYIMManager.prototype.getRecentDigset = function(arg) {
 	if(!(YYIMUtil['isWhateType'](arg.size,'Number') &&  arg.size > 0)){
 		delete arg.size;		
 	}
-	Manager.getRecentDigset(arg);
+	getRecentDigset(arg);
 };
 
 /**
@@ -27,7 +34,7 @@ YYIMManager.prototype.getRecentDigset = function(arg) {
  */
 YYIMManager.prototype.removeRecentDigest = function(arg) {
 	if(arg.id){
-		Manager.removeRecentDigest(arg);
+		removeRecentDigest(arg);
 	}else{
 		arg && arg.error && arg.error();	
 	}	

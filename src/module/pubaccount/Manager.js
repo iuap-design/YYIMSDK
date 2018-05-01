@@ -1,5 +1,6 @@
-var Manager = (function() {
-    /**
+import { YYIMChat } from '../../core/manager';
+
+     /**
      * 查询自己所关注的公共号
      * @param arg {success: function, error: function, complete:function}
      */
@@ -180,13 +181,12 @@ var Manager = (function() {
         });
     }
 
-    return {
-        monitor: monitor,
-        addPubAccount: addPubAccount,
-        getPubAccounts: getPubAccounts,
-        getPubAccountItems: getPubAccountItems,
-        getPubAccountInfo: getPubAccountInfo,
-        removePubAccount: removePubAccount,
-        queryPubaccount: queryPubaccount
+    export {
+        monitor,
+        addPubAccount,
+        getPubAccounts,
+        getPubAccountItems,
+        getPubAccountInfo,
+        removePubAccount,
+        queryPubaccount
     };
-})();

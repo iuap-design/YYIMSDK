@@ -1,6 +1,30 @@
+import { YYIMManager, YYIMChat } from '../../core/manager';
+import {
+    monitor,
+	approveSubscribe,
+	rejectSubscribe,
+	deleteRosterItem,
+	queryRosterItem,
+	getRostersPresence,
+	updateRosterItem,
+	setPresence,
+	getVCard,
+	getBatchVCards,
+	getVCards,
+	setVCard,
+	addRosterItem,
+	favoriteRoster,
+	cancelFavoriteRoster,
+	updateFavoriteRoster,
+	getFavoriteRosterList,
+	getRosterItems,
+	setTag,
+	removeTag
+} from './Manager';
+
 YYIMChat.setBackhander({
 	'monitor': {
-		'rosterMonitor': Manager.monitor
+		'rosterMonitor': monitor
 	},
 	'initCallback': {
 		'roster':  function(options){
@@ -30,7 +54,7 @@ YYIMManager.prototype.setPresence = function(arg){
 	if(arg && arg.status){
 		presence.status = arg.status;
 	}
-	Manager.setPresence(presence);
+	setPresence(presence);
 };
 
 /**
@@ -44,7 +68,7 @@ YYIMManager.prototype.setPresence = function(arg){
 YYIMManager.prototype.getVCard = function(arg) {
 	arg = arg || {};
 	if(arg){
-		Manager.getVCard({
+		getVCard({
 			id: arg.id,
 			success : arg.success,
 			error : arg.error
@@ -57,12 +81,12 @@ YYIMManager.prototype.getVCard = function(arg) {
 /**
  *  批量拉取roster Vcard
  */
-var batchVcardsList = new BaseList();
-var batchVcardsTimer;
-var getBatchVCards = function(){
-	var handler = batchVcardsList;
+let batchVcardsList = new BaseList();
+let batchVcardsTimer;
+let _getBatchVCards = function(){
+	let handler = batchVcardsList;
 	batchVcardsList = new BaseList();
-	Manager.getBatchVCards({
+	getBatchVCards({
 		ids: JSON.stringify(handler.keys()),
 		success: function(vcards){
 			handler.forEach(function(item,index){
@@ -96,10 +120,10 @@ YYIMManager.prototype.getBatchVCards = function(arg) {
         batchVcardsList.set(arg.id, arg);
         clearTimeout(batchVcardsTimer);
         if (batchVcardsList.length() >= this.getConfig().BETCH_MAXLIMIT.ROSTER) {
-            getBatchVCards();
+            _getBatchVCards();
         } else {
             batchVcardsTimer = setTimeout(function() {
-                getBatchVCards();
+                _getBatchVCards();
             }, 200);
         }
     } else {
@@ -117,7 +141,7 @@ YYIMManager.prototype.getBatchVCards = function(arg) {
  */
 YYIMManager.prototype.getVCards = function(arg) {
 	if(arg){
-		Manager.getVCards({
+		getVCards({
 			success : arg.success,
 			error : arg.error,
 			complete : arg.complete
@@ -146,7 +170,7 @@ YYIMManager.prototype.getVCards = function(arg) {
  * }
  */
 YYIMManager.prototype.setVCard = function(arg) {
-	Manager.setVCard({
+	setVCard({
 		vcard : {
 			nickname : arg.nickname,
 			photo : arg.photo,
@@ -178,7 +202,7 @@ YYIMManager.prototype.setVCardTag = function(arg){
 	arg = arg || {};
 	if(YYIMArrayUtil.isArray(arg.tag)){
 		var that = this;
-		Manager.setTag({
+		setTag({
 			tag: arg.tag,
 			success: function(targetId){
 				that.getVCard({
@@ -207,7 +231,7 @@ YYIMManager.prototype.removeVCardTag = function(arg){
 	arg = arg || {};
 	if(YYIMArrayUtil.isArray(arg.tag)){
 		var that = this;
-		Manager.removeTag({
+		removeTag({
 			tag: arg.tag,
 			success: function(targetId){
 				that.getVCard({
@@ -237,7 +261,7 @@ YYIMManager.prototype.removeVCardTag = function(arg){
 YYIMManager.prototype.setRosterTag = function(arg){
 	arg = arg || {};
 	if(arg.id && YYIMArrayUtil.isArray(arg.tag) && arg.id != this.getUserID()){
-		Manager.setTag({
+		setTag({
 			id: arg.id,
 			tag: arg.tag,
 			success: function(targetId){
@@ -262,7 +286,7 @@ YYIMManager.prototype.setRosterTag = function(arg){
 YYIMManager.prototype.removeRosterTag = function(arg){
 	arg = arg || {};
 	if(arg.id && YYIMArrayUtil.isArray(arg.tag) && arg.id != this.getUserID()){
-		Manager.removeTag({
+		removeTag({
 			id: arg.id,
 			tag: arg.tag,
 			success: function(targetId){
@@ -285,7 +309,7 @@ YYIMManager.prototype.removeRosterTag = function(arg){
  * }
  */
 YYIMManager.prototype.getRosterItems = function(arg){
-	Manager.getRosterItems(arg);
+	getRosterItems(arg);
 };
 
 /**
@@ -294,7 +318,7 @@ YYIMManager.prototype.getRosterItems = function(arg){
  */
 YYIMManager.prototype.addRosterItem = function(id){
 	if(YYIMCommonUtil.isStringAndNotEmpty(id)) {
-		Manager.addRosterItem(YYIMChat.getJIDUtil().buildUserJID(YYIMChat.getJIDUtil().getNode(id)));
+		addRosterItem(YYIMChat.getJIDUtil().buildUserJID(YYIMChat.getJIDUtil().getNode(id)));
 	}
 };
 
@@ -304,7 +328,7 @@ YYIMManager.prototype.addRosterItem = function(id){
  */
 YYIMManager.prototype.approveSubscribe = function(id) {
 	if(YYIMCommonUtil.isStringAndNotEmpty(id)) {
-		Manager.approveSubscribe(YYIMChat.getJIDUtil().buildUserJID(YYIMChat.getJIDUtil().getNode(id)));
+		approveSubscribe(YYIMChat.getJIDUtil().buildUserJID(YYIMChat.getJIDUtil().getNode(id)));
 	}
 };
 
@@ -314,7 +338,7 @@ YYIMManager.prototype.approveSubscribe = function(id) {
  */
 YYIMManager.prototype.rejectSubscribe = function(id) {
 	if(YYIMCommonUtil.isStringAndNotEmpty(id)) {
-		Manager.rejectSubscribe(YYIMChat.getJIDUtil().buildUserJID(YYIMChat.getJIDUtil().getNode(id)));
+		rejectSubscribe(YYIMChat.getJIDUtil().buildUserJID(YYIMChat.getJIDUtil().getNode(id)));
 	}
 };
 
@@ -324,7 +348,7 @@ YYIMManager.prototype.rejectSubscribe = function(id) {
  */
 YYIMManager.prototype.deleteRosterItem = function(arg) {
 	if(YYIMCommonUtil.isStringAndNotEmpty(arg.id)) {
-		Manager.deleteRosterItem({
+		deleteRosterItem({
 			jid: YYIMChat.getJIDUtil().buildUserJID(YYIMChat.getJIDUtil().getNode(arg.id)),
 			success: arg.success,
 			error: arg.error
@@ -338,7 +362,7 @@ YYIMManager.prototype.deleteRosterItem = function(arg) {
  */
 YYIMManager.prototype.queryRosterItem = function(arg) {
 	if(YYIMCommonUtil.isStringAndNotEmpty(arg.keyword)) {
-		Manager.queryRosterItem(arg);
+		queryRosterItem(arg);
 	}
 };
 
@@ -355,7 +379,7 @@ YYIMManager.prototype.queryRosterItem = function(arg) {
 YYIMManager.prototype.getRostersPresence = function(arg) {
 	if(YYIMArrayUtil.isArray(arg.username)) {
 		arg.username = JSON.stringify(arg.username);
-		Manager.getRostersPresence(arg);
+		getRostersPresence(arg);
 	}
 };
 
@@ -373,7 +397,7 @@ YYIMManager.prototype.getRostersPresence = function(arg) {
  */
 YYIMManager.prototype.updateRosterItem = function(arg) {
 	if(arg && arg.roster && YYIMCommonUtil.isStringAndNotEmpty(arg.roster.id)) {
-		Manager.updateRosterItem({
+		updateRosterItem({
 			roster: {
 				jid: YYIMChat.getJIDUtil().buildUserJID(YYIMChat.getJIDUtil().getNode(arg.roster.id)),
 				name: arg.roster.name,
@@ -393,9 +417,9 @@ YYIMManager.prototype.favoriteRoster = function(id,type){
 	if(YYIMUtil['isWhateType'](id,'String')){
 		var jid = YYIMChat.getJIDUtil().buildUserJID(YYIMChat.getJIDUtil().getNode(id));
 		if(type == YYIMChat.getConstants().FAVORITE_TYPE.REMOVE){
-			Manager.cancelFavoriteRoster(jid);
+			cancelFavoriteRoster(jid);
 		}else{
-			Manager.favoriteRoster(jid);
+			favoriteRoster(jid);
 		}
 	}
 };
@@ -407,7 +431,7 @@ YYIMManager.prototype.favoriteRoster = function(id,type){
 YYIMManager.prototype.updateFavoriteRoster = function(id,name){
 	if(YYIMUtil['isWhateType'](id,'String') && YYIMUtil['isWhateType'](name,'String')){
 		var jid = YYIMChat.getJIDUtil().buildUserJID(YYIMChat.getJIDUtil().getNode(id));
-		Manager.updateFavoriteRoster(jid,name);
+		updateFavoriteRoster(jid,name);
 	}
 };
 
@@ -420,7 +444,7 @@ YYIMManager.prototype.updateFavoriteRoster = function(id,name){
  */
 YYIMManager.prototype.getFavoriteRosterList = function(arg){
 	arg = arg || {};
-	Manager.getFavoriteRosterList({
+	getFavoriteRosterList({
 		success: arg.success,
 		error: arg.error
 	});

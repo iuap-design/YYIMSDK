@@ -1,5 +1,6 @@
-var Manager = (function(){
-	/**
+    import { YYIMManager, YYIMChat } from '../../core/manager';
+    
+    /**
      * 设置IM具备AI能力 yaoleib20171214
      * arg {
 	 * success:function,
@@ -131,10 +132,9 @@ var Manager = (function(){
         });
     }
 
-	return {
-        setAIAbility: setAIAbility,
-        getAIWords: getAIWords,
-        getMultiTerminals: getMultiTerminals,
-        sendMultiTerminalsCommand: sendMultiTerminalsCommand
+	export {
+        setAIAbility,
+        getAIWords,
+        getMultiTerminals,
+        sendMultiTerminalsCommand
 	};
-})();

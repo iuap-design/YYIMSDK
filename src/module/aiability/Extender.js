@@ -1,3 +1,13 @@
+import YYAIAbility from '../../util/YYAIAbility';
+import { YYIMManager, YYIMChat } from '../../core/manager';
+import {
+    setAIAbility,
+    getAIWords,
+    getMultiTerminals,
+    sendMultiTerminalsCommand
+
+} from './Manager';
+
 /**
  * 设置IM具备AI能力 yaoleib20171214
  * arg {
@@ -9,7 +19,7 @@
 YYIMManager.prototype.setAIAbility = function(arg){
     arg = arg || {};
     if(!!arg.intelligentable){
-        Manager.setAIAbility(arg);
+        setAIAbility(arg);
     }else{
         arg.error && arg.error();
     }
@@ -24,7 +34,7 @@ YYIMManager.prototype.setAIAbility = function(arg){
  * }
  */
 YYIMManager.prototype.getAIWords = function(arg){
-    Manager.getAIWords(arg || {});
+    getAIWords(arg || {});
 };
 
 /**
@@ -87,7 +97,7 @@ YYIMManager.prototype.intelligentAnalysis = function(keyword){
  * }
  */
 YYIMManager.prototype.getMultiTerminals = function(arg){
-    Manager.getMultiTerminals(arg || {});
+    getMultiTerminals(arg || {});
 };
 
 /**
@@ -99,5 +109,5 @@ YYIMManager.prototype.getMultiTerminals = function(arg){
  * }
  */
 YYIMManager.prototype.sendMultiTerminalsCommand = function(arg){
-    Manager.sendMultiTerminalsCommand(arg || {});
+    sendMultiTerminalsCommand(arg || {});
 };

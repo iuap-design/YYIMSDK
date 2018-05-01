@@ -1,6 +1,12 @@
+import { YYIMManager, YYIMChat } from '../../core/manager';
+import {
+    monitor,
+	inputStateChange
+} from './Manager';
+
 YYIMChat.setBackhander({
 	'monitor': {
-		'inputStateMonitor': Manager.monitor
+		'inputStateMonitor': monitor
 	}
 });
 
@@ -16,7 +22,7 @@ YYIMChat.setBackhander({
 YYIMManager.prototype.inputStateChange = function(arg){
 	if(arg && arg.to){
 		arg.contentType = arg.contentType || YYIMChat.getConstants().MESSAGE_CONTENT_TYPE.TEXT;
-		Manager.inputStateChange(arg);
+		inputStateChange(arg);
 	}else{
 		arg && arg.error && arg.error();
 	}

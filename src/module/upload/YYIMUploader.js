@@ -1,3 +1,6 @@
+import { YYIMManager } from '../../core/manager';
+import { FileUpload } from './FileUpload';
+
 /**
  * 文件上传 rongqb 20160811
  * @param {Object} 

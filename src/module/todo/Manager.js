@@ -1,5 +1,5 @@
-var Manager = (function() {
-	
+import { YYIMChat } from '../../core/manager';
+
 	/**
 	 * 发送代办回执 rongqb 20171114
 	 * @param {Object} arg
@@ -111,9 +111,8 @@ var Manager = (function() {
 		});
 	}
 
-	return {
-		getTodoDigset: getTodoDigset,
-		getHistoryTodo: getHistoryTodo,
-		sendToDoReceipts: sendToDoReceipts
+	export {
+		getTodoDigset,
+		getHistoryTodo,
+		sendToDoReceipts
 	};
-})();

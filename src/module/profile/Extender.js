@@ -1,3 +1,14 @@
+import { YYIMManager, YYIMChat } from '../../core/manager';
+import {
+    getProfile,
+	muteStick,
+	cancelMuteStick,
+	createProfile,
+	removeProfile,
+	clearProfile,
+	removeGroupAssistant
+} from './Manager';
+
 /**
  * 获取用户Profile信息包括静音和置顶信息 rongqb 20160719
  * arg {
@@ -8,7 +19,7 @@
  */
 YYIMManager.prototype.getProfile = function(arg){
 	// 获取存储热词时间戳 yaoleib20171212
-	Manager.getProfile({
+	getProfile({
 		success: function(data){
 			var intelligentable = data.intelligentable;
 			var intelligentWordsTime = data.intelligentWordsTime;
@@ -41,7 +52,7 @@ YYIMManager.prototype.mute = function(arg){
 	arg = arg || {};
 	if(!!arg.to){
 		arg.handle = 'mute';
-		Manager.muteStick(arg);
+		muteStick(arg);
 	}else{
 		arg.error && arg.error();
 	}
@@ -61,7 +72,7 @@ YYIMManager.prototype.stick = function(arg){
 	arg = arg || {};
 	if(!!arg.to){
 		arg.handle = 'stick';
-		Manager.muteStick(arg);
+		muteStick(arg);
 	}else{
 		arg.error && arg.error();
 	}
@@ -80,7 +91,7 @@ YYIMManager.prototype.stick = function(arg){
 YYIMManager.prototype.cancelMute = function(arg){
 	var that = this;
 	if(arg && arg.to){
-		Manager.cancelMuteStick({
+		cancelMuteStick({
 			to: arg.to,
 			type: arg.type,
 			handle: 'mute',
@@ -117,7 +128,7 @@ YYIMManager.prototype.cancelMute = function(arg){
 YYIMManager.prototype.cancelStick = function(arg){
 	if(arg && arg.to){
 		arg.handle = 'stick';
-		Manager.cancelMuteStick(arg);
+		cancelMuteStick(arg);
 	}else{
 		arg && arg.error && arg.error();
 	}
@@ -135,7 +146,7 @@ YYIMManager.prototype.cancelStick = function(arg){
 YYIMManager.prototype.createProfile = function(arg){
 	arg = arg || {};
 	if(!!arg.profile){
-		Manager.createProfile(arg);
+		createProfile(arg);
 	}else{
 		arg.error && arg.error();
 	}
@@ -153,7 +164,7 @@ YYIMManager.prototype.createProfile = function(arg){
 YYIMManager.prototype.removeProfile = function(arg){
 	arg = arg || {};
 	if(YYIMArrayUtil.isArray(arg.profiles)){
-		Manager.removeProfile(arg);
+		removeProfile(arg);
 	}else{
 		arg.error && arg.error();
 	}
@@ -168,7 +179,7 @@ YYIMManager.prototype.removeProfile = function(arg){
  * }
  */
 YYIMManager.prototype.clearProfile = function(arg){
-	Manager.clearProfile(arg || {});
+	clearProfile(arg || {});
 };
 
 /**
@@ -181,7 +192,7 @@ YYIMManager.prototype.clearProfile = function(arg){
  */
 YYIMManager.prototype.removeGroupAssistant = function(arg){
 	if(arg && arg.id){
-		Manager.removeGroupAssistant(arg);
+		removeGroupAssistant(arg);
 	}else{
 		arg && arg.error && arg.error();
 	}

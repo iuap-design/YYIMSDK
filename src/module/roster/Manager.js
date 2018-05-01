@@ -1,4 +1,4 @@
-var Manager = (function() {
+import { YYIMChat } from '../../core/manager';
 
 	/**
 	 * 请求自己或好友的VCard
@@ -571,26 +571,25 @@ var Manager = (function() {
 
 	}
 
-	return {
-		monitor: monitor,
-		approveSubscribe: approveSubscribe,
-		rejectSubscribe: rejectSubscribe,
-		deleteRosterItem: deleteRosterItem,
-		queryRosterItem: queryRosterItem,
-		getRostersPresence: getRostersPresence,
-		updateRosterItem: updateRosterItem,
-		setPresence: setPresence,
-		getVCard: getVCard,
-		getBatchVCards: getBatchVCards,
-		getVCards: getVCards,
-		setVCard: setVCard,
-		addRosterItem: addRosterItem,
-		favoriteRoster: favoriteRoster,
-		cancelFavoriteRoster: cancelFavoriteRoster,
-		updateFavoriteRoster: updateFavoriteRoster,
-		getFavoriteRosterList: getFavoriteRosterList,
-		getRosterItems: getRosterItems,
-		setTag: setTag,
-		removeTag: removeTag
+	export {
+		monitor,
+		approveSubscribe,
+		rejectSubscribe,
+		deleteRosterItem,
+		queryRosterItem,
+		getRostersPresence,
+		updateRosterItem,
+		setPresence,
+		getVCard,
+		getBatchVCards,
+		getVCards,
+		setVCard,
+		addRosterItem,
+		favoriteRoster,
+		cancelFavoriteRoster,
+		updateFavoriteRoster,
+		getFavoriteRosterList,
+		getRosterItems,
+		setTag,
+		removeTag
 	};
-})();

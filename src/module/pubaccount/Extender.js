@@ -1,6 +1,17 @@
+import { YYIMManager, YYIMChat } from '../../core/manager';
+import {
+    monitor,
+    addPubAccount,
+    getPubAccounts,
+    getPubAccountItems,
+    getPubAccountInfo,
+    removePubAccount,
+    queryPubaccount
+} from './Manager';
+
 YYIMChat.setBackhander({
 	'monitor': {
-		'pubaccountMonitor': Manager.monitor
+		'pubaccountMonitor': monitor
 	},
 	'initCallback': {
 		'pubaccount': function(options){
@@ -18,7 +29,7 @@ YYIMChat.setBackhander({
  * }
  */
 YYIMManager.prototype.getPubAccount = function(arg) {
-    Manager.getPubAccountItems(arg);
+    getPubAccountItems(arg);
 };
 
 /**
@@ -32,7 +43,7 @@ YYIMManager.prototype.getPubAccount = function(arg) {
  */
 YYIMManager.prototype.getPubAccounts = function(arg) {
     if (YYIMUtil['isWhateType'](arg.ids, 'Array')) {
-        Manager.getPubAccounts(arg);
+        getPubAccounts(arg);
     } else {
         arg && arg.error && arg.error();
     }
@@ -47,7 +58,7 @@ var batchInfosTimer;
 var getBatchInfos = function() {
     var handler = batchInfosList;
     batchInfosList = new BaseList();
-    Manager.getPubAccounts({
+    getPubAccounts({
         ids: handler.keys(),
         success: function(list, data) {
             handler.forEach(function(item, index) {
@@ -103,7 +114,7 @@ YYIMManager.prototype.getBatchPubInfos = function(arg) {
  */
 YYIMManager.prototype.getPubAccountInfo = function(arg){
 	if(YYIMCommonUtil.isStringAndNotEmpty(arg.id)) {
-		Manager.getPubAccountInfo(arg);
+		getPubAccountInfo(arg);
 	}else{
 		arg && arg.error && arg.error();
 	}
@@ -119,7 +130,7 @@ YYIMManager.prototype.getPubAccountInfo = function(arg){
  */
 YYIMManager.prototype.addPubaccount = function(arg){
 	if(YYIMCommonUtil.isStringAndNotEmpty(arg.id)) {
-		Manager.addPubAccount({
+		addPubAccount({
 			jid : YYIMChat.getJIDUtil().buildPubAccountJID(YYIMChat.getJIDUtil().getNode(arg.id)),
 			success : arg.success,
 			error : arg.error
@@ -139,7 +150,7 @@ YYIMManager.prototype.addPubaccount = function(arg){
  */
 YYIMManager.prototype.removePubaccount = function(arg){
 	if(YYIMCommonUtil.isStringAndNotEmpty(arg.id)) {
-		Manager.removePubAccount({
+		removePubAccount({
 			id : Math.uuid(),
 			to : YYIMChat.getJIDUtil().buildPubAccountJID(YYIMChat.getJIDUtil().getNode(arg.id)),
 			success : arg.success,
@@ -156,7 +167,7 @@ YYIMManager.prototype.removePubaccount = function(arg){
  */
 YYIMManager.prototype.queryPubaccount = function(arg){
 	if(YYIMCommonUtil.isStringAndNotEmpty(arg.keyword)) {
-		Manager.queryPubaccount(arg);
+		queryPubaccount(arg);
 	}else{
 		arg && arg.error && arg.error();
 	}

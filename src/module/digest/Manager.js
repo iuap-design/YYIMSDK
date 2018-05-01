@@ -1,5 +1,5 @@
-var Manager = (function() {
-
+import { YYIMChat } from '../../core/manager';
+	
 	/**
 	 * 获取最近联系（群组、公众号）摘要列表 rongqb 20160706
 	 * @param arg {
@@ -165,8 +165,7 @@ var Manager = (function() {
 		});
 	}
 
-	return {
-		getRecentDigset: getRecentDigset,
-		removeRecentDigest: removeRecentDigest
+	export {
+		getRecentDigset,
+		removeRecentDigest
 	};
-})();

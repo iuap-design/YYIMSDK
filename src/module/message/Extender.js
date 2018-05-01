@@ -1,6 +1,15 @@
+import { YYIMManager, YYIMChat } from '../../core/manager';
+import {
+    monitor,
+	sendMessage,
+	getHistoryMessage,
+	revokeMessage,
+	sendReceiptsPacket
+} from './Manager';
+
 YYIMChat.setBackhander({
 	'monitor': {
-		'messageMonitor': Manager.monitor
+		'messageMonitor': monitor
 	},
 	'initCallback': {
 		'message':  function(options){
@@ -35,7 +44,7 @@ YYIMManager.prototype.getHistoryMessage = function(arg){
 		arg.size = 100;
 	}
 
-	Manager.getHistoryMessage(arg);
+	getHistoryMessage(arg);
 };
 
 /**
@@ -50,7 +59,7 @@ YYIMManager.prototype.getHistoryMessage = function(arg){
 YYIMManager.prototype.sendReadedReceiptsPacket = function(arg){
 	if(arg && arg.id){
 		arg.state = 2;
-		Manager.sendReceiptsPacket(arg);
+		sendReceiptsPacket(arg);
 	}
 };
 
@@ -212,7 +221,7 @@ YYIMManager.prototype.sendMessage = function(arg){
 		arg.body.atuser = arg.atuser;
 	}
 
-	Manager.sendMessage(arg);
+	sendMessage(arg);
 };
 
 /**
@@ -228,7 +237,7 @@ YYIMManager.prototype.sendMessage = function(arg){
  */
 YYIMManager.prototype.revokeMessage = function(arg){
 	if(arg && arg.id){
-		Manager.revokeMessage(arg);
+		revokeMessage(arg);
 	}else{
 		arg && arg.error && arg.error();
 	}
@@ -264,7 +273,7 @@ YYIMManager.prototype.sendPic = function(arg){
 			beforeUpload: arg.beforeUpload,
 			mediaType: 1, //1:image ,2: file,3:doc
 			success: function(result){
-				Manager.sendMessage({
+				sendMessage({
 					id : result.chatInfo.messageId || Math.uuid(),
 					spaceId: result.chatInfo.spaceId,
 					body : {
@@ -366,7 +375,7 @@ YYIMManager.prototype.sendFile = function(arg){
 					});
 				}
 
-				Manager.sendMessage({
+				sendMessage({
 					id : result.chatInfo.messageId || Math.uuid(),
 					spaceId: result.chatInfo.spaceId,
 					body : {

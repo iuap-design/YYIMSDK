@@ -399,7 +399,6 @@ var SERVICE_OPCODE = {
 	 */
 	SERVICE_RECEIPTS : new _Opcode('ServiceReceipts', 0x1802)
 };
-
 YYIMUtil.extend(OPCODE,SERVICE_OPCODE);
 
 /**
