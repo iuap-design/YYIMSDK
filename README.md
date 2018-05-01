@@ -24,7 +24,7 @@
 - [设置置顶](https://iuap-design.github.io/YYIMSDK/profile.html)
 - [登录和退出](https://iuap-design.github.io/YYIMSDK/%E7%99%BB%E9%99%86%E9%80%80%E5%87%BA.html)
 
-## YYIM 接入指南
+## YYIMSDK 快速接入指南
 
 ### 第一步：在html文件头部先后引入 jquery.js 和 YYIMSDK.js(或者YYIMSDK.min.js)。
 ```html
@@ -150,24 +150,21 @@
     });
 ```
 
-## Contribute 如何参与IMSDK的修改
+## 说明
+```
+_docs 是YYIMSDK.js的html说明文档；
+docs 是YYIMSDK.js的md说明文档；
+dist 是YYIMSDK.js的最终构建好的资源，其中YYIMSDK.esm.js是es6模块化部分；
+example 是web示例；
+src 是YYIMSDK.js的源码；
+```
 
+## 构建步骤
 ```
 $ npm i
-$ npm run build
+$ npm run dev //生成未压缩的YYIMSDK.esm.js
+$ npm run build //生成压缩的YYIMSDK.esm.js
+$ npm run gulpdev //把lib和YYIMSDK.esm.js合并，生成未压缩的YYIMSDK.js
+$ npm run gulpbuild //把lib和YYIMSDK.esm.js合并，生成压缩的YYIMSDK.min.js
 ```
-
-```
-# 开发
-$ npm run dev
-```
-
-## TODO
-
-- [ ] [将 gulp 改为 webpack，产出不同模块机的可用资源包，构建到 dist 目录]()
-- [ ] [按 ESM 的方式重构 src 下的代码]()
-- [ ] [将项目中引用到的资源存放到 src/vendors 目录]()
-- [ ] [根据使用方式完善 example 下的示例代码]()
-- [ ] [【重要】实现小友及智能端提出的功能需求]()
-- [x] [新增 github pages 最新文档官网]()
 
