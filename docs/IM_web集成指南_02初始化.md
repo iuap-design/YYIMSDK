@@ -10,21 +10,26 @@ WEB版的sdk主要依赖一个轻量级Javascript的程序库jQuery,这里对jQu
 
 例如：
     
-    <script type="text/javascript" src="./jquery-1.11.1.min.js"></script>
-    <script type="text/javascript" src="./YYIMSDK.js"></script>
+    <script type="text/javascript" src="./jquery-3.2.1.min.js"></script>
+    <script type="text/javascript" src="./YYIMSDK.min.js"></script>
+
+引入YYIMSDK后全局会有一个YYIMChat对象，一切操作都基于此对象来做。
 
 ### 2.3.初始化sdk
     YYIMChat.initSDK({
-		app: String, //appId
-		etp: String, //etpId
-		wsurl: String, //websocket Url
-		wsport: Number, //websocket port 5227/5222/5225
-		hbport: Number, //httpbind  port 7075/7070
-		servlet: String, //rest Url
+		app: String, //appId(应用id)
+		etp: String, //etpId(企业id)
+		wsurl: String, //websocket Url(长链接地址)
+		wsport: Number, //websocket port 5227/5222/5225(长链接端口)
+		hbport: Number, //httpbind  port 7075/7070(短链接端口)
+		servlet: String, //rest Url(短链接地址)
 		flash_swf_url: 'xxx/x/Moxie.swf', //flash 上传 swf文件位置
 		logEnable: false, //client log
-		clientMark: 'web' //client mark 'web' or 'pc'
+		clientMark: 'web' //client mark 'web' or 'pc',
+		apiKey: String  //AI KEY
 	}); 
+
+YYIMChat.initSDK(options)的主要作用是重置全局配置。
 
 ### 2.4.初始化回调方法			
 	YYIMChat.init({
@@ -91,7 +96,18 @@ WEB版的sdk主要依赖一个轻量级Javascript的程序库jQuery,这里对jQu
 		}
 	});
 
+YYIMChat.init(options)的作用是注册通讯回调逻辑。
 
-    
+### 2.5.SDK登陆			
+	YYIMChat.login({
+		"username": String, //用户名
+		"token": String,    //用户token
+		"expiration": String,  //过期时间
+		"appType": Number,   //应用类型
+		"identify": String   //认证信息
+	});
 
+YYIMChat.login(options)的作用是根据配置完成websocket连接。以上参数由应用登陆接口获得。
+
+完成以上三个初始化API后就能正常调用其他API了。
 

@@ -5,10 +5,8 @@
   "main": "./src/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "webpack --mode development",
-    "build": "webpack --mode production",
-    "gulpdev": "gulp dev",
-    "gulpbuild": "gulp build"
+    "dev": "gulp dev",
+    "build": "gulp build"
   },
   "keywords": [
     "yyimsdk"
@@ -25,7 +23,9 @@
     "gulp-concat": "^2.6.1",
     "gulp-rename": "^1.2.2",
     "gulp-uglify": "^3.0.0",
+    "vinyl-named": "^1.1.0",
     "webpack": "^4.6.0",
-    "webpack-cli": "^2.0.15"
+    "webpack-cli": "^2.0.15",
+    "webpack-stream": "^4.0.3"
   }
 }

@@ -18,7 +18,7 @@
             processData:false,
             contentType: "application/json", //必须有
             success: function(data){
-                arg.success && arg.success(arg);
+                arg.success && arg.success(data);
                 arg = null;
             },
             error: function(xhr){

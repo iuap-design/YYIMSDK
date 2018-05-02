@@ -154,7 +154,7 @@
 ```
 _docs 是YYIMSDK.js的html说明文档；
 docs 是YYIMSDK.js的md说明文档；
-dist 是YYIMSDK.js的最终构建好的资源，其中YYIMSDK.esm.js是es6模块化部分；
+dist 是YYIMSDK.js的最终构建好的资源，其中esm/YYIMSDK.esm.js是es6模块化部分；
 example 是web示例；
 src 是YYIMSDK.js的源码；
 ```
@@ -162,9 +162,7 @@ src 是YYIMSDK.js的源码；
 ## 构建步骤
 ```
 $ npm i
-$ npm run dev //生成未压缩的YYIMSDK.esm.js
-$ npm run build //生成压缩的YYIMSDK.esm.js
-$ npm run gulpdev //把lib和YYIMSDK.esm.js合并，生成未压缩的YYIMSDK.js
-$ npm run gulpbuild //把lib和YYIMSDK.esm.js合并，生成压缩的YYIMSDK.min.js
+$ npm run dev //把lib和YYIMSDK.esm.js合并，生成未压缩的YYIMSDK.js，并且监控src中js变化
+$ npm run build //把lib和YYIMSDK.esm.js合并，生成压缩的YYIMSDK.min.js
 ```
 

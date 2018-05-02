@@ -11,6 +11,7 @@ import {
 /**
  * 设置IM具备AI能力 yaoleib20171214
  * arg {
+ *  intelligentable:true,
  *  success:function,
  *  error:function,
  *  complete:function
