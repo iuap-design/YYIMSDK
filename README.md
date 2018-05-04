@@ -143,9 +143,6 @@
         },
         error: function (err) {
             console.log(err);
-        },
-        complete: function () {
-            //无论成功失败，请求完成之后执行
         }
     });
 ```
@@ -166,3 +163,11 @@ $ npm run dev //把lib和YYIMSDK.esm.js合并，生成未压缩的YYIMSDK.js，�
 $ npm run build //把lib和YYIMSDK.esm.js合并，生成压缩的YYIMSDK.min.js
 ```
 
+## todo
+1. 构建方面：
+        dist下的esm去掉，完全用webpack实现；
+        把构建完的进行处理区分开发和生产版本；
+        加上版本信息。
+2. 相互依赖的问题整理清楚。
+3. upload中文件swf文件单独放出去，swf的路径在initSDK配置。
+4. 低版本ie测试示例。

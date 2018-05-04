@@ -9,8 +9,9 @@
 	 * }
      */
     function setAIAbility(arg){
+        var config = YYIMChat.getConfig();
         jQuery.ajax({
-            url: YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + YYIMManager.getInstance().getUserID() + '/profile/intelligentable?token=' + YYIMManager.getInstance().getToken(),
+            url: config.SERVLET.REST_USER_SERVLET + config.MULTI_TENANCY.ETP_KEY + '/' + config.MULTI_TENANCY.APP_KEY + '/' + YYIMChat.getUserID() + '/profile/intelligentable?token=' + YYIMChat.getToken(),
             type: 'post',
             data: JSON.stringify(arg),
             dataType: 'json',
@@ -42,8 +43,9 @@
 	 * }
      */
     function getAIWords(arg){
+        var config = YYIMChat.getConfig();
 		jQuery.ajax({
-            url: YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + YYIMManager.getInstance().getUserID() + '/intelligent/words?token=' + YYIMManager.getInstance().getToken() + '&apiKey=' + YYIMChat.getApiKey(),
+            url: config.SERVLET.REST_USER_SERVLET + config.MULTI_TENANCY.ETP_KEY + '/' + config.MULTI_TENANCY.APP_KEY + '/' + YYIMChat.getUserID() + '/intelligent/words?token=' + YYIMChat.getToken() + '&apiKey=' + YYIMChat.getApiKey(),
             type: 'get',
             data: '',
             dataType: 'json',
@@ -75,8 +77,9 @@
 	 * }
      */
     function getMultiTerminals(arg){
+        var config = YYIMChat.getConfig();
 		jQuery.ajax({
-            url: YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + YYIMManager.getInstance().getUserID() + '/multiterminals?token=' + YYIMManager.getInstance().getToken(),
+            url: config.SERVLET.REST_USER_SERVLET + config.MULTI_TENANCY.ETP_KEY + '/' + config.MULTI_TENANCY.APP_KEY + '/' + YYIMChat.getUserID() + '/multiterminals?token=' + YYIMChat.getToken(),
             type: 'get',
             data: '',
             dataType: 'json',
@@ -108,8 +111,9 @@
 	 * }
      */
     function sendMultiTerminalsCommand(arg){
+        var config = YYIMChat.getConfig();
 		jQuery.ajax({
-            url: YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + YYIMManager.getInstance().getUserID() + '/multiterminals/command?token=' + YYIMManager.getInstance().getToken(),
+            url: config.SERVLET.REST_USER_SERVLET + config.MULTI_TENANCY.ETP_KEY + '/' + config.MULTI_TENANCY.APP_KEY + '/' + YYIMChat.getUserID() + '/multiterminals/command?token=' + YYIMChat.getToken(),
             type: 'POST',
             data: arg.data,
             dataType: 'json',

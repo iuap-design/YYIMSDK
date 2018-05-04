@@ -127,124 +127,324 @@
     <div class="row">
         <div class="col-md-9 markdown-body" role="main">
             
-            <h2 id="5.群组">5.群组</h2><h3 id="5.1.获取群组列表">5.1.获取群组列表</h3><pre><code>/**
+            <h2 id="5.群组">5.群组</h2><h3 id="5.1.获取群组列表">5.1.获取群组列表</h3><pre><code class="lang-js">/**
  * 获取群组列表
  * @param arg {
- * startDate: timestamp,
- * membersLimit: Number, //拉取成员数量，默认10
+ * startDate: timestamp, //开始时间戳，不传默认0
+ * membersLimit: Number, //拉取成员数量，不传默认10
  * success: function,    //成功回调函数
  * error: function,       //失败回调函数
- * complete:function     //无论成功失败都回调的函数
  * }
  */
-YYIMChat.getChatGroups(arg);
-</code></pre><h3 id="5.2.创建群组">5.2.创建群组</h3><pre><code>/**
+YYIMChat.getChatGroups({
+    startDate: 1525247354,
+    membersLimit: 20,
+    success:function(data){
+        console.log(data);
+    },
+    error:function(err){
+        console.log(err);
+    }
+});
+</code></pre>
+<h3 id="5.2.创建群组">5.2.创建群组</h3><pre><code class="lang-js">/**
+ * 查找群
+ * @param arg {
+ * keyword,  //关键字，必填
+ * start,  //开始时间戳，不传默认0
+ * size,   //拉取成员数量，不传默认20
+ * success: function, 
+ * error: function,
+ * complete: function
+ * }
+ */
+YYIMChat.queryChatGroup({
+    keyword: &#39;abc&#39;,
+    start: 1525247354,
+    size: 10,
+    success:function(data){
+        console.log(data);
+    },
+    error:function(err){
+        console.log(err);
+    },
+    complete:function(){}
+});
+</code></pre>
+<h3 id="5.3.加入群组">5.3.加入群组</h3><pre><code class="lang-js">/**
+ * 加入群组
+ * @param arg {
+ * id: String,  //群组id，必传
+ * success:function, 
+ * error:function
+ * }
+ */
+YYIMChat.joinChatGroup({
+    id: &#39;abc&#39;,
+    success:function(data){
+        console.log(data);
+    },
+    error:function(err){
+        console.log(err);
+    }
+});
+</code></pre>
+<h3 id="5.4.获取群组信息">5.4.获取群组信息</h3><pre><code class="lang-js">/**
+ * 获取群组信息
+ * @param arg {
+ * id : String, //群组id，必传
+ * membersLimit: Number, //群成员数量限制，可不传
+ * success : function, 
+ * error : function
+ * }
+ */
+YYIMChat.getChatGroupInfo({
+    id: &#39;abc&#39;,
+    membersLimit: 40,
+    success:function(data){
+        console.log(data);
+    },
+    error:function(err){
+        console.log(err);
+    }
+});
+</code></pre>
+<h3 id="5.5.创建群组">5.5.创建群组</h3><pre><code class="lang-js">/**
  * 创建群组
  * @param arg {
- * name:, //群名称
- * members:[], //初始化群成员
- * success:function,
- * complete:function
+ *     name: String, //群名称，必传
+ *     members:[], //群成员数组，必传，不能为空数组
+ *  success: function, 
+ *  error: function, 
+ *  complete:function
  * }
  */
-YYIMChat.createChatGroup(arg);
-</code></pre><h3 id="5.3.修改群名称">5.3.修改群名称</h3><pre><code>/**
+YYIMChat.createChatGroup({
+    name: &#39;abc&#39;,
+    members: [&#39;a&#39;, &#39;b&#39;],
+    to: &#39;abc&#39;,
+    success:function(data){
+        console.log(data);
+    },
+    error:function(err){
+        console.log(err);
+    },
+    complete:function(){}
+});
+</code></pre>
+<h3 id="5.6.群主转让群组">5.6.群主转让群组</h3><pre><code class="lang-js">/**
+ *  群主转让群组
+ *  @param arg {
+ *  to:String,  //群组id，必传 
+ *  newOwner:string,  //新群主id，必传
+ *  success:function,
+ *  error:function,
+ *  complete:function
+ *  }
+ */
+YYIMChat.transferChatGroup({
+    to: &#39;abc&#39;,
+    newOwner: &#39;cde&#39;,
+    success:function(data){
+        console.log(data);
+    },
+    error:function(err){
+        console.log(err);
+    },
+    complete:function(){}
+});
+</code></pre>
+<h3 id="5.7.群主解散群组">5.7.群主解散群组</h3><pre><code class="lang-js">/**
+ *  群主解散群组
+ *  @param arg {
+ *  to:String,  //群组id，必传
+ *  success:function,
+ *  error:function,
+ *  complete:function
+ *  }
+ */
+YYIMChat.dismissChatGroup({
+    to: &#39;abc&#39;,
+    success:function(data){
+        console.log(data);
+    },
+    error:function(err){
+        console.log(err);
+    },
+    complete:function(){}
+});
+</code></pre>
+<h3 id="5.8.群成员邀请人入群">5.8.群成员邀请人入群</h3><pre><code class="lang-js">/**
+ * 群成员邀请人入群
+ * @param arg {
+ *     to:String,  //群组id，必传 
+ *     members: Array,  //邀请的成员数组，必传，不能为空数组
+ *  success:function,
+ *  error:function,
+ *  complete:function
+ * }
+ */
+YYIMChat.inviteGroupMember({
+    to: &#39;abc&#39;,
+    members: [&#39;a&#39;, &#39;b&#39;],
+    success:function(data){
+        console.log(data);
+    },
+    error:function(err){
+        console.log(err);
+    },
+    complete:function(){}
+});
+</code></pre>
+<h3 id="5.9.群成员更改配置信息">5.9.群成员更改配置信息</h3><pre><code class="lang-js">/**
  * 群成员更改配置信息
  *  @param arg {
- *     to:String,群组id
- *     name:string, 
+ *     to:String,  //群组id，必传
+ *     name:string, //群名称，必传
  *     success: function,
  *     error:function,
  *     complete: function
  * }
  */
-YYIMChat.modifyChatGroupInfo(arg);
-</code></pre><h3 id="5.5.添加群成员">5.5.添加群成员</h3><pre><code>/**
- * 房间成员邀请人入群 
- * @param arg {
- *     to:String,
- *     members: Array,
- *  success:function,
- *  error:function,
- *  complete:function
- * }
- */
-YYIMChat.inviteGroupMember(arg);
-</code></pre><h3 id="5.5.群组踢人">5.5.群组踢人</h3><pre><code>/**
- * 群组踢人 
+YYIMChat.modifyChatGroupInfo({
+    to: &#39;abc&#39;,
+    name: &#39;cde&#39;,
+    success:function(data){
+        console.log(data);
+    },
+    error:function(err){
+        console.log(err);
+    },
+    complete:function(){}
+});
+</code></pre>
+<h3 id="5.10.群主踢人">5.10.群主踢人</h3><pre><code class="lang-js">/**
+ * 群主踢人 
  *  @param arg {
- *  to:String, //群组id
- *  member:string, //被踢人id，一次只能踢一个人
+ *  to:String, //群组id，必传
+ *  member:string, //被踢人id，一次只能踢一个人，必传
  *  success: function,
  *  error:function,
  *  complete: function
  *  }
  */
-YYIMChat.kickGroupMember(arg);
-</code></pre><h3 id="5.6.退出群组">5.6.退出群组</h3><pre><code>/**
+YYIMChat.kickGroupMember({
+    to: &#39;abc&#39;,
+    member: &#39;cde&#39;,
+    success:function(data){
+        console.log(data);
+    },
+    error:function(err){
+        console.log(err);
+    },
+    complete:function(){}
+});
+</code></pre>
+<h3 id="5.11.群成员退出群">5.11.群成员退出群</h3><pre><code class="lang-js">/**
  * 群成员退出群
  *  @param arg {
- *     to:String,
+ *     to:String,  //群组ld，必传
  *     success: function,
  *  error:function,
  *  complete: function
  * }
  */
-YYIMChat.exitChatGroup(arg);
-</code></pre><h3 id="5.7.获取群共享文件">5.7.获取群共享文件</h3><pre><code>/**
- * 获取群组共享文件 rongqb 20160715 
- * arg {
- *  id:String,
- *  fileType: String, //&#39;file&#39;,&#39;image&#39;,&#39;microvideo&#39;
- *  type: String,//&#39;chat&#39;,&#39;groupchat&#39;
- *  start:number,
- *  size:number
- * }
- */
-YYIMChat.getSharedFiles(arg);
-</code></pre><h3 id="5.8.收藏群组">5.8.收藏群组</h3><pre><code>/**
- *  收藏群组(收藏) rongqb 20151201
- *  @param arg {
- *     to: String,
- *     success: function, 
- *  error: function,
- *  complete: function
- * }
- */
-YYIMChat.collectGroup(arg);
-</code></pre><h3 id="5.9.取消收藏群组">5.9.取消收藏群组</h3><pre><code>/**
- *  取消收藏群组
- *  @param arg {
- *     to: String,
- *  type: String, //add remove
- *     success: function, 
- *  error: function,
- *  complete: function
- * }
- */
-YYIMChat.removeCollectGroup(arg);
-</code></pre><h3 id="5.10.群主转让群">5.10.群主转让群</h3><pre><code>/**
- *  群主转让(群主行为)
- *  @param arg {
- *  to:String,
- *  newOwner:string,
- *  success:function,
- *  error:function,
- *  complete:function
- *  } 
- */
-YYIMChat.transferChatGroup(arg);    
-</code></pre><h3 id="5.11.群主解散群">5.11.群主解散群</h3><pre><code>/**
- *  群主解散群组 
- *  @param arg {
- *  to:String,
- *  success:function,
- *  error:function,
- *  complete:function
- *  }
- */
-YYIMChat.dismissChatGroup(arg);
+YYIMChat.exitChatGroup({
+    to: &#39;abc&#39;,
+    success:function(data){
+        console.log(data);
+    },
+    error:function(err){
+        console.log(err);
+    },
+    complete:function(){}
+});
 </code></pre>
+<h3 id="5.12.收藏群组">5.12.收藏群组</h3><pre><code class="lang-js">/**
+ *  收藏群组
+ *  @param arg {
+ *     to: String,  //群组id，必传
+ *     success: function, 
+ *  error: function,
+ *  complete: functionf
+ * }
+ */
+YYIMChat.collectGroup({
+    to: &#39;abc&#39;,
+    success:function(data){
+        console.log(data);
+    },
+    error:function(err){
+        console.log(err);
+    },
+    complete:function(){}
+});
+</code></pre>
+<h3 id="5.13.取消收藏群组">5.13.取消收藏群组</h3><pre><code class="lang-js">/**
+ *  取消收藏群组
+ * @param arg {
+ *     to: String,  //群组id，必传
+ *     success: function, 
+ *  error: function,
+ *  complete: function
+ * }
+ */
+YYIMChat.removeCollectGroup({
+    to: &#39;abc&#39;,
+    success:function(data){
+        console.log(data);
+    },
+    error:function(err){
+        console.log(err);
+    },
+    complete:function(){}
+});
+</code></pre>
+<h3 id="5.14.获取群组共享文件">5.14.获取群组共享文件</h3><pre><code class="lang-js">/**
+ * 获取群组共享文件
+ * @param arg {
+ *  id:String, //群组id，必传
+ *  fileType: String, //&#39;file&#39;,&#39;image&#39;,&#39;microvideo&#39;，文件类型，不传默认file
+ *  type: String,  //&#39;chat&#39;,&#39;groupchat&#39;，聊天类型，不传默认chat
+ *  start:number,  //开始时间戳，不传默认0
+ *  size:number,  //获取对象的最大长度，不传默认20
+ *  success: function,
+ *  error: function
+ * }
+ */
+YYIMChat.getSharedFiles({
+    id: &#39;abc&#39;,
+    fileType: &#39;image&#39;,
+    type: &#39;groupchat&#39;,
+    start: 0,
+    size: 10,
+    success:function(data){
+        console.log(data);
+    },
+    error:function(err){
+        console.log(err);
+    }
+});
+</code></pre>
+<h3 id="5.15.获取群组成员">5.15.获取群组成员</h3><pre><code class="lang-js">/**
+ * 获取群组成员
+ * @param arg {
+ *  id:String, //群组id，必传
+ *  success: function,
+ *  error: function
+ * }
+ */
+YYIMChat.getGroupMembers({
+    id: &#39;abc&#39;,
+    success:function(data){
+        console.log(data);
+    },
+    error:function(err){
+        console.log(err);
+    }
+});
+</code></pre>
+
         </div>
         <div class="col-md-3" role="complementary">
             <nav class="docs-sidebar hidden-print hidden-xs hidden-sm">
@@ -279,7 +479,7 @@ YYIMChat.dismissChatGroup(arg);
                     
                     
                         <li>
-                            <a href="#5.3.修改群名称" >5.3.修改群名称</a>
+                            <a href="#5.3.加入群组" >5.3.加入群组</a>
                         </li>
                     
                     
@@ -287,7 +487,7 @@ YYIMChat.dismissChatGroup(arg);
                     
                     
                         <li>
-                            <a href="#5.5.添加群成员" >5.5.添加群成员</a>
+                            <a href="#5.4.获取群组信息" >5.4.获取群组信息</a>
                         </li>
                     
                     
@@ -295,7 +495,7 @@ YYIMChat.dismissChatGroup(arg);
                     
                     
                         <li>
-                            <a href="#5.5.群组踢人" >5.5.群组踢人</a>
+                            <a href="#5.5.创建群组" >5.5.创建群组</a>
                         </li>
                     
                     
@@ -303,7 +503,7 @@ YYIMChat.dismissChatGroup(arg);
                     
                     
                         <li>
-                            <a href="#5.6.退出群组" >5.6.退出群组</a>
+                            <a href="#5.6.群主转让群组" >5.6.群主转让群组</a>
                         </li>
                     
                     
@@ -311,7 +511,7 @@ YYIMChat.dismissChatGroup(arg);
                     
                     
                         <li>
-                            <a href="#5.7.获取群共享文件" >5.7.获取群共享文件</a>
+                            <a href="#5.7.群主解散群组" >5.7.群主解散群组</a>
                         </li>
                     
                     
@@ -319,7 +519,7 @@ YYIMChat.dismissChatGroup(arg);
                     
                     
                         <li>
-                            <a href="#5.8.收藏群组" >5.8.收藏群组</a>
+                            <a href="#5.8.群成员邀请人入群" >5.8.群成员邀请人入群</a>
                         </li>
                     
                     
@@ -327,7 +527,7 @@ YYIMChat.dismissChatGroup(arg);
                     
                     
                         <li>
-                            <a href="#5.9.取消收藏群组" >5.9.取消收藏群组</a>
+                            <a href="#5.9.群成员更改配置信息" >5.9.群成员更改配置信息</a>
                         </li>
                     
                     
@@ -335,7 +535,7 @@ YYIMChat.dismissChatGroup(arg);
                     
                     
                         <li>
-                            <a href="#5.10.群主转让群" >5.10.群主转让群</a>
+                            <a href="#5.10.群主踢人" >5.10.群主踢人</a>
                         </li>
                     
                     
@@ -343,7 +543,39 @@ YYIMChat.dismissChatGroup(arg);
                     
                     
                         <li>
-                            <a href="#5.11.群主解散群" >5.11.群主解散群</a>
+                            <a href="#5.11.群成员退出群" >5.11.群成员退出群</a>
+                        </li>
+                    
+                    
+                    
+                    
+                    
+                        <li>
+                            <a href="#5.12.收藏群组" >5.12.收藏群组</a>
+                        </li>
+                    
+                    
+                    
+                    
+                    
+                        <li>
+                            <a href="#5.13.取消收藏群组" >5.13.取消收藏群组</a>
+                        </li>
+                    
+                    
+                    
+                    
+                    
+                        <li>
+                            <a href="#5.14.获取群组共享文件" >5.14.获取群组共享文件</a>
+                        </li>
+                    
+                    
+                    
+                    
+                    
+                        <li>
+                            <a href="#5.15.获取群组成员" >5.15.获取群组成员</a>
                         </li>
                     
                     

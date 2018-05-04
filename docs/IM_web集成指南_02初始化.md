@@ -23,7 +23,7 @@ WEB版的sdk主要依赖一个轻量级Javascript的程序库jQuery,这里对jQu
 		wsport: Number, //websocket port 5227/5222/5225(长链接端口)
 		hbport: Number, //httpbind  port 7075/7070(短链接端口)
 		servlet: String, //rest Url(短链接地址)
-		flash_swf_url: 'xxx/x/Moxie.swf', //flash 上传 swf文件位置
+		flash_swf_url: 'xxx/x/Moxie.swf', //flash方式上传，用于兼容低版本上传功能， 这里填swf文件位置
 		logEnable: false, //client log
 		clientMark: 'web' //client mark 'web' or 'pc',
 		apiKey: String  //AI KEY

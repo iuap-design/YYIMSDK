@@ -127,54 +127,103 @@
     <div class="row">
         <div class="col-md-9 markdown-body" role="main">
             
-            <h2 id="6.公众号">6.公众号</h2><h3 id="6.1.获取我关注订阅号&amp;广播号列表">6.1.获取我关注订阅号&amp;广播号列表</h3><pre><code>/**
- * 获取广播号/订阅号列表[pubaccount]
- * @param arg {
- * success: function, //成功回调函数
- * error: function,  //失败回调函数
- * complete:function //无论成功失败都回调的函数
- * }
- */
-YYIMChat.getPubAccount(arg);
-</code></pre><h3 id="6.2.查找订阅号&amp;广播号">6.2.查找订阅号&amp;广播号</h3><pre><code>/**
- * 查找广播号/订阅号
- * @param arg {
- * keyword, 
- * success: function, 
- * error: function,
- * complete: function
- * }
- */
-YYIMChat.queryPubaccount(arg);
-</code></pre><h3 id="6.3.关注订阅号">6.3.关注订阅号</h3><pre><code>/**
+            <h2 id="6.公众号">6.公众号</h2><h3 id="6.1.获取我关注订阅号&amp;广播号列表">6.1.获取我关注订阅号&amp;广播号列表</h3><pre><code class="lang-js">/**
+* 获取广播号/订阅号列表[pubaccount]
+* @param arg {
+* success: function, //成功回调函数
+* error: function,  //失败回调函数
+* complete:function //无论成功失败都回调的函数
+* }
+*/
+YYIMChat.getPubAccount({
+    success:function(data){
+        console.log(data);
+    },
+    error:function(err){
+        console.log(err);
+    },
+    complete: function(){}
+});
+</code></pre>
+<h3 id="6.2.查找订阅号&amp;广播号">6.2.查找订阅号&amp;广播号</h3><pre><code class="lang-js">/**
+* 查找广播号/订阅号
+* @param arg {
+* keyword: String, //关键词，必填
+* start: Numert,  //开始时间戳，默认0
+* size: Number,  //拉取成员长度，默认20
+* success: function, //成功回调函数
+* error: function,  //失败回调函数
+* complete:function //无论成功失败都回调的函数
+* }
+*/
+YYIMChat.queryPubaccount({
+    keyword: &#39;&#39;,
+    start: 0,
+    size: 10,
+    success:function(data){
+        console.log(data);
+    },
+    error:function(err){
+        console.log(err);
+    },
+    complete: function(){}
+});
+</code></pre>
+<h3 id="6.3.关注订阅号">6.3.关注订阅号</h3><pre><code class="lang-js">/**
  * 关注订阅号
  * @param arg {
- *         id : 公共号id,
- *         success : function,
- *         error : function
+ * id : String, //公共号id，必填
+ * success : function,
+ * error : function
  * }
  */
-YYIMChat.addPubaccount(arg);
-</code></pre><h3 id="6.4.消息关注订阅号">6.4.消息关注订阅号</h3><pre><code>/**
- * 消息关注订阅号
- * @param arg {
- *         id : 公共号id,
- *         success : function,
- *         error : function
- * }
- */
-YYIMChat.removePubaccount(arg);
-</code></pre><h3 id="6.5.消息关注订阅号">6.5.消息关注订阅号</h3><pre><code>/**
- * 获取公众号详情
- * arg {
- *   id: String,
- *   success: function,
- *   error: function,
- *   complete: function
- * }
- */
-YYIMChat.getPubAccountInfo(arg);
+YYIMChat.addPubaccount({
+    id: &#39;id&#39;,
+    success:function(data){
+        console.log(data);
+    },
+    error:function(err){
+        console.log(err);
+    }
+});
 </code></pre>
+<h3 id="6.4.取消关注订阅号">6.4.取消关注订阅号</h3><pre><code class="lang-js">/**
+ * 取消关注订阅号
+ * @param arg {
+ * id : String, //公共号id，必填
+ * success : function,
+ * error : function
+ * }
+ */
+YYIMChat.removePubaccount({
+    id: &#39;id&#39;,
+    success:function(data){
+        console.log(data);
+    },
+    error:function(err){
+        console.log(err);
+    }
+});
+</code></pre>
+<h3 id="6.5.获取公众号详情">6.5.获取公众号详情</h3><pre><code class="lang-js">/**
+ * 获取公众号详情
+ * @param arg {
+ * id : String, //公共号id，必填
+ * success : function,
+ * error : function
+ * }
+ */
+YYIMChat.getPubAccountInfo({
+    id: &#39;id&#39;,
+    success:function(data){
+        console.log(data);
+    },
+    error:function(err){
+        console.log(err);
+    }
+});
+</code></pre>
+
         </div>
         <div class="col-md-3" role="complementary">
             <nav class="docs-sidebar hidden-print hidden-xs hidden-sm">
@@ -217,7 +266,7 @@ YYIMChat.getPubAccountInfo(arg);
                     
                     
                         <li>
-                            <a href="#6.4.消息关注订阅号" >6.4.消息关注订阅号</a>
+                            <a href="#6.4.取消关注订阅号" >6.4.取消关注订阅号</a>
                         </li>
                     
                     
@@ -225,7 +274,7 @@ YYIMChat.getPubAccountInfo(arg);
                     
                     
                         <li>
-                            <a href="#6.5.消息关注订阅号" >6.5.消息关注订阅号</a>
+                            <a href="#6.5.获取公众号详情" >6.5.获取公众号详情</a>
                         </li>
                     
                     

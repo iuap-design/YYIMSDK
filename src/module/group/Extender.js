@@ -31,8 +31,31 @@ YYIMChat.setBackhander({
 });
 
 /**
+ * 获取群组列表
+ * @param arg {
+ * startDate: timestamp,
+ * membersLimit: Number, //拉取成员数量，默认10
+ * success: function,    //成功回调函数
+ * error: function,  	 //失败回调函数
+ * }
+ */
+YYIMManager.prototype.getChatGroups = function(arg) {
+	arg  = arg || {};
+	arg.startDate = (YYIMUtil['isWhateType'](arg.startDate,'Number') &&  arg.startDate > 0) ? arg.startDate: 0;
+	arg.membersLimit = (YYIMCommonUtil.isNumber(arg.membersLimit) && arg.membersLimit > 0) ? arg.membersLimit : YYIMChat.getConfig().GROUP.MEMBERSLIMIT;
+	getChatGroups(arg);
+};
+
+/**
  * 查找群
- * @param arg {keyword, start, size, success: function, error: function,complete: function}
+ * @param arg {
+ * keyword,  //关键字，必填
+ * start,  //开始时间戳，不传默认0
+ * size,   //拉取成员数量，不传默认20
+ * success: function, 
+ * error: function,
+ * complete: function
+ * }
  */
 YYIMManager.prototype.queryChatGroup = function(arg) {
 	if(YYIMCommonUtil.isStringAndNotEmpty(arg.keyword)) {
@@ -43,8 +66,12 @@ YYIMManager.prototype.queryChatGroup = function(arg) {
 };
 
 /**
- * 加入群
- * @param arg {id: roomJid, success:function, error:function}
+ * 加入群组
+ * @param arg {
+ * id: String,  //群组id，必传
+ * success:function, 
+ * error:function
+ * }
  */
 YYIMManager.prototype.joinChatGroup = function(arg) {
 	if(YYIMCommonUtil.isStringAndNotEmpty(arg.id)) {
@@ -60,7 +87,12 @@ YYIMManager.prototype.joinChatGroup = function(arg) {
 
 /**
  * 获取群组信息
- * @param arg {id : chatGroupId, success : function, error : function}
+ * @param arg {
+ * id : String, //群组id，必传
+ * membersLimit: Number, //群成员数量限制，可不传
+ * success : function, 
+ * error : function
+ * }
  */
 YYIMManager.prototype.getChatGroupInfo = function(arg) {
 	if(YYIMCommonUtil.isStringAndNotEmpty(arg.id)) {
@@ -76,27 +108,10 @@ YYIMManager.prototype.getChatGroupInfo = function(arg) {
 };
 
 /**
- * 获取群组列表
+ * 创建群组
  * @param arg {
- * startDate: timestamp,
- * membersLimit: Number, //拉取成员数量，默认10
- * success: function,    //成功回调函数
- * error: function,  	 //失败回调函数
- * complete:function     //无论成功失败都回调的函数
- * }
- */
-YYIMManager.prototype.getChatGroups = function(arg) {
-	arg  = arg || {};
-	arg.startDate = (YYIMUtil['isWhateType'](arg.startDate,'Number') &&  arg.startDate > 0) ? arg.startDate: 0;
-	arg.membersLimit = (YYIMCommonUtil.isNumber(arg.membersLimit) && arg.membersLimit > 0) ? arg.membersLimit : YYIMChat.getConfig().GROUP.MEMBERSLIMIT;
-	getChatGroups(arg);
-};
-
-/**
- * 创建群组 rongqb 20151117
- * @param arg {
- * 	name: String,
- * 	members:[], 
+ * 	name: String, //群名称，必传
+ * 	members:[], //群成员数组，必传，不能为空数组
  *  success: function, 
  *  error: function, 
  *  complete:function
@@ -114,10 +129,10 @@ YYIMManager.prototype.createChatGroup = function(arg) {
 };
 
 /**
- *  群主转让群组 rongqb 20160104
+ *  群主转让群组
  *  @param arg {
- *  to:String,
- *  newOwner:string,
+ *  to:String,  //必传
+ *  newOwner:string,  //必传 
  *  success:function,
  *  error:function,
  *  complete:function
@@ -150,29 +165,12 @@ YYIMManager.prototype.dismissChatGroup = function(arg) {
 	}
 };
 
-/**
- * 获取群组共享文件 rongqb 20160715 
- * arg {
- *  id:String,
- *  fileType: String, //'file','image','microvideo'
- *  type: String,//'chat','groupchat'
- *  start:number,
- *  size:number
- * }
- */
-YYIMManager.prototype.getSharedFiles = function(arg) {
-	if(arg && arg.id) {
-		getSharedFiles(arg);
-	} else {
-		arg && arg.error && arg.error();
-	}
-};
 
 /**
- * 房间成员邀请人入群  rongqb 20151118
+ * 房间成员邀请人入群
  * @param arg {
- * 	to:String,
- * 	members: Array,
+ * 	to:String,  //所属人id，必传
+ * 	members: Array,  //邀请的成员数组，必传，不能为空数组
  *  success:function,
  *  error:function,
  *  complete:function
@@ -209,8 +207,8 @@ YYIMManager.prototype.modifyChatGroupInfo = function(arg) {
 /**
  * 群组踢人 
  *  @param arg {
- *  to:String, //群组id
- *  member:string, //被踢人id，一次只能踢一个人
+ *  to:String, //群组id，必传
+ *  member:string, //被踢人id，一次只能踢一个人，必传
  *  success: function,
  *  error:function,
  *  complete: function
@@ -263,10 +261,9 @@ YYIMManager.prototype.collectGroup = function(arg) {
 };
 
 /**
- *  取消收藏群组 rongqb 20151201
+ *  取消收藏群组
  *  @param arg {
- * 	to: String,
- *  type: String, //add remove
+ * 	to: String,  //群组id，必传
  * 	success: function, 
  *  error: function,
  *  complete: function
@@ -282,17 +279,42 @@ YYIMManager.prototype.removeCollectGroup = function(arg) {
 	}
 };
 
+
 /**
- * 获取群组成员 rongqb 20170314
- * @param {Object} arg
+ * 获取群组共享文件
+ * arg {
+ *  id:String, //群组id，必传
+ *  fileType: String, //'file','image','microvideo'，文件类型，不传默认file
+ *  type: String,  //'chat','groupchat'，聊天类型，不传默认chat
+ *  start:number,  //开始时间戳，不传默认0
+ *  size:number,  //获取对象的最大长度，不传默认20
+ *  success: function,
+ *  error: function
+ * }
+ */
+YYIMManager.prototype.getSharedFiles = function(arg) {
+	if(arg && arg.id) {
+		getSharedFiles(arg);
+	} else {
+		arg && arg.error && arg.error();
+	}
+};
+
+/**
+ * 获取群组成员
+ * arg {
+ *  id:String, //群组id，必传
+ *  success: function,
+ *  error: function
+ * }
  */
 YYIMManager.prototype.getGroupMembers = function(arg) {
-	var id = arg.id || arg.to;
-	if(arg && id) {
-		if(YYIMCommonUtil.isStringAndNotEmpty(id)) {
+	if(arg && arg.id) {
+		if(YYIMCommonUtil.isStringAndNotEmpty(arg.id)) {
 			getGroupMembers(arg);
 		}
 	} else {
 		arg && arg.error && arg.error();
 	}
 };
+

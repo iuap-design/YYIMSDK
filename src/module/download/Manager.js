@@ -20,7 +20,10 @@ import { YYIMChat } from '../../core/manager';
 			},
 			dataType: 'json',
 			cache: false,
-			success: arg.success,
+			success: function(data){
+				arg.success && arg.success(data);
+				arg = null;
+			},
 			error: function(xhr){
 				try{
 					arg.error && arg.error(JSON.parse(xhr.responseText));
@@ -36,14 +39,16 @@ import { YYIMChat } from '../../core/manager';
 	/**
 	 * 获取附件地址
 	 * @param {Object} 
-	 * attachId: String
+	 * attachId: String, //附件id，必传
+	 * mediaType: Number //附件类型，1或者2，不传默认2
 	 */
 	function getFileUrl(attachId,mediaType){
+		var config = YYIMChat.getConfig();
 		if(attachId){
 			if(/^https?:\/\/|^data:image\/jpeg;/.test(attachId)){
 				return attachId;
 			}
-			var url =  YYIMChat.getConfig().SERVLET.REST_RESOURCE_SERVLET +  YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' +  YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/download';
+			var url =  config.SERVLET.REST_RESOURCE_SERVLET +  config.MULTI_TENANCY.ETP_KEY + '/' +  config.MULTI_TENANCY.APP_KEY + '/download';
 			return url + '?' + jQuery.param({
 				attachId: attachId,
 				downloader: YYIMChat.getUserNode(),

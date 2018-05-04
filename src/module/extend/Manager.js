@@ -3,11 +3,11 @@ import { YYIMManager, YYIMChat } from '../../core/manager';
 	/**
 	 * 多方通话 rongqb 20160104
 	 * @param arg {
-	 * 	caller: ,//主叫号码
-	 *  phones：,//被叫号码
-	 *  accountMmanaged:true, //账号托管
-	 *  account：,//通话账号 accountMmanaged:true时 不传
-	 *  key：,//通话秘钥  accountMmanaged:true时 不传
+	 * 	caller: //主叫号码
+	 *  phones：//被叫号码
+	 *  accountMmanaged:true, //账号托管为true时，不需要输入账号密码，去im多租户后台管理账号
+	 *  account：//通话账号  accountMmanaged:true时 不传
+	 *  key：//通话秘钥  accountMmanaged:true时 不传
 	 *  success:function,
 	 *  error:function
 	 * }
@@ -109,7 +109,9 @@ import { YYIMManager, YYIMChat } from '../../core/manager';
 			}
 		});
 	}
-	 
+	 /**
+	 * 获取时间校正结果
+	 */
 	var corrections = [];
 	function getTimeCorrection(callback){
 		if(YYIMChat.getConfig().TIMECORRECTION.LOAD){

@@ -6,13 +6,12 @@ import {
 } from './Manager';
 
 /**
- * 根据附件id获取 文档转换（图片）后的信息
- * @param {Object} arg
- * {
- * 	attachId：
- *  success:function,
- *  error:function
- *  complete:function
+ * 获取缩略图列表
+ * @param {Object} arg {
+ * 	attachId: String,
+ *  success: function,
+ *  error: function,
+ *  complete: function,
  * }
  */
 YYIMManager.prototype.getTransformFileList = function(arg){
@@ -23,6 +22,12 @@ YYIMManager.prototype.getTransformFileList = function(arg){
 	}
 };
 
+/**
+ * 获取附件地址
+ * @param {Object} 
+ * attachId: String, //附件id，必传
+ * mediaType: Number //附件类型，1或者2，不传默认2
+ */
 YYIMManager.prototype.getFileUrl = function(attachId,mediaType){
 	if(attachId){
 		return getFileUrl(attachId,mediaType);

@@ -1,9 +1,19 @@
 import { YYIMChat } from '../../core/manager';
 
+/**
+ * 获取群组列表
+ * @param arg {
+ * startDate: timestamp,
+ * membersLimit: Number, //拉取成员数量，默认10
+ * success: function,    //成功回调函数
+ * error: function,  	 //失败回调函数
+ * }
+ */
 function getChatGroups(arg) {
+	var config = YYIMChat.getConfig();
 	jQuery.ajax({
-//			url: YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + YYIMChat.getUserID() + '/room/increment?timestamp=' + arg.startDate + '&token=' + YYIMChat.getToken() + '&membersLimit=' + arg.membersLimit,
-		url: YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + YYIMChat.getUserID() + '/room/contacts/increment?timestamp=' + arg.startDate + '&token=' + YYIMChat.getToken() + '&membersLimit=' + arg.membersLimit,
+		//url: config.SERVLET.REST_USER_SERVLET + config.MULTI_TENANCY.ETP_KEY + '/' + config.MULTI_TENANCY.APP_KEY + '/' + YYIMChat.getUserID() + '/room/increment?timestamp=' + arg.startDate + '&token=' + YYIMChat.getToken() + '&membersLimit=' + arg.membersLimit,
+		url: config.SERVLET.REST_USER_SERVLET + config.MULTI_TENANCY.ETP_KEY + '/' + config.MULTI_TENANCY.APP_KEY + '/' + YYIMChat.getUserID() + '/room/contacts/increment?timestamp=' + arg.startDate + '&token=' + YYIMChat.getToken() + '&membersLimit=' + arg.membersLimit,
 		type: 'get',
 		dataType: 'json',
 		cache: false,
@@ -42,9 +52,17 @@ function getChatGroups(arg) {
 		}
 	});
 }
+
 /**
  * 查找群
- * @param arg {keyword, start, size, success: function, error: function,complete: function}
+ * @param arg {
+ * keyword,  //关键字，必填
+ * start,  //开始时间戳，不传默认0
+ * size,   //拉取成员数量，不传默认20
+ * success: function, 
+ * error: function,
+ * complete: function
+ * }
  */
 function queryChatGroup(arg) {
 	var iqBody = {
@@ -69,26 +87,46 @@ function queryChatGroup(arg) {
 	}, arg);
 }
 
+/**
+ * 加入群组
+ * @param arg {
+ * id: String,  //群组id，必传
+ * success:function, 
+ * error:function
+ * }
+ */
+function joinChatGroup(arg) {
+	var presenceBody = {
+		to : arg.jid + "/" + YYIMChat.getUserNode()
+	};
+	
+	YYIMChat.getConnection().send(new JumpPacket(presenceBody, OPCODE.CHATGROUP.SEND), function(joinResult, _arg) {
+		if(joinResult && joinResult.code == '40301'){
+			_arg.error && _arg.error({
+				code : joinResult.code,
+				message : joinResult.message
+			});
+		}else if(joinResult){
+			joinResult.id = YYIMChat.getJIDUtil().getID(joinResult.from);
+			_arg.success && _arg.success(joinResult);
+		}
+	}, arg);
+}
+
 
 /**
  * 获取群组信息
- * @param arg {jid : 群组的jid, success : function, error : function}
+ * @param arg {
+ * id : String, //群组id，必传
+ * membersLimit: Number, //群成员数量限制，可不传
+ * success : function, 
+ * error : function
+ * }
  */
-//	function getChatGroupInfo(arg) {
-//		var iqBody = {
-//			to: arg.jid,
-//			type: YYIMChat.getConstants().TYPE.GET,
-//			ns: NS_DISCO_INFO
-//		};
-//		YYIMChat.getConnection().send(new JumpPacket(iqBody, OPCODE.CHATGROUP_INFO.SEND), function(infoResult, _arg) {
-//			_arg.complete && _arg.complete();
-//			var group = handleChatGroup(infoResult);
-//			_arg.success && _arg.success(group);
-//		}, arg);
-//	}
 function getChatGroupInfo(arg){
+	var config = YYIMChat.getConfig();
 	jQuery.ajax({
-		url: YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + YYIMChat.getUserID() + '/room/info?membersLimit=' + arg.membersLimit + '&mucId=' + arg.jid + '&token=' + YYIMChat.getToken(),
+		url: config.SERVLET.REST_USER_SERVLET + config.MULTI_TENANCY.ETP_KEY + '/' + config.MULTI_TENANCY.APP_KEY + '/' + YYIMChat.getUserID() + '/room/info?membersLimit=' + arg.membersLimit + '&mucId=' + arg.jid + '&token=' + YYIMChat.getToken(),
 		type: 'get',
 		dataType: 'json',
 		cache: false,
@@ -110,9 +148,14 @@ function getChatGroupInfo(arg){
 }
 
 /**
- * 创建群组 rongqb 20151117
- *  @param arg {id: string,members:[],name:string, success: function,complete: function}
- *  resource:2.1 
+ * 创建群组
+ * @param arg {
+ * 	name: String, //群名称，必传
+ * 	members:[], //群成员数组，必传，不能为空数组
+ *  success: function, 
+ *  error: function, 
+ *  complete:function
+ * }
  */
 function createChatGroup(arg) {
 	var iqBody = {
@@ -130,9 +173,14 @@ function createChatGroup(arg) {
 }
 
 /**
- *  群主转让群组 rongqb 20160104
- *  @param arg {id: string,to:群组,newOwner:string,success:function,error:function,complete:function}
- *  resource:2.3 
+ *  群主转让群组
+ *  @param arg {
+ *  to:String,  //必传 
+ *  newOwner:string,  //必传  
+ *  success:function,
+ *  error:function,
+ *  complete:function
+ *  }
  */
 function transferChatGroup(arg) {
 	var iqBody = {
@@ -171,9 +219,14 @@ function dismissChatGroup(arg) {
 }
 
 /**
- * 房间成员邀请人入群 rongqb 20151118
- *  @param arg {id: string,to:群组,members:[],name:string, success: function,complete: function}
- *  resource:2.1 
+ * 房间成员邀请人入群
+ * @param arg {
+ * 	to:String,  //所属人id，必传
+ * 	members: Array,  //邀请的成员数组，必传，不能为空数组
+ *  success:function,
+ *  error:function,
+ *  complete:function
+ * }
  */
 function inviteGroupMember(arg) {
 	var iqBody = {
@@ -191,8 +244,13 @@ function inviteGroupMember(arg) {
 
 /**
  * 群成员更改配置信息 rongqb 20151119
- *  @param arg {id: string,to:群组,name:string, success: function,complete: function}
- *  resource:2.1 
+ *  @param arg {
+ * 	to:String,群组id
+ * 	name:string, 
+ * 	success: function,
+ * 	error:function,
+ * 	complete: function
+ * }
  */
 function modifyChatGroupInfo(arg) {
 	var iqBody = {
@@ -209,9 +267,14 @@ function modifyChatGroupInfo(arg) {
 }
 
 /**
- *  群主踢人 rongqb 20151119
- *  @param arg {id: string,to:群组,member:string, success: function,complete: function}
- *  resource:2.1 
+ * 群组踢人 
+ *  @param arg {
+ *  to:String, //群组id，必传
+ *  member:string, //被踢人id，一次只能踢一个人，必传
+ *  success: function,
+ *  error:function,
+ *  complete: function
+ *  }
  */
 function kickGroupMember(arg) {
 	var iqBody = {
@@ -228,9 +291,13 @@ function kickGroupMember(arg) {
 }
 
 /**
- * 群成员退出群 rongqb 20151119
- *  @param arg {id: string,to:群组,success: function,complete: function}
- *  resource:2.1 
+ * 群成员退出群
+ *  @param arg {
+ * 	to:String,  //群组ld，必传
+ * 	success: function,
+ *  error:function,
+ *  complete: function
+ * }
  */
 function exitChatGroup(arg) {
 	var iqBody = {
@@ -331,21 +398,25 @@ function collectChatGroup(arg) {
 }
 
 /**
- * 获取群组共享文件 rongqb 20160714 
+ * 获取群组共享文件
  * arg {
- *  id:String,
- *  fileType: String, //'file','image','microvideo'
- *  type: String,//'chat','groupchat'
- *  start:number,
- *  size:number
+ *  id:String, //群组id，必传
+ *  fileType: String, //'file','image','microvideo'，文件类型，不传默认file
+ *  type: String,  //'chat','groupchat'，聊天类型，不传默认chat
+ *  start:number,  //开始时间戳，不传默认0
+ *  size:number,  //获取对象的最大长度，不传默认20
+ *  success: function,
+ *  error: function
  * }
  */
 function getSharedFiles(arg) {
-	var type = ([YYIMChat.getConstants().CHAT_TYPE.CHAT, YYIMChat.getConstants().CHAT_TYPE.GROUP_CHAT, YYIMChat.getConstants().CHAT_TYPE.PUB_ACCOUNT].indexOf(arg.type) > -1) ? arg.type : YYIMChat.getConstants().CHAT_TYPE.CHAT;
+	var contacts = YYIMChat.getConstants();
+	var config = YYIMChat.getConfig();
+	var type = ([contacts.CHAT_TYPE.CHAT, contacts.CHAT_TYPE.GROUP_CHAT, contacts.CHAT_TYPE.PUB_ACCOUNT].indexOf(arg.type) > -1) ? arg.type : contacts.CHAT_TYPE.CHAT;
 
-	var url = YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/shareattachment/persional/attachment/' + YYIMChat.getUserID() + '/' + arg.id;
-	if(type == YYIMChat.getConstants().CHAT_TYPE.GROUP_CHAT) {
-		url = YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/shareattachment/room/attachment/' + arg.id + '/' + YYIMChat.getUserID();
+	var url = config.SERVLET.REST_USER_SERVLET + config.MULTI_TENANCY.ETP_KEY + '/' + config.MULTI_TENANCY.APP_KEY + '/shareattachment/persional/attachment/' + YYIMChat.getUserID() + '/' + arg.id;
+	if(type == contacts.CHAT_TYPE.GROUP_CHAT) {
+		url = config.SERVLET.REST_USER_SERVLET + config.MULTI_TENANCY.ETP_KEY + '/' + config.MULTI_TENANCY.APP_KEY + '/shareattachment/room/attachment/' + arg.id + '/' + YYIMChat.getUserID();
 	}
 
 	jQuery.ajax({
@@ -400,13 +471,19 @@ function getSharedFiles(arg) {
 		}
 	});
 }
+
 /**
- * 获取指定群的群成员[chatroom]
- * @param arg {id: string, success: function, error: function,complete: function}
+ * 获取群组成员
+ * arg {
+ *  id:String, //群组id，必传
+ *  success: function,
+ *  error: function
+ * }
  */
 function getGroupMembers(arg) {
+	var config = YYIMChat.getConfig();
 	jQuery.ajax({
-		url: YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + YYIMChat.getUserID() + '/room/members?mucId=' + arg.id + '&token=' + YYIMChat.getToken(),
+		url: config.SERVLET.REST_USER_SERVLET + config.MULTI_TENANCY.ETP_KEY + '/' + config.MULTI_TENANCY.APP_KEY + '/' + YYIMChat.getUserID() + '/room/members?mucId=' + arg.id + '&token=' + YYIMChat.getToken(),
 		type: 'get',
 		dataType: 'json',
 		cache: false,
@@ -430,29 +507,6 @@ function getGroupMembers(arg) {
 			}
 		}
 	});
-}
-
-	/**
- * 加入群组, 需要合法的jid
- * @param arg {jid: roomJid, success:function, error:function}
- * @returns
- */
-function joinChatGroup(arg) {
-	var presenceBody = {
-		to : arg.jid + "/" + YYIMChat.getUserNode()
-	};
-	
-	YYIMChat.getConnection().send(new JumpPacket(presenceBody, OPCODE.CHATGROUP.SEND), function(joinResult, _arg) {
-		if(joinResult && joinResult.code == '40301'){
-			_arg.error && _arg.error({
-				code : joinResult.code,
-				message : joinResult.message
-			});
-		}else if(joinResult){
-			joinResult.id = YYIMChat.getJIDUtil().getID(joinResult.from);
-			_arg.success && _arg.success(joinResult);
-		}
-	}, arg);
 }
 
 function monitor(){

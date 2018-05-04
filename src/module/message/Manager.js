@@ -244,33 +244,69 @@ function parseMessage(packet, type) {
 	}
 }
 
+
 /**
- * 发送回执
- *  @param arg {
- *   to: String,	//回执的对象
- * 	 type: String, 	//type
- * 	 id: String, 	//报文id
- *   sessionVersion: String,
- *   state: 1/2
- * }
+ * 发送请求参数处理 yaoleib20171220
  */
-function sendReceiptsPacket(arg){
-	arg = arg || {};
-	var Jid = YYIMChat.getJIDUtil().buildUserJID(YYIMChat.getJIDUtil().getNode(arg.to));
-	if(arg.type == YYIMChat.getConstants().CHAT_TYPE.GROUP_CHAT){
-		Jid = YYIMChat.getJIDUtil().buildChatGroupJID(YYIMChat.getJIDUtil().getNode(arg.to));
-	}else if(arg.type == YYIMChat.getConstants().CHAT_TYPE.PUB_ACCOUNT){
-		Jid = YYIMChat.getJIDUtil().buildPubAccountJID(YYIMChat.getJIDUtil().getNode(arg.to));
+function handleRequestParams(body) {
+	var messageExtend = {
+		intelligentAnalysis: {}
+	};
+
+	// 消息开关，目前只有文本消息进行AI分析
+	if(body.contentType && body.contentType == YYIMChat.getConstants().MESSAGE_CONTENT_TYPE.TEXT){
+		//YYAIAbility.setDictionaries(["投票", "视频会议", "吃鸡", "电话", "拍照", "照片"]);
+
+		// 兼容写法，可能不会走进这个判断
+		if(body.extend && (typeof body.extend != 'string')){
+			messageExtend = body.extend;
+		}
+		if(YYAIAbility.intelligentAnalysis(body.content)){
+			messageExtend.intelligentAnalysis.intelligentable = true;
+			if(body.sceneParams){
+				messageExtend.intelligentAnalysis.params = body.sceneParams
+				delete body.sceneParams
+			}
+		}
 	}
-	var receiptsPacket = new JumpPacket({
-		to: Jid,
-		dateline: new Date().getTime(),
-		sessionVersion: arg.sessionVersion,
-		id: arg.id,
-		state: arg.state
-	}, OPCODE.RECEIPTS.SEND);
-	YYIMChat.getConnection().send(receiptsPacket);
+	return messageExtend;
 }
+
+/**
+ * 发送出的消息处理函数
+ */
+function handleSendMessage(arg, body, receipts) {
+	var result = {
+		id : arg.id,
+		type : arg.type,
+		sessionVersion: receipts.sessionVersion || 0,
+		data : {
+			content : body.content,
+			contentType : body.contentType,
+			dateline : receipts.dateline,
+			extend : body.extend
+		}
+	};
+
+	if (result.type != YYIMChat.getConstants().CHAT_TYPE.CHAT) {
+		result.to = YYIMChat.getUserID();
+		result.from = {
+			room : YYIMChat.getJIDUtil().getID(arg.to),
+			roster : YYIMChat.getUserID()
+		};
+	} else {
+		result.to = YYIMChat.getJIDUtil().getID(arg.to);
+		result.from = YYIMChat.getUserID();
+		result.resource = YYIMChat.getResource();
+	}
+
+	if (result.data.content.path) {
+		result.data.content.attachId = result.data.content.path;
+		result.data.content.path = YYIMChat.getFileUrl(result.data.content.path);
+	}
+	return result;
+}
+
 
 /**
  * 发送消息
@@ -369,77 +405,45 @@ function sendReceiptsPacket(arg){
 }
 
 /**
- * 发送请求参数处理 yaoleib20171220
+ * 发送回执
+ *  @param arg {
+ *   to: String,	//回执的对象
+ * 	 type: String, 	//type
+ * 	 id: String, 	//报文id
+ *   sessionVersion: String,
+ *   state: 1/2
+ * }
  */
-function handleRequestParams(body) {
-	var messageExtend = {
-		intelligentAnalysis: {}
-	};
-
-	// 消息开关，目前只有文本消息进行AI分析
-	if(body.contentType && body.contentType == YYIMChat.getConstants().MESSAGE_CONTENT_TYPE.TEXT){
-		//YYAIAbility.setDictionaries(["投票", "视频会议", "吃鸡", "电话", "拍照", "照片"]);
-
-		// 兼容写法，可能不会走进这个判断
-		if(body.extend && (typeof body.extend != 'string')){
-			messageExtend = body.extend;
-		}
-		if(YYAIAbility.intelligentAnalysis(body.content)){
-			messageExtend.intelligentAnalysis.intelligentable = true;
-			if(body.sceneParams){
-				messageExtend.intelligentAnalysis.params = body.sceneParams
-				delete body.sceneParams
-			}
-		}
+function sendReceiptsPacket(arg){
+	arg = arg || {};
+	var Jid = YYIMChat.getJIDUtil().buildUserJID(YYIMChat.getJIDUtil().getNode(arg.to));
+	if(arg.type == YYIMChat.getConstants().CHAT_TYPE.GROUP_CHAT){
+		Jid = YYIMChat.getJIDUtil().buildChatGroupJID(YYIMChat.getJIDUtil().getNode(arg.to));
+	}else if(arg.type == YYIMChat.getConstants().CHAT_TYPE.PUB_ACCOUNT){
+		Jid = YYIMChat.getJIDUtil().buildPubAccountJID(YYIMChat.getJIDUtil().getNode(arg.to));
 	}
-	return messageExtend;
-}
-
-/**
- * 发送出的消息处理函数
- */
-function handleSendMessage(arg, body, receipts) {
-	var result = {
-		id : arg.id,
-		type : arg.type,
-		sessionVersion: receipts.sessionVersion || 0,
-		data : {
-			content : body.content,
-			contentType : body.contentType,
-			dateline : receipts.dateline,
-			extend : body.extend
-		}
-	};
-
-	if (result.type != YYIMChat.getConstants().CHAT_TYPE.CHAT) {
-		result.to = YYIMChat.getUserID();
-		result.from = {
-			room : YYIMChat.getJIDUtil().getID(arg.to),
-			roster : YYIMChat.getUserID()
-		};
-	} else {
-		result.to = YYIMChat.getJIDUtil().getID(arg.to);
-		result.from = YYIMChat.getUserID();
-		result.resource = YYIMChat.getResource();
-	}
-
-	if (result.data.content.path) {
-		result.data.content.attachId = result.data.content.path;
-		result.data.content.path = YYIMChat.getFileUrl(result.data.content.path);
-	}
-	return result;
+	var receiptsPacket = new JumpPacket({
+		to: Jid,
+		dateline: new Date().getTime(),
+		sessionVersion: arg.sessionVersion,
+		id: arg.id,
+		state: arg.state
+	}, OPCODE.RECEIPTS.SEND);
+	YYIMChat.getConnection().send(receiptsPacket);
 }
 
 /**
  * 获取历史记录
- * @param
- * arg {
- * 	id: String,
- *  type: 'chat/groupchat/pubaccount',
- *  start: number,
- *  size: number,
- *  startVersion: number, //默认为0
- *  endVersion: number
+ * @param arg {
+ * 	id: String,  //聊天对方id，必填
+ *  type: String,  //聊天类型，可能的值：chat/groupchat/pubaccount，必填
+ *  contentType：Number, //内容类型，选填
+ *  start: number,  //开始时间戳，不填默认0
+ *  size: number,   //拉取成员长度，不填默认100
+ *  startVersion: number, //开始的消息版本号，不填默认为0
+ *  endVersion: number,  //结束的消息版本号，必传
+ *  success:function,
+ *  error:function
  * }
  */
 function getHistoryMessage(arg) {

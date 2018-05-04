@@ -1,4 +1,4 @@
-import { YYIMManager, YYIMChat } from './core/manager';
+import { YYIMChat } from './core/manager';
 import './module/aiability/Extender';
 import './module/digest/Extender';
 import './module/download/Extender';

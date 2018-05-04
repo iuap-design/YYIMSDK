@@ -11,6 +11,7 @@ import { YYIMChat } from '../../core/manager';
 	 * }
 	 */
 	function getRecentDigset(arg) {
+		var config = YYIMChat.getConfig();
 		var param = {
 			startDate: arg.startDate
 		};
@@ -18,7 +19,7 @@ import { YYIMChat } from '../../core/manager';
 			param.size = arg.size;
 		}
 		jQuery.ajax({
-			url: YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + YYIMChat.getUserID() + '/contactsmessage/digests?token=' + YYIMChat.getToken(),
+			url: config.SERVLET.REST_USER_SERVLET + config.MULTI_TENANCY.ETP_KEY + '/' + config.MULTI_TENANCY.APP_KEY + '/' + YYIMChat.getUserID() + '/contactsmessage/digests?token=' + YYIMChat.getToken(),
 			type: 'get',
 			data: param,
 			dataType: 'json',
@@ -136,8 +137,18 @@ import { YYIMChat } from '../../core/manager';
 		}
 		return message;
 	}
-	
+
+	/**
+	 * 删除摘要 rognqb 20170225
+	 * @param arg {
+	 * id: String,
+	 * type: String,
+	 * success:function,
+	 * error:function,
+	 * complete:function
+	 */
 	function removeRecentDigest(arg){
+		var config = YYIMChat.getConfig();
 		var typeRelation = {
 			'chat': 'user',
 			'groupchat': 'room',
@@ -145,7 +156,7 @@ import { YYIMChat } from '../../core/manager';
 		};
 		
 		jQuery.ajax({
-			url: YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + YYIMChat.getUserID() + '/contacts/' + (typeRelation[arg.type] || typeRelation['chat']) + '/' + arg.id + '?token=' + YYIMChat.getToken(),
+			url: config.SERVLET.REST_USER_SERVLET + config.MULTI_TENANCY.ETP_KEY + '/' + config.MULTI_TENANCY.APP_KEY + '/' + YYIMChat.getUserID() + '/contacts/' + (typeRelation[arg.type] || typeRelation['chat']) + '/' + arg.id + '?token=' + YYIMChat.getToken(),
 			type: 'DELETE',
 			dataType: 'json',
 			cache: false,

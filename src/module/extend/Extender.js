@@ -65,6 +65,9 @@ YYIMManager.prototype.multiPartyCall = function(arg){
 	multiPartyCall(arg);
 }; 
 
+/**
+ * 获取时间校正结果
+ */
 YYIMManager.prototype.getTimeCorrection = function(callback) {
 	getTimeCorrection(callback);
 };

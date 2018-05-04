@@ -127,13 +127,27 @@
     <div class="row">
         <div class="col-md-9 markdown-body" role="main">
             
-            <h2 id="7.登录&amp;退出">7.登录&amp;退出</h2><h3 id="7.1.登录">7.1.登录</h3><pre><code>YYIMChat.login({
-    username: username, // 用户名
-    token: token // 密码或token
-    expiration: expiration // token 过期时间
+            <h2 id="10.登录&amp;退出">10.登录&amp;退出</h2><h3 id="10.1.登录">10.1.登录</h3><pre><code class="lang-js">/**
+* 查找广播号/订阅号
+* @param arg {
+* username: String, //用户名，必填
+* token: String,    //用户token，必填
+* expiration: Number,  //token过期时间，必填
+* appType: Number,   //应用类型，必填
+* identify: String   //认证信息，必填
+* }
+*/
+YYIMChat.login({
+    username: &#39;&#39;,
+    token: &#39;&#39;,
+    expiration: 0,
+    appType: 4,
+    identify: &#39;&#39;
 });
-</code></pre><h3 id="7.2.登出">7.2.登出</h3><pre><code>YYIMChat.logout();
 </code></pre>
+<h3 id="10.2.登出">10.2.登出</h3><pre><code class="lang-js">YYIMChat.logout();
+</code></pre>
+
         </div>
         <div class="col-md-3" role="complementary">
             <nav class="docs-sidebar hidden-print hidden-xs hidden-sm">
@@ -142,7 +156,7 @@
                     
                     <li>
                         
-                        <a href="#7.登录&amp;退出" >7.登录&amp;退出</a>
+                        <a href="#10.登录&amp;退出" >10.登录&amp;退出</a>
                         
                     </li>
                     
@@ -152,7 +166,7 @@
                     <ul class="nav" style="display:block">
                     
                         <li>
-                            <a href="#7.1.登录" >7.1.登录</a>
+                            <a href="#10.1.登录" >10.1.登录</a>
                         </li>
                     
                     
@@ -160,7 +174,7 @@
                     
                     
                         <li>
-                            <a href="#7.2.登出" >7.2.登出</a>
+                            <a href="#10.2.登出" >10.2.登出</a>
                         </li>
                     
                     

@@ -10,32 +10,42 @@ import {
 } from './Manager';
 
 /**
- * 获取用户Profile信息包括静音和置顶信息 rongqb 20160719
+ * 置顶  rongqb 20160719
  * arg {
- * success:function,
- * error:function,
- * complete:function
+ * to: String,
+ * type: String, //chat/groupchat/pubaccount
+ * success: function,
+ * error: function,
+ * complete: function
  * }
  */
-YYIMManager.prototype.getProfile = function(arg){
-	// 获取存储热词时间戳 yaoleib20171212
-	getProfile({
-		success: function(data){
-			var intelligentable = data.intelligentable;
-			var intelligentWordsTime = data.intelligentWordsTime;
-			if(intelligentable != 'undefined'){
-				//YYIMChat.openAIAbility(intelligentable);
-			}
-			if(intelligentWordsTime){
-				YYIMChat.setDictionaries(intelligentWordsTime);
-			}
+YYIMManager.prototype.stick = function(arg){
+	arg = arg || {};
+	if(!!arg.to){
+		arg.handle = 'stick';
+		muteStick(arg);
+	}else{
+		arg.error && arg.error();
+	}
+};
 
-			arg.success && arg.success(data);
-		},
-		error: function(error){
-			arg.error && arg.error(errot);
-		}
-	})
+/**
+* 取消置顶  rongqb 20160719
+* arg {
+* to: String,
+* type: String, //chat/groupchat/pubaccount
+* success: function,
+* error: function,
+* complete: function
+* }
+*/
+YYIMManager.prototype.cancelStick = function(arg){
+	if(arg && arg.to){
+		arg.handle = 'stick';
+		cancelMuteStick(arg);
+	}else{
+		arg && arg.error && arg.error();
+	}
 };
 
 /**
@@ -52,26 +62,6 @@ YYIMManager.prototype.mute = function(arg){
 	arg = arg || {};
 	if(!!arg.to){
 		arg.handle = 'mute';
-		muteStick(arg);
-	}else{
-		arg.error && arg.error();
-	}
-};
-
-/**
- * 置顶  rongqb 20160719
- * arg {
- * to: String,
- * type: String, //chat/groupchat/pubaccount
- * success: function,
- * error: function,
- * complete: function
- * }
- */
-YYIMManager.prototype.stick = function(arg){
-	arg = arg || {};
-	if(!!arg.to){
-		arg.handle = 'stick';
 		muteStick(arg);
 	}else{
 		arg.error && arg.error();
@@ -116,22 +106,32 @@ YYIMManager.prototype.cancelMute = function(arg){
 };
 
 /**
-* 取消置顶  rongqb 20160719
-* arg {
-* to: String,
-* type: String, //chat/groupchat/pubaccount
-* success: function,
-* error: function,
-* complete: function
-* }
-*/
-YYIMManager.prototype.cancelStick = function(arg){
-	if(arg && arg.to){
-		arg.handle = 'stick';
-		cancelMuteStick(arg);
-	}else{
-		arg && arg.error && arg.error();
-	}
+ * 获取用户Profile信息包括静音和置顶信息 rongqb 20160719
+ * arg {
+ * success:function,
+ * error:function,
+ * complete:function
+ * }
+ */
+YYIMManager.prototype.getProfile = function(arg){
+	// 获取存储热词时间戳 yaoleib20171212
+	getProfile({
+		success: function(data){
+			var intelligentable = data.intelligentable;
+			var intelligentWordsTime = data.intelligentWordsTime;
+			if(intelligentable != 'undefined'){
+				//YYIMChat.openAIAbility(intelligentable);
+			}
+			if(intelligentWordsTime){
+				YYIMChat.setDictionaries(intelligentWordsTime);
+			}
+
+			arg.success && arg.success(data);
+		},
+		error: function(error){
+			arg.error && arg.error(errot);
+		}
+	})
 };
 
 /**
