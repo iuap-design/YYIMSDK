@@ -127,61 +127,102 @@
     <div class="row">
         <div class="col-md-9 markdown-body" role="main">
             
-            <h2 id="9.登录&amp;退出">9.登录&amp;退出</h2><h3 id="9.1.置顶">9.1.置顶</h3><h3 id="9.1.1.设置置顶">9.1.1.设置置顶</h3><pre><code>/**
- * 置顶  rongqb 20160719
- * arg {
- * to: String,
- * type: String, //chat/groupchat/pubaccount
- * success: function,
- * error: function,
- * complete: function
- * }
- */
-YYIMChat.stick(arg);
-</code></pre><h3 id="9.1.2.取消置顶">9.1.2.取消置顶</h3><pre><code>/**
-* 取消置顶  rongqb 20160719
+            <h2 id="9.用户Profile">9.用户Profile</h2><h3 id="9.1.置顶">9.1.置顶</h3><h3 id="9.1.1.设置置顶">9.1.1.设置置顶</h3><pre><code class="lang-js">/**
+* 置顶
 * arg {
-* to: String,
-* type: String, //chat/groupchat/pubaccount
+* to: String, //对方id，必填
+* type: String, //聊天类型，chat/groupchat/pubaccount，默认chat
 * success: function,
-* error: function,
-* complete: function
+* error: function
 * }
 */
-YYIMChat.cancelStick(arg);
-</code></pre><h3 id="9.2.静音">9.2.静音</h3><h3 id="9.2.1.设置静音">9.2.1.设置静音</h3><pre><code>/**
- * 静音（免打扰）  rongqb 20160719
- * arg {
- * to: String,
- * type: String, //chat/groupchat/pubaccount
- * success: function,
- * error: function,
- * complete: function,
- * }
- */
-YYIMChat.mute(arg);
-</code></pre><h3 id="9.2.2.取消静音">9.2.2.取消静音</h3><pre><code>/**
-* 取消静音（免打扰）  rongqb 20160719
+YYIMChat.stick({
+    to: &#39;to&#39;,
+    type: &#39;chat&#39;,
+    success: function(data){
+        console.log(data);
+    },
+    error: function(err){
+        console.log(err);
+    }
+});
+</code></pre>
+<h3 id="9.1.2.取消置顶">9.1.2.取消置顶</h3><pre><code class="lang-js">/**
+* 取消置顶
 * arg {
-* to: String,
-* type: String, //chat/groupchat/pubaccount
+* to: String, //对方id，必填
+* type: String, //聊天类型，chat/groupchat/pubaccount，默认chat
 * success: function,
-* error: function,
-* complete: function
+* error: function
 * }
 */
-YYIMChat.cancelMute(arg);
-</code></pre><h3 id="9.3.获取用户Profile信息包括静音和置顶信息">9.3.获取用户Profile信息包括静音和置顶信息</h3><pre><code>/**
- * 获取用户Profile信息包括静音和置顶信息
- * arg {
- * success:function,
- * error:function,
- * complete:function
- * }
- */
-</code></pre><p>YYIMManager.prototype.getProfile = function(arg){
-    Manager.getProfile(arg || {});
-};</p>
+YYIMChat.cancelStick({
+    to: &#39;to&#39;,
+    type: &#39;chat&#39;,
+    success: function(data){
+        console.log(data);
+    },
+    error: function(err){
+        console.log(err);
+    }
+});
+</code></pre>
+<h3 id="9.2.静音">9.2.静音</h3><h3 id="9.2.1.设置静音">9.2.1.设置静音</h3><pre><code class="lang-js">/**
+* 设置静音
+* arg {
+* to: String, //对方id，必填
+* type: String, //聊天类型，chat/groupchat/pubaccount，默认chat
+* success: function,
+* error: function
+* }
+*/
+YYIMChat.mute({
+    to: &#39;to&#39;,
+    type: &#39;chat&#39;,
+    success: function(data){
+        console.log(data);
+    },
+    error: function(err){
+        console.log(err);
+    }
+});
+</code></pre>
+<h3 id="9.2.2.取消静音">9.2.2.取消静音</h3><pre><code class="lang-js">/**
+* 取消静音
+* arg {
+* to: String, //对方id，必填
+* type: String, //聊天类型，chat/groupchat/pubaccount，默认chat
+* success: function,
+* error: function
+* }
+*/
+YYIMChat.cancelMute({
+    to: &#39;to&#39;,
+    type: &#39;chat&#39;,
+    success: function(data){
+        console.log(data);
+    },
+    error: function(err){
+        console.log(err);
+    }
+});
+</code></pre>
+<h3 id="9.3.获取用户Profile信息包括静音和置顶信息">9.3.获取用户Profile信息包括静音和置顶信息</h3><pre><code class="lang-js">/**
+* 获取用户Profile信息包括静音和置顶信息
+* arg {
+* success:function,
+* error:function,
+* }
+*/
+YYIMChat.getProfile({
+    success: function(data){
+        console.log(data);
+    },
+    error: function(err){
+        console.log(err);
+    }
+});
+</code></pre>
 
         </div>
         <div class="col-md-3" role="complementary">
@@ -191,7 +232,7 @@ YYIMChat.cancelMute(arg);
                     
                     <li>
                         
-                        <a href="#9.登录&amp;退出" >9.登录&amp;退出</a>
+                        <a href="#9.用户Profile" >9.用户Profile</a>
                         
                     </li>
                     

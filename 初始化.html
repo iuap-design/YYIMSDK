@@ -130,20 +130,23 @@
             <h2 id="2.初始化">2.初始化</h2><h3 id="2.1.依赖的类库">2.1.依赖的类库</h3><p>WEB版的sdk主要依赖一个轻量级Javascript的程序库jQuery,这里对jQuery 的版本没有特别的要求，不过最好是比较新的版本。</p>
 <h3 id="2.2.SDK的集成">2.2.SDK的集成</h3><p>在html页面引入jQuery类库和 用友有信的web_sdk。</p>
 <p>例如：</p>
-<pre><code>&lt;script type=&quot;text/javascript&quot; src=&quot;./jquery-1.11.1.min.js&quot;&gt;&lt;/script&gt;
-&lt;script type=&quot;text/javascript&quot; src=&quot;./YYIMSDK.js&quot;&gt;&lt;/script&gt;
-</code></pre><h3 id="2.3.初始化sdk">2.3.初始化sdk</h3><pre><code>YYIMChat.initSDK({
-    app: String, //appId
-    etp: String, //etpId
-    wsurl: String, //websocket Url
-    wsport: Number, //websocket port 5227/5222/5225
-    hbport: Number, //httpbind  port 7075/7070
-    servlet: String, //rest Url
-    flash_swf_url: &#39;xxx/x/Moxie.swf&#39;, //flash 上传 swf文件位置
+<pre><code>&lt;script type=&quot;text/javascript&quot; src=&quot;./jquery-3.2.1.min.js&quot;&gt;&lt;/script&gt;
+&lt;script type=&quot;text/javascript&quot; src=&quot;./YYIMSDK.min.js&quot;&gt;&lt;/script&gt;
+</code></pre><p>引入YYIMSDK后全局会有一个YYIMChat对象，一切操作都基于此对象来做。</p>
+<h3 id="2.3.初始化sdk">2.3.初始化sdk</h3><pre><code>YYIMChat.initSDK({
+    app: String, //appId(应用id)
+    etp: String, //etpId(企业id)
+    wsurl: String, //websocket Url(长链接地址)
+    wsport: Number, //websocket port 5227/5222/5225(长链接端口)
+    hbport: Number, //httpbind  port 7075/7070(短链接端口)
+    servlet: String, //rest Url(短链接地址)
+    flash_swf_url: &#39;xxx/x/Moxie.swf&#39;, //flash方式上传，用于兼容低版本上传功能， 这里填swf文件位置
     logEnable: false, //client log
-    clientMark: &#39;web&#39; //client mark &#39;web&#39; or &#39;pc&#39;
+    clientMark: &#39;web&#39; //client mark &#39;web&#39; or &#39;pc&#39;,
+    apiKey: String  //AI KEY
 }); 
-</code></pre><h3 id="2.4.初始化回调方法">2.4.初始化回调方法</h3><pre><code>YYIMChat.init({
+</code></pre><p>YYIMChat.initSDK(options)的主要作用是重置全局配置。</p>
+<h3 id="2.4.初始化回调方法">2.4.初始化回调方法</h3><pre><code>YYIMChat.init({
     onOpened: function() {
         // 登录成功
     },
@@ -206,7 +209,17 @@
         //透传业务消息
     }
 });
-</code></pre>
+</code></pre><p>YYIMChat.init(options)的作用是注册通讯回调逻辑。</p>
+<h3 id="2.5.SDK登陆">2.5.SDK登陆</h3><pre><code>YYIMChat.login({
+    &quot;username&quot;: String, //用户名
+    &quot;token&quot;: String,    //用户token
+    &quot;expiration&quot;: String,  //过期时间
+    &quot;appType&quot;: Number,   //应用类型
+    &quot;identify&quot;: String   //认证信息
+});
+</code></pre><p>YYIMChat.login(options)的作用是根据配置完成websocket连接。以上参数由应用登陆接口获得。</p>
+<p>完成以上三个初始化API后就能正常调用其他API了。</p>
+
         </div>
         <div class="col-md-3" role="complementary">
             <nav class="docs-sidebar hidden-print hidden-xs hidden-sm">
@@ -250,6 +263,14 @@
                     
                         <li>
                             <a href="#2.4.初始化回调方法" >2.4.初始化回调方法</a>
+                        </li>
+                    
+                    
+                    
+                    
+                    
+                        <li>
+                            <a href="#2.5.SDK登陆" >2.5.SDK登陆</a>
                         </li>
                     
                     
