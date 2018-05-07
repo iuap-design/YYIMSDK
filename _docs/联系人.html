@@ -127,40 +127,75 @@
     <div class="row">
         <div class="col-md-9 markdown-body" role="main">
             
-            <h2 id="4.联系人">4.联系人</h2><h3 id="4.1.好友">4.1.好友</h3><h4 id="4.1.1.请求好友列表">4.1.1.请求好友列表</h4><pre><code>/**
- * 请求好友列表
+            <h2 id="4.联系人">4.联系人</h2><h3 id="4.1.好友">4.1.好友</h3><h4 id="4.1.1.获取好友列表">4.1.1.获取好友列表</h4><pre><code class="lang-js">/**
+ * 获取好友列表[roster]
  * @param arg {
- * success: function, //成功回调函数
- * error: function,  //失败回调函数
- * complete:function //无论成功失败都回调的函数
+ *     success: function, 
+ *     error: function,
+ *     complete: function
  * }
  */
-YYIMChat.getRosterItems(arg);
-</code></pre><h4 id="4.1.2.添加好友">4.1.2.添加好友</h4><pre><code>/**
+YYIMChat.getRosterItems({
+    success: function(data){
+        console.log(data);
+    },
+    error: function(err){
+        console.log(err);
+    },
+    complete: function(){}
+});
+</code></pre>
+<h4 id="4.1.2.添加好友">4.1.2.添加好友</h4><pre><code class="lang-js">/**
  * 添加好友
  * @param id //被添加人id
  */
 YYIMChat.addRosterItem(id);
-</code></pre><h4 id="4.1.3.删除好友">4.1.3.删除好友</h4><pre><code>/**
+</code></pre>
+<h4 id="4.1.3.删除好友">4.1.3.删除好友</h4><pre><code class="lang-js">/**
  * 删除好友, 
  * @param arg {
  * id: string, //被删除人id
  * success: function, 
  * error: function,
- * complete: function}
+ * complete: function
+ * }
  */
-YYIMChat.deleteRosterItem(arg);
-</code></pre><h4 id="4.1.4.查询好友">4.1.4.查询好友</h4><pre><code>/**
- * 查找好友[roster][包括好友和非好友]，查询字段：userName, name
- * @param arg { 
- * keyword, 
+YYIMChat.deleteRosterItem({
+    id: &#39;id&#39;,
+    success: function(data){
+        console.log(data);
+    },
+    error: function(err){
+        console.log(err);
+    },
+    complete: function(){}
+});
+</code></pre>
+<h4 id="4.1.4.查询好友">4.1.4.查询好友</h4><pre><code class="lang-js">/**
+ * 查找好友[roster][包括好友和非好友]
+ * @param arg {
+ * keyword,  //查询字段：userName, name，必填
+ * start,  //开始时间戳，默认0
+ * size,   //获取成员数量，默认20
  * success: function, 
  * error: function,
  * complete: function
  * }
  */
-YYIMChat.queryRosterItem(arg);
-</code></pre><h4 id="4.1.5.更新好友备注、分组">4.1.5.更新好友备注、分组</h4><pre><code>/**
+YYIMChat.queryRosterItem({
+    keyword: &#39;keyword&#39;,
+    start: 0,
+    size: 30,
+    success: function(data){
+        console.log(data);
+    },
+    error: function(err){
+        console.log(err);
+    },
+    complete: function(){}
+});
+</code></pre>
+<h4 id="4.1.5.更新好友备注、分组">4.1.5.更新好友备注、分组</h4><pre><code class="lang-js">/**
  * 更新好友
  * @param arg {
  *         roster : {
@@ -172,114 +207,292 @@ YYIMChat.queryRosterItem(arg);
  *         error : function
  * }
  */
-YYIMChat.updateRosterItem(arg);
-</code></pre><h3 id="4.2.联系人（好友&amp;非好友）">4.2.联系人（好友&amp;非好友）</h3><h4 id="4.2.1.查询联系人的在线状态">4.2.1.查询联系人的在线状态</h4><pre><code>/**
- * 获取用户在线状态 rongqb 20151119
+YYIMChat.updateRosterItem({
+    roster: {
+        id: &#39;rosterid&#39;,
+        name: &#39;&#39;,
+        groups: []
+    },
+    success: function(data){
+        console.log(data);
+    },
+    error: function(err){
+        console.log(err);
+    }
+});
+</code></pre>
+<h4 id="4.1.6.同意联系人的订阅请求">4.1.6.同意联系人的订阅请求</h4><pre><code class="lang-js">/**
+ * 同意联系人的订阅请求
+ * @param id 请求订阅的联系人的ID
+ */
+YYIMChat.approveSubscribe(id);
+</code></pre>
+<h4 id="4.1.7.拒绝联系人的订阅请求">4.1.7.拒绝联系人的订阅请求</h4><pre><code class="lang-js">/**
+ * 拒绝联系人的订阅请求
+ * @param id 请求订阅的联系人的ID
+ */
+YYIMChat.rejectSubscribe(id);
+</code></pre>
+<h3 id="4.2.联系人（好友&amp;非好友）">4.2.联系人（好友&amp;非好友）</h3><h4 id="4.2.1.查询联系人的在线状态">4.2.1.查询联系人的在线状态</h4><pre><code class="lang-js">/**
+ * 获取用户在线状态
  * arg {
- * username: [&#39;zhangsan&#39;,&#39;lisi&#39;],
+ * username: [&#39;zhangsan&#39;,&#39;lisi&#39;], //用户id数组，必传
  * success:function,
- * error:function,
- * complete:function,
- * }
- * resource:2.1
- */
-YYIMChat.getRostersPresence(arg);
-</code></pre><p>返回值说明：</p>
-<pre><code> [{
-     &quot;userid&quot;: &quot;litingd&quot;,
-     &quot;prensence&quot;: [{
-         available: 1, //1表示在线，0表示不在线
-         show: &quot;chat&quot;, //没有该字段（等同于null)表示在线，chat/away/xa/dnd表示如下文。
-         device: &quot;android&quot; //可能的值有android/ios/pc/web
-     }， {
-         available: 1, //1表示在线，0表示不在线,
-         show: &quot;away&quot;, //没有该字段（等同于null)表示在线，chat/away/xa/dnd表示如下文。
-         device: &quot;web&quot; //可能的值有android/ios/pc/web
-     }]
- }, {
-     &quot;userid&quot;: &quot;liuhaoi&quot;,
-     &quot;prensence&quot;: [{
-         available: 1, //1表示在线，0表示不在线
-         show: &quot;chat&quot;, //没有该字段（等同于null)表示在线，chat/away/xa/dnd表示如下文。
-         device: &quot;android&quot; //可能的值有android/ios/pc/web
-     }， {
-         available: 1, //1表示在线，0表示不在线
-         show: &quot;away&quot;, //没有该字段（等同于null)表示在线，chat/away/xa/dnd表示如下文。
-         device: &quot;web&quot; //可能的值有android/ios/pc/web
-     }]
- }]
-</code></pre><p>show字段对照表：</p>
-<pre><code>away -- 该实体或资源临时离开.
-chat -- 该实体或资源活跃并想聊天.
-dnd -- 该实体或资源忙(dnd = &quot;Do Not Disturb&quot;，免打扰).
-xa -- 该实体或资源要离开相当长时间(xa = &quot;eXtended Away&quot;，长时间离开).
-如果show未被提供或为NULL, 该实体被假定在线并且可用.
-</code></pre><h4 id="4.2.2.查询联系人VCard">4.2.2.查询联系人VCard</h4><pre><code>/**
- * 请求自己或好友的VCard
- * @param arg
- *     {
- *         jid : 为空则请求自己的VCard,
- *         success : function,
- *         error : function,
- *         complete : function
- *  }
- */
-YYIMChat.getVCard(arg);
-</code></pre><h3 id="4.3.当前用户">4.3.当前用户</h3><h4 id="4.3.1.请求自己&amp;所有好友的VCard">4.3.1.请求自己&amp;所有好友的VCard</h4><pre><code>/**
- * 请求自己&amp;所有好友的VCard
- * @param arg
- * {
- *         success : function,
- *         error : function,
- *         complete : function
+ * error:function
  * }
  */
-YYIMChat.getVCards(arg);
-</code></pre><h4 id="4.3.2.修改当前用户的VCard">4.3.2.修改当前用户的VCard</h4><pre><code>/**
- * 修改当前用户的VCard
+YYIMChat.getRostersPresence({
+    username: [&#39;zhangsan&#39;,&#39;lisi&#39;],
+    success: function(data){
+        console.log(data);
+    },
+    error: function(err){
+        console.log(err);
+    }
+});
+/*返回值说明：
+
+     [{
+         &quot;userid&quot;: &quot;litingd&quot;,
+         &quot;prensence&quot;: [{
+             available: 1, //1表示在线，0表示不在线
+             show: &quot;chat&quot;, //没有该字段（等同于null)表示在线，chat/away/xa/dnd表示如下文。
+             device: &quot;android&quot; //可能的值有android/ios/pc/web
+         }， {
+             available: 1, //1表示在线，0表示不在线,
+             show: &quot;away&quot;, //没有该字段（等同于null)表示在线，chat/away/xa/dnd表示如下文。
+             device: &quot;web&quot; //可能的值有android/ios/pc/web
+         }]
+     }, {
+         &quot;userid&quot;: &quot;liuhaoi&quot;,
+         &quot;prensence&quot;: [{
+             available: 1, //1表示在线，0表示不在线
+             show: &quot;chat&quot;, //没有该字段（等同于null)表示在线，chat/away/xa/dnd表示如下文。
+             device: &quot;android&quot; //可能的值有android/ios/pc/web
+         }， {
+             available: 1, //1表示在线，0表示不在线
+             show: &quot;away&quot;, //没有该字段（等同于null)表示在线，chat/away/xa/dnd表示如下文。
+             device: &quot;web&quot; //可能的值有android/ios/pc/web
+         }]
+     }]
+
+show字段对照表：
+
+    away -- 该实体或资源临时离开.
+    chat -- 该实体或资源活跃并想聊天.
+    dnd -- 该实体或资源忙(dnd = &quot;Do Not Disturb&quot;，免打扰).
+    xa -- 该实体或资源要离开相当长时间(xa = &quot;eXtended Away&quot;，长时间离开).
+    如果show未被提供或为NULL, 该实体被假定在线并且可用.
+*/
+</code></pre>
+<h4 id="4.2.2.查询联系人的VCard">4.2.2.查询联系人的VCard</h4><pre><code class="lang-js">/**
+ * 获取好友的VCard
  * @param arg {
- *         vcard : {
- *             nickname,
- *             photo,
- *             email,
- *             mobile,
- *             telephone
- *         },
+ *         id: String,  //好友id，必传，如果不传，则表示获取自己的VCard,
+ *         success : function,
+ *         error : function
+ * }
+ */
+YYIMChat.getVCard({
+    id: &#39;id&#39;,
+    success: function(data){
+        console.log(data);
+    },
+    error: function(err){
+        console.log(err);
+    }
+});
+</code></pre>
+<h4 id="4.2.3.获取所有好友的VCard">4.2.3.获取所有好友的VCard</h4><pre><code class="lang-js">/**
+ * 获取所有好友的VCard
+ * 
+ * @param arg {
+ *         success : function,
+ *         error : function
+ * }
+ */
+YYIMChat.getVCards({
+    success: function(data){
+        console.log(data);
+    },
+    error: function(err){
+        console.log(err);
+    }
+});
+</code></pre>
+<h4 id="4.2.4.修改好友的Tag">4.2.4.修改好友的Tag</h4><pre><code class="lang-js">/**
+ * 修改好友的Tag
+ * @param arg {
+ *         id: String, //好友id 
+ *         tag : Array,
  *         success : function,
  *         error : fcuntion
  * }
  */
-YYIMChat.setVCard(arg);
-</code></pre><h4 id="4.3.4.修改当前用户的在线状态">4.3.4.修改当前用户的在线状态</h4><pre><code>/**
- * 设置上线状态
- * @param arg{show, status} 空则为在线
- *  away -- 该实体或资源临时离开.
-    chat -- 该实体或资源活跃并想聊天.
-    dnd -- 该实体或资源忙(dnd = &quot;Do Not Disturb&quot;，免打扰).
-    xa -- 该实体或资源要离开相当长时间(xa = &quot;eXtended Away&quot;，长时间离开).
-       如果show未被提供或为NULL, 该实体被假定在线并且可用. 
+YYIMChat.setRosterTag({
+    id: &#39;id&#39;,
+    tag: [],
+    success: function(data){
+        console.log(data);
+    },
+    error: function(err){
+        console.log(err);
+    }
+});
+</code></pre>
+<h4 id="4.2.5.删除好友的Tag">4.2.5.删除好友的Tag</h4><pre><code class="lang-js">/**
+ * 删除好友的Tag
+ * @param arg {
+ *         id: String, //好友id 
+ *         tag : Array,
+ *         success : function,
+ *         error : fcuntion
+ * }
  */
-YYIMChat.setPresence(arg);
-</code></pre><h3 id="4.4.收藏好友">4.4.收藏好友</h3><h4 id="4.4.1.查询收藏的好友列表">4.4.1.查询收藏的好友列表</h4><pre><code>/**
+YYIMChat.removeRosterTag({
+    id: &#39;id&#39;,
+    tag: [],
+    success: function(data){
+        console.log(data);
+    },
+    error: function(err){
+        console.log(err);
+    }
+});
+</code></pre>
+<h3 id="4.3.当前用户">4.3.当前用户</h3><h4 id="4.3.1.获取自己的VCard">4.3.1.获取自己的VCard</h4><pre><code class="lang-js">/**
+ * 获取自己的VCard
+ * @param arg {
+ *         success : function,
+ *         error : function
+ * }
+ */
+YYIMChat.getVCard({
+    success: function(data){
+        console.log(data);
+    },
+    error: function(err){
+        console.log(err);
+    }
+});
+</code></pre>
+<h4 id="4.3.2.修改当前用户的VCard">4.3.2.修改当前用户的VCard</h4><pre><code class="lang-js">/**
+ * 修改当前用户的VCard
+ * @param arg {
+ *         nickname:String,
+ *         photo:String,
+ *         email:String,
+ *         mobile:Number,
+ *         telephone:Number,
+ *      organization:String,
+ *      gender:,
+ *      number:Number,
+ *      remarks:,
+ *         location:String,
+ *      position:String,
+ *         success : function,
+ *         error : fcuntion
+ * }
+ */
+YYIMChat.setVCard({
+    nickname:String,
+    photo:String,
+    email:String,
+    mobile:Number,
+    telephone:Number,
+    organization:String,
+    gender:,
+    number:Number,
+    remarks:,
+    location:String,
+    position:String,
+    success: function(data){
+        console.log(data);
+    },
+    error: function(err){
+        console.log(err);
+    }
+});
+</code></pre>
+<h4 id="4.3.3.修改当前用户的Tag">4.3.3.修改当前用户的Tag</h4><pre><code class="lang-js">/**
+ * 修改当前用户的Tag
+ * @param arg {
+ *         tag : Array,
+ *         success : function,
+ *         error : fcuntion
+ * }
+ */
+YYIMChat.setVCardTag({
+    tag: [],
+    success: function(data){
+        console.log(data);
+    },
+    error: function(err){
+        console.log(err);
+    }
+});
+</code></pre>
+<h4 id="4.3.4.删除当前用户的Tag">4.3.4.删除当前用户的Tag</h4><pre><code class="lang-js">/**
+ * 删除当前用户的Tag
+ * @param arg {
+ *         tag : Array,
+ *         success : function,
+ *         error : fcuntion
+ * }
+ */
+YYIMChat.removeVCardTag({
+    tag: [],
+    success: function(data){
+        console.log(data);
+    },
+    error: function(err){
+        console.log(err);
+    }
+});
+</code></pre>
+<h4 id="4.3.5.修改当前用户的在线状态">4.3.5.修改当前用户的在线状态</h4><pre><code class="lang-js">/**
+ * 设置上线状态
+ * @param arg {
+ *  show: true, //如果show未被提供或为NULL, 该实体被假定在线并且可用
+ *     status: String  //在线状态，away -- 离开，chat -- 在线，dnd -- 忙(dnd = &quot;Do Not Disturb&quot;，免打扰)，xa -- 长时间离开(xa = &quot;eXtended Away&quot;，长时间离开)，必传
+ * }
+ */
+YYIMChat.setPresence({
+    show: true,
+    status: &#39;chat&#39;
+});
+</code></pre>
+<h3 id="4.4.收藏好友">4.4.收藏好友</h3><h4 id="4.4.1.查询收藏的好友列表">4.4.1.查询收藏的好友列表</h4><pre><code class="lang-js">/**
  * 获取收藏联系人列表
  * @param {Object} arg {
  *     success: function,
  *     error: function
  * }
  */
-YYIMChat.getFavoriteRosterList(arg);
-</code></pre><h4 id="4.4.2.收藏/取消好友">4.4.2.收藏/取消好友</h4><pre><code>/**
+YYIMChat.getFavoriteRosterList({
+    success: function(data){
+        console.log(data);
+    },
+    error: function(err){
+        console.log(err);
+    }
+});
+</code></pre>
+<h4 id="4.4.2.收藏/取消好友">4.4.2.收藏/取消好友</h4><pre><code class="lang-js">/**
  * 收藏/取消收藏 联系人[roster]
  * @param arg id
  * @param arg type &#39;add&#39; /&#39;remove&#39;
  */
 YYIMChat.favoriteRoster(id,type);
-</code></pre><h4 id="4.4.3.修改收藏联系人的备注">4.4.3.修改收藏联系人的备注</h4><pre><code>/**
+</code></pre>
+<h4 id="4.4.3.修改收藏联系人的备注">4.4.3.修改收藏联系人的备注</h4><pre><code class="lang-js">/**
  * 修改收藏联系人的备注 
- * @param arg id,name
+ * @param arg id
+ * @param arg name //备注名
  */
 YYIMChat.updateFavoriteRoster(id,name);
 </code></pre>
+
         </div>
         <div class="col-md-3" role="complementary">
             <nav class="docs-sidebar hidden-print hidden-xs hidden-sm">

@@ -10685,8 +10685,9 @@ var _manager = __webpack_require__(0);
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function setAIAbility(arg) {
+    var config = _manager.YYIMChat.getConfig();
     jQuery.ajax({
-        url: _manager.YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + _manager.YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + _manager.YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + _manager.YYIMManager.getInstance().getUserID() + '/profile/intelligentable?token=' + _manager.YYIMManager.getInstance().getToken(),
+        url: config.SERVLET.REST_USER_SERVLET + config.MULTI_TENANCY.ETP_KEY + '/' + config.MULTI_TENANCY.APP_KEY + '/' + _manager.YYIMChat.getUserID() + '/profile/intelligentable?token=' + _manager.YYIMChat.getToken(),
         type: 'post',
         data: (0, _stringify2.default)(arg),
         dataType: 'json',
@@ -10710,8 +10711,9 @@ function setAIAbility(arg) {
 }
 
 function getAIWords(arg) {
+    var config = _manager.YYIMChat.getConfig();
     jQuery.ajax({
-        url: _manager.YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + _manager.YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + _manager.YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + _manager.YYIMManager.getInstance().getUserID() + '/intelligent/words?token=' + _manager.YYIMManager.getInstance().getToken() + '&apiKey=' + _manager.YYIMChat.getApiKey(),
+        url: config.SERVLET.REST_USER_SERVLET + config.MULTI_TENANCY.ETP_KEY + '/' + config.MULTI_TENANCY.APP_KEY + '/' + _manager.YYIMChat.getUserID() + '/intelligent/words?token=' + _manager.YYIMChat.getToken() + '&apiKey=' + _manager.YYIMChat.getApiKey(),
         type: 'get',
         data: '',
         dataType: 'json',
@@ -10735,8 +10737,9 @@ function getAIWords(arg) {
 }
 
 function getMultiTerminals(arg) {
+    var config = _manager.YYIMChat.getConfig();
     jQuery.ajax({
-        url: _manager.YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + _manager.YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + _manager.YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + _manager.YYIMManager.getInstance().getUserID() + '/multiterminals?token=' + _manager.YYIMManager.getInstance().getToken(),
+        url: config.SERVLET.REST_USER_SERVLET + config.MULTI_TENANCY.ETP_KEY + '/' + config.MULTI_TENANCY.APP_KEY + '/' + _manager.YYIMChat.getUserID() + '/multiterminals?token=' + _manager.YYIMChat.getToken(),
         type: 'get',
         data: '',
         dataType: 'json',
@@ -10760,8 +10763,9 @@ function getMultiTerminals(arg) {
 }
 
 function sendMultiTerminalsCommand(arg) {
+    var config = _manager.YYIMChat.getConfig();
     jQuery.ajax({
-        url: _manager.YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + _manager.YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + _manager.YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + _manager.YYIMManager.getInstance().getUserID() + '/multiterminals/command?token=' + _manager.YYIMManager.getInstance().getToken(),
+        url: config.SERVLET.REST_USER_SERVLET + config.MULTI_TENANCY.ETP_KEY + '/' + config.MULTI_TENANCY.APP_KEY + '/' + _manager.YYIMChat.getUserID() + '/multiterminals/command?token=' + _manager.YYIMChat.getToken(),
         type: 'POST',
         data: arg.data,
         dataType: 'json',
@@ -10842,6 +10846,7 @@ exports.removeRecentDigest = exports.getRecentDigset = undefined;
 var _manager = __webpack_require__(0);
 
 function getRecentDigset(arg) {
+	var config = _manager.YYIMChat.getConfig();
 	var param = {
 		startDate: arg.startDate
 	};
@@ -10849,7 +10854,7 @@ function getRecentDigset(arg) {
 		param.size = arg.size;
 	}
 	jQuery.ajax({
-		url: _manager.YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + _manager.YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + _manager.YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + _manager.YYIMChat.getUserID() + '/contactsmessage/digests?token=' + _manager.YYIMChat.getToken(),
+		url: config.SERVLET.REST_USER_SERVLET + config.MULTI_TENANCY.ETP_KEY + '/' + config.MULTI_TENANCY.APP_KEY + '/' + _manager.YYIMChat.getUserID() + '/contactsmessage/digests?token=' + _manager.YYIMChat.getToken(),
 		type: 'get',
 		data: param,
 		dataType: 'json',
@@ -10960,6 +10965,7 @@ function messageParser(packet, type) {
 }
 
 function removeRecentDigest(arg) {
+	var config = _manager.YYIMChat.getConfig();
 	var typeRelation = {
 		'chat': 'user',
 		'groupchat': 'room',
@@ -10967,7 +10973,7 @@ function removeRecentDigest(arg) {
 	};
 
 	jQuery.ajax({
-		url: _manager.YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + _manager.YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + _manager.YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + _manager.YYIMChat.getUserID() + '/contacts/' + (typeRelation[arg.type] || typeRelation['chat']) + '/' + arg.id + '?token=' + _manager.YYIMChat.getToken(),
+		url: config.SERVLET.REST_USER_SERVLET + config.MULTI_TENANCY.ETP_KEY + '/' + config.MULTI_TENANCY.APP_KEY + '/' + _manager.YYIMChat.getUserID() + '/contacts/' + (typeRelation[arg.type] || typeRelation['chat']) + '/' + arg.id + '?token=' + _manager.YYIMChat.getToken(),
 		type: 'DELETE',
 		dataType: 'json',
 		cache: false,
@@ -11040,7 +11046,10 @@ function getTransformFileList(arg) {
 		},
 		dataType: 'json',
 		cache: false,
-		success: arg.success,
+		success: function success(data) {
+			arg.success && arg.success(data);
+			arg = null;
+		},
 		error: function error(xhr) {
 			try {
 				arg.error && arg.error(JSON.parse(xhr.responseText));
@@ -11054,11 +11063,12 @@ function getTransformFileList(arg) {
 }
 
 function getFileUrl(attachId, mediaType) {
+	var config = _manager.YYIMChat.getConfig();
 	if (attachId) {
 		if (/^https?:\/\/|^data:image\/jpeg;/.test(attachId)) {
 			return attachId;
 		}
-		var url = _manager.YYIMChat.getConfig().SERVLET.REST_RESOURCE_SERVLET + _manager.YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + _manager.YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/download';
+		var url = config.SERVLET.REST_RESOURCE_SERVLET + config.MULTI_TENANCY.ETP_KEY + '/' + config.MULTI_TENANCY.APP_KEY + '/download';
 		return url + '?' + jQuery.param({
 			attachId: attachId,
 			downloader: _manager.YYIMChat.getUserNode(),
@@ -11292,160 +11302,159 @@ var _manager = __webpack_require__(0);
 var _Manager = __webpack_require__(44);
 
 _manager.YYIMChat.setBackhander({
-	'monitor': {
-		'groupMonitor': _Manager.monitor
-	},
-	'initCallback': {
-		'group': function group(options) {
-			_manager.YYIMChat.onGroupUpdate = options.onGroupUpdate || function () {};
-			_manager.YYIMChat.onTransferGroupOwner = options.onTransferGroupOwner || function () {};
-			_manager.YYIMChat.onKickedOutGroup = options.onKickedOutGroup || function () {};
-		}
-	}
+  'monitor': {
+    'groupMonitor': _Manager.monitor
+  },
+  'initCallback': {
+    'group': function group(options) {
+      _manager.YYIMChat.onGroupUpdate = options.onGroupUpdate || function () {};
+      _manager.YYIMChat.onTransferGroupOwner = options.onTransferGroupOwner || function () {};
+      _manager.YYIMChat.onKickedOutGroup = options.onKickedOutGroup || function () {};
+    }
+  }
 });
 
+_manager.YYIMManager.prototype.getChatGroups = function (arg) {
+  arg = arg || {};
+  arg.startDate = YYIMUtil['isWhateType'](arg.startDate, 'Number') && arg.startDate > 0 ? arg.startDate : 0;
+  arg.membersLimit = YYIMCommonUtil.isNumber(arg.membersLimit) && arg.membersLimit > 0 ? arg.membersLimit : _manager.YYIMChat.getConfig().GROUP.MEMBERSLIMIT;
+  (0, _Manager.getChatGroups)(arg);
+};
+
 _manager.YYIMManager.prototype.queryChatGroup = function (arg) {
-	if (YYIMCommonUtil.isStringAndNotEmpty(arg.keyword)) {
-		(0, _Manager.queryChatGroup)(arg);
-	} else {
-		arg && arg.error && arg.error();
-	}
+  if (YYIMCommonUtil.isStringAndNotEmpty(arg.keyword)) {
+    (0, _Manager.queryChatGroup)(arg);
+  } else {
+    arg && arg.error && arg.error();
+  }
 };
 
 _manager.YYIMManager.prototype.joinChatGroup = function (arg) {
-	if (YYIMCommonUtil.isStringAndNotEmpty(arg.id)) {
-		(0, _Manager.joinChatGroup)({
-			jid: _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.id)),
-			success: arg.success,
-			error: arg.error
-		});
-	} else {
-		arg && arg.error && arg.error();
-	}
+  if (YYIMCommonUtil.isStringAndNotEmpty(arg.id)) {
+    (0, _Manager.joinChatGroup)({
+      jid: _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.id)),
+      success: arg.success,
+      error: arg.error
+    });
+  } else {
+    arg && arg.error && arg.error();
+  }
 };
 
 _manager.YYIMManager.prototype.getChatGroupInfo = function (arg) {
-	if (YYIMCommonUtil.isStringAndNotEmpty(arg.id)) {
-		(0, _Manager.getChatGroupInfo)({
-			jid: _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.id)),
-			membersLimit: YYIMCommonUtil.isNumber(arg.membersLimit) && arg.membersLimit > 0 ? arg.membersLimit : _manager.YYIMChat.getConfig().GROUP.MEMBERSLIMIT,
-			success: arg.success,
-			error: arg.error
-		});
-	} else {
-		arg && arg.error && arg.error();
-	}
-};
-
-_manager.YYIMManager.prototype.getChatGroups = function (arg) {
-	arg = arg || {};
-	arg.startDate = YYIMUtil['isWhateType'](arg.startDate, 'Number') && arg.startDate > 0 ? arg.startDate : 0;
-	arg.membersLimit = YYIMCommonUtil.isNumber(arg.membersLimit) && arg.membersLimit > 0 ? arg.membersLimit : _manager.YYIMChat.getConfig().GROUP.MEMBERSLIMIT;
-	(0, _Manager.getChatGroups)(arg);
+  if (YYIMCommonUtil.isStringAndNotEmpty(arg.id)) {
+    (0, _Manager.getChatGroupInfo)({
+      jid: _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.id)),
+      membersLimit: YYIMCommonUtil.isNumber(arg.membersLimit) && arg.membersLimit > 0 ? arg.membersLimit : _manager.YYIMChat.getConfig().GROUP.MEMBERSLIMIT,
+      success: arg.success,
+      error: arg.error
+    });
+  } else {
+    arg && arg.error && arg.error();
+  }
 };
 
 _manager.YYIMManager.prototype.createChatGroup = function (arg) {
-	if (!YYIMArrayUtil.isArray(arg.members)) {
-		delete arg.members;
-	}
-	if (arg.members) {
-		(0, _Manager.createChatGroup)(arg);
-	} else {
-		arg && arg.error && arg.error();
-	}
+  if (!YYIMArrayUtil.isArray(arg.members)) {
+    delete arg.members;
+  }
+  if (arg.members) {
+    (0, _Manager.createChatGroup)(arg);
+  } else {
+    arg && arg.error && arg.error();
+  }
 };
 
 _manager.YYIMManager.prototype.transferChatGroup = function (arg) {
-	if (arg && typeof arg.newOwner == 'string' && arg.to) {
-		arg.to = _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));
-		(0, _Manager.transferChatGroup)(arg);
-	} else {
-		arg && arg.error && arg.error();
-	}
+  if (arg && typeof arg.newOwner == 'string' && arg.to) {
+    arg.to = _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));
+    (0, _Manager.transferChatGroup)(arg);
+  } else {
+    arg && arg.error && arg.error();
+  }
 };
 
 _manager.YYIMManager.prototype.dismissChatGroup = function (arg) {
-	if (arg && arg.to) {
-		arg.to = _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));
-		(0, _Manager.dismissChatGroup)(arg);
-	} else {
-		arg && arg.error && arg.error();
-	}
-};
-
-_manager.YYIMManager.prototype.getSharedFiles = function (arg) {
-	if (arg && arg.id) {
-		(0, _Manager.getSharedFiles)(arg);
-	} else {
-		arg && arg.error && arg.error();
-	}
+  if (arg && arg.to) {
+    arg.to = _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));
+    (0, _Manager.dismissChatGroup)(arg);
+  } else {
+    arg && arg.error && arg.error();
+  }
 };
 
 _manager.YYIMManager.prototype.inviteGroupMember = function (arg) {
-	if (arg.members && YYIMArrayUtil.isArray(arg.members) && arg.members.length && arg.to) {
-		arg.to = _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));
-		(0, _Manager.inviteGroupMember)(arg);
-	} else {
-		arg && arg.error && arg.error();
-	}
+  if (arg.members && YYIMArrayUtil.isArray(arg.members) && arg.members.length && arg.to) {
+    arg.to = _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));
+    (0, _Manager.inviteGroupMember)(arg);
+  } else {
+    arg && arg.error && arg.error();
+  }
 };
 
 _manager.YYIMManager.prototype.modifyChatGroupInfo = function (arg) {
-	if (arg.name && arg.to) {
-		arg.to = _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));
-		(0, _Manager.modifyChatGroupInfo)(arg);
-	} else {
-		arg && arg.error && arg.error();
-	}
+  if (arg.name && arg.to) {
+    arg.to = _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));
+    (0, _Manager.modifyChatGroupInfo)(arg);
+  } else {
+    arg && arg.error && arg.error();
+  }
 };
 
 _manager.YYIMManager.prototype.kickGroupMember = function (arg) {
-	if (arg.member && typeof arg.member == 'string' && arg.to) {
-		arg.to = _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));
-		(0, _Manager.kickGroupMember)(arg);
-	} else {
-		arg && arg.error && arg.error();
-	}
+  if (arg.member && typeof arg.member == 'string' && arg.to) {
+    arg.to = _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));
+    (0, _Manager.kickGroupMember)(arg);
+  } else {
+    arg && arg.error && arg.error();
+  }
 };
 
 _manager.YYIMManager.prototype.exitChatGroup = function (arg) {
-	if (arg.to) {
-		arg.to = _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));
-		(0, _Manager.exitChatGroup)(arg);
-	} else {
-		arg && arg.error && arg.error();
-	}
+  if (arg.to) {
+    arg.to = _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));
+    (0, _Manager.exitChatGroup)(arg);
+  } else {
+    arg && arg.error && arg.error();
+  }
 };
 
 _manager.YYIMManager.prototype.collectGroup = function (arg) {
-	if (arg.to) {
-		arg.to = _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));
-		arg.type = this.getConstants().COLLECT_TYPE.ADD;
-		(0, _Manager.collectChatGroup)(arg);
-	} else {
-		arg && arg.error && arg.error();
-	}
+  if (arg.to) {
+    arg.to = _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));
+    arg.type = this.getConstants().COLLECT_TYPE.ADD;
+    (0, _Manager.collectChatGroup)(arg);
+  } else {
+    arg && arg.error && arg.error();
+  }
 };
 
 _manager.YYIMManager.prototype.removeCollectGroup = function (arg) {
-	if (arg.to) {
-		arg.to = _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));
-		arg.type = this.getConstants().COLLECT_TYPE.REMOVE;
-		(0, _Manager.collectChatGroup)(arg);
-	} else {
-		arg && arg.error && arg.error();
-	}
+  if (arg.to) {
+    arg.to = _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));
+    arg.type = this.getConstants().COLLECT_TYPE.REMOVE;
+    (0, _Manager.collectChatGroup)(arg);
+  } else {
+    arg && arg.error && arg.error();
+  }
+};
+
+_manager.YYIMManager.prototype.getSharedFiles = function (arg) {
+  if (arg && arg.id) {
+    (0, _Manager.getSharedFiles)(arg);
+  } else {
+    arg && arg.error && arg.error();
+  }
 };
 
 _manager.YYIMManager.prototype.getGroupMembers = function (arg) {
-	var id = arg.id || arg.to;
-	if (arg && id) {
-		if (YYIMCommonUtil.isStringAndNotEmpty(id)) {
-			(0, _Manager.getGroupMembers)(arg);
-		}
-	} else {
-		arg && arg.error && arg.error();
-	}
+  if (arg && arg.id) {
+    if (YYIMCommonUtil.isStringAndNotEmpty(arg.id)) {
+      (0, _Manager.getGroupMembers)(arg);
+    }
+  } else {
+    arg && arg.error && arg.error();
+  }
 };
 
 /***/ }),
@@ -11463,8 +11472,9 @@ exports.collectChatGroup = exports.exitChatGroup = exports.kickGroupMember = exp
 var _manager = __webpack_require__(0);
 
 function getChatGroups(arg) {
+	var config = _manager.YYIMChat.getConfig();
 	jQuery.ajax({
-		url: _manager.YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + _manager.YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + _manager.YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + _manager.YYIMChat.getUserID() + '/room/contacts/increment?timestamp=' + arg.startDate + '&token=' + _manager.YYIMChat.getToken() + '&membersLimit=' + arg.membersLimit,
+		url: config.SERVLET.REST_USER_SERVLET + config.MULTI_TENANCY.ETP_KEY + '/' + config.MULTI_TENANCY.APP_KEY + '/' + _manager.YYIMChat.getUserID() + '/room/contacts/increment?timestamp=' + arg.startDate + '&token=' + _manager.YYIMChat.getToken() + '&membersLimit=' + arg.membersLimit,
 		type: 'get',
 		dataType: 'json',
 		cache: false,
@@ -11527,9 +11537,28 @@ function queryChatGroup(arg) {
 	}, arg);
 }
 
+function joinChatGroup(arg) {
+	var presenceBody = {
+		to: arg.jid + "/" + _manager.YYIMChat.getUserNode()
+	};
+
+	_manager.YYIMChat.getConnection().send(new JumpPacket(presenceBody, OPCODE.CHATGROUP.SEND), function (joinResult, _arg) {
+		if (joinResult && joinResult.code == '40301') {
+			_arg.error && _arg.error({
+				code: joinResult.code,
+				message: joinResult.message
+			});
+		} else if (joinResult) {
+			joinResult.id = _manager.YYIMChat.getJIDUtil().getID(joinResult.from);
+			_arg.success && _arg.success(joinResult);
+		}
+	}, arg);
+}
+
 function getChatGroupInfo(arg) {
+	var config = _manager.YYIMChat.getConfig();
 	jQuery.ajax({
-		url: _manager.YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + _manager.YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + _manager.YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + _manager.YYIMChat.getUserID() + '/room/info?membersLimit=' + arg.membersLimit + '&mucId=' + arg.jid + '&token=' + _manager.YYIMChat.getToken(),
+		url: config.SERVLET.REST_USER_SERVLET + config.MULTI_TENANCY.ETP_KEY + '/' + config.MULTI_TENANCY.APP_KEY + '/' + _manager.YYIMChat.getUserID() + '/room/info?membersLimit=' + arg.membersLimit + '&mucId=' + arg.jid + '&token=' + _manager.YYIMChat.getToken(),
 		type: 'get',
 		dataType: 'json',
 		cache: false,
@@ -11726,11 +11755,13 @@ function collectChatGroup(arg) {
 }
 
 function getSharedFiles(arg) {
-	var type = [_manager.YYIMChat.getConstants().CHAT_TYPE.CHAT, _manager.YYIMChat.getConstants().CHAT_TYPE.GROUP_CHAT, _manager.YYIMChat.getConstants().CHAT_TYPE.PUB_ACCOUNT].indexOf(arg.type) > -1 ? arg.type : _manager.YYIMChat.getConstants().CHAT_TYPE.CHAT;
+	var contacts = _manager.YYIMChat.getConstants();
+	var config = _manager.YYIMChat.getConfig();
+	var type = [contacts.CHAT_TYPE.CHAT, contacts.CHAT_TYPE.GROUP_CHAT, contacts.CHAT_TYPE.PUB_ACCOUNT].indexOf(arg.type) > -1 ? arg.type : contacts.CHAT_TYPE.CHAT;
 
-	var url = _manager.YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + _manager.YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + _manager.YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/shareattachment/persional/attachment/' + _manager.YYIMChat.getUserID() + '/' + arg.id;
-	if (type == _manager.YYIMChat.getConstants().CHAT_TYPE.GROUP_CHAT) {
-		url = _manager.YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + _manager.YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + _manager.YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/shareattachment/room/attachment/' + arg.id + '/' + _manager.YYIMChat.getUserID();
+	var url = config.SERVLET.REST_USER_SERVLET + config.MULTI_TENANCY.ETP_KEY + '/' + config.MULTI_TENANCY.APP_KEY + '/shareattachment/persional/attachment/' + _manager.YYIMChat.getUserID() + '/' + arg.id;
+	if (type == contacts.CHAT_TYPE.GROUP_CHAT) {
+		url = config.SERVLET.REST_USER_SERVLET + config.MULTI_TENANCY.ETP_KEY + '/' + config.MULTI_TENANCY.APP_KEY + '/shareattachment/room/attachment/' + arg.id + '/' + _manager.YYIMChat.getUserID();
 	}
 
 	jQuery.ajax({
@@ -11787,8 +11818,9 @@ function getSharedFiles(arg) {
 }
 
 function getGroupMembers(arg) {
+	var config = _manager.YYIMChat.getConfig();
 	jQuery.ajax({
-		url: _manager.YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + _manager.YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + _manager.YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + _manager.YYIMChat.getUserID() + '/room/members?mucId=' + arg.id + '&token=' + _manager.YYIMChat.getToken(),
+		url: config.SERVLET.REST_USER_SERVLET + config.MULTI_TENANCY.ETP_KEY + '/' + config.MULTI_TENANCY.APP_KEY + '/' + _manager.YYIMChat.getUserID() + '/room/members?mucId=' + arg.id + '&token=' + _manager.YYIMChat.getToken(),
 		type: 'get',
 		dataType: 'json',
 		cache: false,
@@ -11812,24 +11844,6 @@ function getGroupMembers(arg) {
 			}
 		}
 	});
-}
-
-function joinChatGroup(arg) {
-	var presenceBody = {
-		to: arg.jid + "/" + _manager.YYIMChat.getUserNode()
-	};
-
-	_manager.YYIMChat.getConnection().send(new JumpPacket(presenceBody, OPCODE.CHATGROUP.SEND), function (joinResult, _arg) {
-		if (joinResult && joinResult.code == '40301') {
-			_arg.error && _arg.error({
-				code: joinResult.code,
-				message: joinResult.message
-			});
-		} else if (joinResult) {
-			joinResult.id = _manager.YYIMChat.getJIDUtil().getID(joinResult.from);
-			_arg.success && _arg.success(joinResult);
-		}
-	}, arg);
 }
 
 function monitor() {
@@ -12048,118 +12062,10 @@ _manager.YYIMManager.prototype.sendReadedReceiptsPacket = function (arg) {
 	}
 };
 
-_manager.YYIMManager.prototype.sendFormMessage = function (arg) {
-	var that = this;
-	var file = arg.file;
-
-	var param = {
-		token: this.getToken(),
-		creator: this.getUserNode(),
-		receiver: this.getJIDUtil().getNode(arg.to),
-		mediaType: arg.mediaType || 2,
-		randomId: Math.uuid(),
-		name: file.name,
-		size: file.size
-	};
-	var url = _manager.YYIMChat.getConfig().SERVLET.REST_RESOURCE_SERVLET + _manager.YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + _manager.YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/upload';
-	url += '?' + jQuery.param(param);
-
-	jQuery.ajax({
-		xhr: function xhr() {
-			var xhr = new window.XMLHttpRequest();
-
-			xhr.upload.addEventListener("progress", function (evt) {
-				if (evt.lengthComputable) {
-					var percentComplete = evt.loaded / evt.total;
-					arg.progress && arg.progress({
-						loaded: evt.loaded,
-						total: evt.total,
-						percent: percentComplete
-					});
-				}
-			}, false);
-
-			xhr.addEventListener("progress", function (evt) {
-				if (evt.lengthComputable) {
-					var percentComplete = evt.loaded / evt.total;
-					arg.progress && arg.progress({
-						loaded: evt.loaded,
-						total: evt.total,
-						percent: percentComplete
-					});
-				}
-			}, false);
-			return xhr;
-		},
-		url: url,
-		type: 'post',
-		dataType: 'json',
-		data: arg.data,
-		processData: false,
-		contentType: false,
-		success: function success(result) {
-			if (result && result.attachId) {
-				var CONTENT_TYPE = _manager.YYIMChat.getConstants().MESSAGE_CONTENT_TYPE;
-				arg.fileUploaded && arg.fileUploaded(result);
-				that.sendMessage({
-					id: arg.id,
-					to: arg.to,
-					spaceId: arg.spaceId,
-					type: arg.type,
-					content: new IMFile({
-						name: file.name,
-						path: result.attachId,
-						size: file.size,
-						original: param.mediaType === 1 ? 1 : null
-					}),
-					contentType: param.mediaType === 1 ? CONTENT_TYPE.IMAGE : CONTENT_TYPE.FILE,
-					success: arg.success,
-					error: arg.error
-				});
-			} else {
-				arg.error && arg.error();
-			}
-			arg = null;
-		},
-		error: arg.error
-	});
-};
-
-_manager.YYIMManager.prototype.sendShareMessage = function (arg) {
-	arg.contentType = _manager.YYIMChat.getConstants().MESSAGE_CONTENT_TYPE.SHARE;
-	this.sendMessage(arg);
-};
-
 _manager.YYIMManager.prototype.sendTextMessage = function (arg) {
 	arg.content = arg.msg || arg.content;
 	arg.contentType = _manager.YYIMChat.getConstants().MESSAGE_CONTENT_TYPE.TEXT;
 	this.sendMessage(arg);
-};
-
-_manager.YYIMManager.prototype.sendMessage = function (arg) {
-	arg.id = arg.id || Math.uuid();
-	arg.type = arg.type || _manager.YYIMChat.getConstants().CHAT_TYPE.CHAT;
-	arg.body = {
-		dateline: arg.dateline,
-		extend: arg.extend,
-		content: arg.content,
-		contentType: arg.contentType,
-		sceneParams: arg.sceneParams
-	};
-
-	if (arg.type === _manager.YYIMChat.getConstants().CHAT_TYPE.GROUP_CHAT && YYIMArrayUtil.isArray(arg.atuser)) {
-		arg.body.atuser = arg.atuser;
-	}
-
-	(0, _Manager.sendMessage)(arg);
-};
-
-_manager.YYIMManager.prototype.revokeMessage = function (arg) {
-	if (arg && arg.id) {
-		(0, _Manager.revokeMessage)(arg);
-	} else {
-		arg && arg.error && arg.error();
-	}
 };
 
 _manager.YYIMManager.prototype.sendPic = function (arg) {
@@ -12269,6 +12175,114 @@ _manager.YYIMManager.prototype.sendFile = function (arg) {
 			error: arg.error,
 			progress: arg.progress
 		});
+	} else {
+		arg && arg.error && arg.error();
+	}
+};
+
+_manager.YYIMManager.prototype.sendShareMessage = function (arg) {
+	arg.contentType = _manager.YYIMChat.getConstants().MESSAGE_CONTENT_TYPE.SHARE;
+	this.sendMessage(arg);
+};
+
+_manager.YYIMManager.prototype.sendFormMessage = function (arg) {
+	var that = this;
+	var file = arg.file;
+
+	var param = {
+		token: this.getToken(),
+		creator: this.getUserNode(),
+		receiver: this.getJIDUtil().getNode(arg.to),
+		mediaType: arg.mediaType || 2,
+		randomId: Math.uuid(),
+		name: file.name,
+		size: file.size
+	};
+	var url = _manager.YYIMChat.getConfig().SERVLET.REST_RESOURCE_SERVLET + _manager.YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + _manager.YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/upload';
+	url += '?' + jQuery.param(param);
+
+	jQuery.ajax({
+		xhr: function xhr() {
+			var xhr = new window.XMLHttpRequest();
+
+			xhr.upload.addEventListener("progress", function (evt) {
+				if (evt.lengthComputable) {
+					var percentComplete = evt.loaded / evt.total;
+					arg.progress && arg.progress({
+						loaded: evt.loaded,
+						total: evt.total,
+						percent: percentComplete
+					});
+				}
+			}, false);
+
+			xhr.addEventListener("progress", function (evt) {
+				if (evt.lengthComputable) {
+					var percentComplete = evt.loaded / evt.total;
+					arg.progress && arg.progress({
+						loaded: evt.loaded,
+						total: evt.total,
+						percent: percentComplete
+					});
+				}
+			}, false);
+			return xhr;
+		},
+		url: url,
+		type: 'post',
+		dataType: 'json',
+		data: arg.data,
+		processData: false,
+		contentType: false,
+		success: function success(result) {
+			if (result && result.attachId) {
+				var CONTENT_TYPE = _manager.YYIMChat.getConstants().MESSAGE_CONTENT_TYPE;
+				arg.fileUploaded && arg.fileUploaded(result);
+				that.sendMessage({
+					id: arg.id,
+					to: arg.to,
+					spaceId: arg.spaceId,
+					type: arg.type,
+					content: new IMFile({
+						name: file.name,
+						path: result.attachId,
+						size: file.size,
+						original: param.mediaType === 1 ? 1 : null
+					}),
+					contentType: param.mediaType === 1 ? CONTENT_TYPE.IMAGE : CONTENT_TYPE.FILE,
+					success: arg.success,
+					error: arg.error
+				});
+			} else {
+				arg.error && arg.error();
+			}
+			arg = null;
+		},
+		error: arg.error
+	});
+};
+
+_manager.YYIMManager.prototype.sendMessage = function (arg) {
+	arg.id = arg.id || Math.uuid();
+	arg.type = arg.type || _manager.YYIMChat.getConstants().CHAT_TYPE.CHAT;
+	arg.body = {
+		dateline: arg.dateline,
+		extend: arg.extend,
+		content: arg.content,
+		contentType: arg.contentType,
+		sceneParams: arg.sceneParams
+	};
+
+	if (arg.type === _manager.YYIMChat.getConstants().CHAT_TYPE.GROUP_CHAT && YYIMArrayUtil.isArray(arg.atuser)) {
+		arg.body.atuser = arg.atuser;
+	}
+
+	(0, _Manager.sendMessage)(arg);
+};
+
+_manager.YYIMManager.prototype.revokeMessage = function (arg) {
+	if (arg && arg.id) {
+		(0, _Manager.revokeMessage)(arg);
 	} else {
 		arg && arg.error && arg.error();
 	}
@@ -12497,22 +12511,56 @@ function parseMessage(packet, type) {
 	}
 }
 
-function sendReceiptsPacket(arg) {
-	arg = arg || {};
-	var Jid = _manager.YYIMChat.getJIDUtil().buildUserJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));
-	if (arg.type == _manager.YYIMChat.getConstants().CHAT_TYPE.GROUP_CHAT) {
-		Jid = _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));
-	} else if (arg.type == _manager.YYIMChat.getConstants().CHAT_TYPE.PUB_ACCOUNT) {
-		Jid = _manager.YYIMChat.getJIDUtil().buildPubAccountJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));
+function handleRequestParams(body) {
+	var messageExtend = {
+		intelligentAnalysis: {}
+	};
+
+	if (body.contentType && body.contentType == _manager.YYIMChat.getConstants().MESSAGE_CONTENT_TYPE.TEXT) {
+		if (body.extend && typeof body.extend != 'string') {
+			messageExtend = body.extend;
+		}
+		if (_YYAIAbility2.default.intelligentAnalysis(body.content)) {
+			messageExtend.intelligentAnalysis.intelligentable = true;
+			if (body.sceneParams) {
+				messageExtend.intelligentAnalysis.params = body.sceneParams;
+				delete body.sceneParams;
+			}
+		}
 	}
-	var receiptsPacket = new JumpPacket({
-		to: Jid,
-		dateline: new Date().getTime(),
-		sessionVersion: arg.sessionVersion,
+	return messageExtend;
+}
+
+function handleSendMessage(arg, body, receipts) {
+	var result = {
 		id: arg.id,
-		state: arg.state
-	}, OPCODE.RECEIPTS.SEND);
-	_manager.YYIMChat.getConnection().send(receiptsPacket);
+		type: arg.type,
+		sessionVersion: receipts.sessionVersion || 0,
+		data: {
+			content: body.content,
+			contentType: body.contentType,
+			dateline: receipts.dateline,
+			extend: body.extend
+		}
+	};
+
+	if (result.type != _manager.YYIMChat.getConstants().CHAT_TYPE.CHAT) {
+		result.to = _manager.YYIMChat.getUserID();
+		result.from = {
+			room: _manager.YYIMChat.getJIDUtil().getID(arg.to),
+			roster: _manager.YYIMChat.getUserID()
+		};
+	} else {
+		result.to = _manager.YYIMChat.getJIDUtil().getID(arg.to);
+		result.from = _manager.YYIMChat.getUserID();
+		result.resource = _manager.YYIMChat.getResource();
+	}
+
+	if (result.data.content.path) {
+		result.data.content.attachId = result.data.content.path;
+		result.data.content.path = _manager.YYIMChat.getFileUrl(result.data.content.path);
+	}
+	return result;
 }
 
 function sendMessage(arg) {
@@ -12599,56 +12647,22 @@ function sendMessage(arg) {
 	}
 }
 
-function handleRequestParams(body) {
-	var messageExtend = {
-		intelligentAnalysis: {}
-	};
-
-	if (body.contentType && body.contentType == _manager.YYIMChat.getConstants().MESSAGE_CONTENT_TYPE.TEXT) {
-		if (body.extend && typeof body.extend != 'string') {
-			messageExtend = body.extend;
-		}
-		if (_YYAIAbility2.default.intelligentAnalysis(body.content)) {
-			messageExtend.intelligentAnalysis.intelligentable = true;
-			if (body.sceneParams) {
-				messageExtend.intelligentAnalysis.params = body.sceneParams;
-				delete body.sceneParams;
-			}
-		}
+function sendReceiptsPacket(arg) {
+	arg = arg || {};
+	var Jid = _manager.YYIMChat.getJIDUtil().buildUserJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));
+	if (arg.type == _manager.YYIMChat.getConstants().CHAT_TYPE.GROUP_CHAT) {
+		Jid = _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));
+	} else if (arg.type == _manager.YYIMChat.getConstants().CHAT_TYPE.PUB_ACCOUNT) {
+		Jid = _manager.YYIMChat.getJIDUtil().buildPubAccountJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));
 	}
-	return messageExtend;
-}
-
-function handleSendMessage(arg, body, receipts) {
-	var result = {
+	var receiptsPacket = new JumpPacket({
+		to: Jid,
+		dateline: new Date().getTime(),
+		sessionVersion: arg.sessionVersion,
 		id: arg.id,
-		type: arg.type,
-		sessionVersion: receipts.sessionVersion || 0,
-		data: {
-			content: body.content,
-			contentType: body.contentType,
-			dateline: receipts.dateline,
-			extend: body.extend
-		}
-	};
-
-	if (result.type != _manager.YYIMChat.getConstants().CHAT_TYPE.CHAT) {
-		result.to = _manager.YYIMChat.getUserID();
-		result.from = {
-			room: _manager.YYIMChat.getJIDUtil().getID(arg.to),
-			roster: _manager.YYIMChat.getUserID()
-		};
-	} else {
-		result.to = _manager.YYIMChat.getJIDUtil().getID(arg.to);
-		result.from = _manager.YYIMChat.getUserID();
-		result.resource = _manager.YYIMChat.getResource();
-	}
-
-	if (result.data.content.path) {
-		result.data.content.attachId = result.data.content.path;
-		result.data.content.path = _manager.YYIMChat.getFileUrl(result.data.content.path);
-	}
-	return result;
+		state: arg.state
+	}, OPCODE.RECEIPTS.SEND);
+	_manager.YYIMChat.getConnection().send(receiptsPacket);
 }
 
 function getHistoryMessage(arg) {
@@ -12779,38 +12793,29 @@ var _manager = __webpack_require__(0);
 
 var _Manager = __webpack_require__(50);
 
-_manager.YYIMManager.prototype.getProfile = function (arg) {
-	(0, _Manager.getProfile)({
-		success: function success(data) {
-			var intelligentable = data.intelligentable;
-			var intelligentWordsTime = data.intelligentWordsTime;
-			if (intelligentable != 'undefined') {}
-			if (intelligentWordsTime) {
-				_manager.YYIMChat.setDictionaries(intelligentWordsTime);
-			}
-
-			arg.success && arg.success(data);
-		},
-		error: function error(_error) {
-			arg.error && arg.error(errot);
-		}
-	});
-};
-
-_manager.YYIMManager.prototype.mute = function (arg) {
+_manager.YYIMManager.prototype.stick = function (arg) {
 	arg = arg || {};
 	if (!!arg.to) {
-		arg.handle = 'mute';
+		arg.handle = 'stick';
 		(0, _Manager.muteStick)(arg);
 	} else {
 		arg.error && arg.error();
 	}
 };
 
-_manager.YYIMManager.prototype.stick = function (arg) {
+_manager.YYIMManager.prototype.cancelStick = function (arg) {
+	if (arg && arg.to) {
+		arg.handle = 'stick';
+		(0, _Manager.cancelMuteStick)(arg);
+	} else {
+		arg && arg.error && arg.error();
+	}
+};
+
+_manager.YYIMManager.prototype.mute = function (arg) {
 	arg = arg || {};
 	if (!!arg.to) {
-		arg.handle = 'stick';
+		arg.handle = 'mute';
 		(0, _Manager.muteStick)(arg);
 	} else {
 		arg.error && arg.error();
@@ -12844,13 +12849,22 @@ _manager.YYIMManager.prototype.cancelMute = function (arg) {
 	}
 };
 
-_manager.YYIMManager.prototype.cancelStick = function (arg) {
-	if (arg && arg.to) {
-		arg.handle = 'stick';
-		(0, _Manager.cancelMuteStick)(arg);
-	} else {
-		arg && arg.error && arg.error();
-	}
+_manager.YYIMManager.prototype.getProfile = function (arg) {
+	(0, _Manager.getProfile)({
+		success: function success(data) {
+			var intelligentable = data.intelligentable;
+			var intelligentWordsTime = data.intelligentWordsTime;
+			if (intelligentable != 'undefined') {}
+			if (intelligentWordsTime) {
+				_manager.YYIMChat.setDictionaries(intelligentWordsTime);
+			}
+
+			arg.success && arg.success(data);
+		},
+		error: function error(_error) {
+			arg.error && arg.error(errot);
+		}
+	});
 };
 
 _manager.YYIMManager.prototype.createProfile = function (arg) {

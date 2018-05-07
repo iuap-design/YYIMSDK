@@ -4507,38 +4507,29 @@ var _manager = __webpack_require__(0);
 
 var _Manager = __webpack_require__(50);
 
-_manager.YYIMManager.prototype.getProfile = function (arg) {
-	(0, _Manager.getProfile)({
-		success: function success(data) {
-			var intelligentable = data.intelligentable;
-			var intelligentWordsTime = data.intelligentWordsTime;
-			if (intelligentable != 'undefined') {}
-			if (intelligentWordsTime) {
-				_manager.YYIMChat.setDictionaries(intelligentWordsTime);
-			}
-
-			arg.success && arg.success(data);
-		},
-		error: function error(_error) {
-			arg.error && arg.error(errot);
-		}
-	});
-};
-
-_manager.YYIMManager.prototype.mute = function (arg) {
+_manager.YYIMManager.prototype.stick = function (arg) {
 	arg = arg || {};
 	if (!!arg.to) {
-		arg.handle = 'mute';
+		arg.handle = 'stick';
 		(0, _Manager.muteStick)(arg);
 	} else {
 		arg.error && arg.error();
 	}
 };
 
-_manager.YYIMManager.prototype.stick = function (arg) {
+_manager.YYIMManager.prototype.cancelStick = function (arg) {
+	if (arg && arg.to) {
+		arg.handle = 'stick';
+		(0, _Manager.cancelMuteStick)(arg);
+	} else {
+		arg && arg.error && arg.error();
+	}
+};
+
+_manager.YYIMManager.prototype.mute = function (arg) {
 	arg = arg || {};
 	if (!!arg.to) {
-		arg.handle = 'stick';
+		arg.handle = 'mute';
 		(0, _Manager.muteStick)(arg);
 	} else {
 		arg.error && arg.error();
@@ -4572,13 +4563,22 @@ _manager.YYIMManager.prototype.cancelMute = function (arg) {
 	}
 };
 
-_manager.YYIMManager.prototype.cancelStick = function (arg) {
-	if (arg && arg.to) {
-		arg.handle = 'stick';
-		(0, _Manager.cancelMuteStick)(arg);
-	} else {
-		arg && arg.error && arg.error();
-	}
+_manager.YYIMManager.prototype.getProfile = function (arg) {
+	(0, _Manager.getProfile)({
+		success: function success(data) {
+			var intelligentable = data.intelligentable;
+			var intelligentWordsTime = data.intelligentWordsTime;
+			if (intelligentable != 'undefined') {}
+			if (intelligentWordsTime) {
+				_manager.YYIMChat.setDictionaries(intelligentWordsTime);
+			}
+
+			arg.success && arg.success(data);
+		},
+		error: function error(_error) {
+			arg.error && arg.error(errot);
+		}
+	});
 };
 
 _manager.YYIMManager.prototype.createProfile = function (arg) {

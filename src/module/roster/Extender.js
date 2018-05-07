@@ -152,7 +152,7 @@ YYIMManager.prototype.getVCards = function(arg) {
 };
 
 /**
- * 修改当前用户的头像
+ * 修改当前用户的VCard
  * @param arg {
  * 		nickname:String,
  * 		photo:String,

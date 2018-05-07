@@ -174,7 +174,13 @@ YYIMChat.sendTextMessage({
 YYIMChat.sendPic({
     fileInputId: &#39;DomID&#39;,
     drop_element: &#39;dropID&#39;,
-    chatInfo: function(){},
+    chatInfo: function(){
+        return {
+            to: &#39;id&#39;,
+            type: &#39;chat&#39;,
+            extend: &#39;&#39;
+        }
+    },
     fileFiltered: function(){},
     fileUploaded: function(){},
     beforeUpload: function(){},
