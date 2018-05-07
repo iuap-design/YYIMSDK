@@ -11,20 +11,32 @@ import {
     $login_pass,
     $login_btn,
     $hcontacts,
+    $hgroups,
+    $chat_box,
     $chats_list,
     $picviewer,
-    picviewer
+    picviewer,
+    $personinfo,
+    $own_avatar,
+    $smchat,
+    $smfriend,
+    $smgroup,
+    $smpubcount
 } from './jqelements';
-
 //表情数据
 import { expressionList } from './constants';
-
 //用户登陆
 import userLogin from './userLogin';
-
+//获取最近联系人
+import getRecentDigset from './getRecentDigset';
+//渲染最近联系人
+import renderRecentDigset from './renderRecentDigset';
+//获取群组
+import getChatGroups from './getChatGroups';
+//渲染群组
+import renderChatGroups from './renderChatGroups';
 //获取历史聊天记录
 import getHistoryMessage from './getHistoryMessage';
-
 //渲染历史聊天记录
 import renderHistoryMessage from './renderHistoryMessage';
 
@@ -77,10 +89,14 @@ $yyim_box.on('mouseup', function () {
 $('.yyim-search').on('keydown',function (e) {
     let keyword = $(this).val();
     if(e.keyCode === 13 && keyword){
-        //
-        YYIMChat.getRosterItems({
-            success: function (res) {
-                console.log(JSON.parse(res));
+        //查询好友
+        YYIMChat.queryRosterItem({
+            keyword: keyword,
+            success: function(data){
+                console.log(data);
+            },
+            error: function(err){
+                console.log(err);
             }
         });
     }
@@ -94,15 +110,41 @@ $hcontacts.on('click','li',function () {
     $j_move.html($(this).attr('data-nickname'));
     //把选择的聊天对方id保存起来,用于给他发送消息
     localStorage.setItem('targetuserid', $(this).attr('data-id'));
+    //保存聊天类型
+    localStorage.setItem('chattype', $(this).attr('data-type'));
     //删除保存的聊天历史
     localStorage.removeItem('historychats');
     //获取历史聊天信息
     getHistoryMessage($(this).attr('data-sessionVersion'), $(this).attr('data-id'), $(this).attr('data-type'));
 });
 
-//关闭联系人点击
+//删除最近联系人
 $hcontacts.on('click','.close',function () {
-    console.log('关闭'+ $(this).attr('data-id'));
+    const curid = $(this).attr('data-id');
+    YYIMChat.removeRecentDigest({
+        id: curid,
+        type: $(this).attr('data-type'),
+        success:function(data){
+            //从本地拿取聊天对方id
+            let toid = localStorage.getItem('targetuserid');
+            //拿取本地保存的最近联系人数组
+            let recentDigset = JSON.parse(localStorage.getItem('recentdigset') || "[]");
+            recentDigset.forEach(function(digest, i){
+                if(digest.id === curid){
+                    recentDigset.splice(i, 1);
+                }
+            });
+            //保存修改后的最近联系人数组
+            localStorage.setItem('recentdigset', JSON.stringify(recentDigset));
+            //保存聊天类型
+            localStorage.setItem('chattype', 'groupchat');
+            //渲染最近联系人
+            renderRecentDigset(recentDigset);
+        },
+        error:function(err){
+            console.log(err);
+        }
+    });
     return false;
 });
 
@@ -238,10 +280,12 @@ $btn_send.on('click',function () {
     if($yyim_editor.val()){
         //从本地拿取聊天对方id
         let to = localStorage.getItem('targetuserid');
+        //从本地拿取聊天类型
+        let chattype = localStorage.getItem('chattype');
         //调用发送文本消息接口
         YYIMChat.sendTextMessage({
             to: to, //对话人id
-            type: "chat",  //chat:单聊，groupcgat:群聊,pubaccount:公众号
+            type: chattype,  //chat:单聊，groupcgat:群聊,pubaccount:公众号
             content:$yyim_editor.val(), //消息文本
             extend: '',  //扩展字段
             success: function (msg) {
@@ -260,12 +304,14 @@ $yyim_editor.on('keydown',function(e){
     if(e.keyCode === 13 && $yyim_editor.val()){
         //从本地拿取聊天对方id
         let to = localStorage.getItem('targetuserid');
+        //从本地拿取聊天类型
+        let chattype = localStorage.getItem('chattype');
         //调用发送文本消息接口
         YYIMChat.sendTextMessage({
             to: to, //对话人id
-            type: "chat",  //chat:单聊，groupcgat:群聊,pubaccount:公众号
+            type: chattype,  //chat:单聊，groupchat:群聊,pubaccount:公众号
             content:$yyim_editor.val(), //消息文本
-            extend: '',  //扩展字段
+            body: '',  //扩展字段
             success: function (msg) {
                 //发送成功之后清空输入框
                 $yyim_editor.val('');
@@ -275,4 +321,127 @@ $yyim_editor.on('keydown',function(e){
             }
         });
     }
-})
+});
+
+//头像点击
+$own_avatar.on('click',function(){
+    let userVcard = JSON.parse(localStorage.getItem('currentuserinfo') || "{}");
+    $personinfo.html(`
+            <div class="site">
+                <div class="hd">
+                    <div class="hdpic">
+                        <img src="${userVcard.photo? YYIMChat.getFileUrl(userVcard.photo) : ''}" alt="">
+                    </div>
+                    <h3 class="nickname">${userVcard.nickname || userVcard.id}</h3>
+                </div>
+                <ul class="infolist">
+                    <li><label>邮箱</label>${userVcard.email || ''}</li>
+                    <li><label>性别</label>${userVcard.gender || ''}</li>
+                    <li><label>手机</label>${userVcard.mobile || ''}</li>
+                </ul>
+                <span class="close_chatmsk">×</span>
+            </div>
+    `).show();
+});
+//关闭个人信息
+$personinfo.on('click','.close_chatmsk',function(){
+    $personinfo.hide();
+});
+
+//菜单-聊天
+$smchat.on('click',function(){
+    if($(this).hasClass('active')){return;}
+    $(this).addClass('active');
+    $(this).siblings().removeClass('active');
+
+    $hgroups.hide();
+    $hcontacts.show();
+    //移除保存的通讯对方id，避免页面刷新后最近联系人联系状态还记录着
+    localStorage.removeItem('targetuserid');
+    //本地拉取获取最近联系人
+    let recentdigset = localStorage.getItem('recentdigset') || "[]";
+    renderRecentDigset(JSON.parse(recentdigset));
+});
+//菜单-好友
+$smfriend.on('click',function(){
+    if($(this).hasClass('active')){return;}
+    $(this).addClass('active');
+    $(this).siblings().removeClass('active');
+});
+//菜单-群组
+$smgroup.on('click',function(){
+    if($(this).hasClass('active')){return;}
+    $(this).addClass('active');
+    $(this).siblings().removeClass('active');
+    //清空聊天头部名称
+    $j_move.html('');
+    //隐藏最近联系人列表
+    $hcontacts.hide();
+    //隐藏聊天框
+    $chat_box.hide();
+    //显示群组列表
+    $hgroups.html('');
+    $hgroups.show();
+
+    let roomItems = localStorage.getItem('roomItems');
+    if(roomItems){
+        //使用本地保存的群组渲染
+        renderChatGroups(JSON.parse(roomItems));
+    }else {
+        //重新获取群组
+        getChatGroups();
+    }
+});
+//菜单-公众号
+$smpubcount.on('click',function(){
+    if($(this).hasClass('active')){return;}
+
+    $(this).addClass('active');
+    $(this).siblings().removeClass('active');
+});
+
+$hgroups.on('click', 'li', function(){
+    $smchat.addClass('active');
+    $smchat.siblings().removeClass('active');
+    $hgroups.hide();
+    $hcontacts.html('');
+    $hcontacts.show();
+
+    //修改当前联系人id
+    localStorage.setItem('targetuserid', $(this).attr('data-id'));
+
+    let that = $(this);
+    //拿取本地保存的最近联系人数组
+    let recentDigset = JSON.parse(localStorage.getItem('recentdigset') || "[]");
+    let isdigset = false; //判断该公众号在不在我的最近联系人里
+    recentDigset.forEach(function(digest, i){
+        if(digest.id === that.attr('data-id')){
+            isdigset = true;
+        }
+    });
+    //不在最近联系人中，刷新最近联系人列表
+    if(!isdigset){
+        recentDigset.push({
+            id: that.attr('data-id'),
+            readedVersion: 0,
+            sessionVersion: 0,
+            type: 'groupchat',
+            photo: that.attr('data-photo'),
+            nickname:  that.attr('data-name'),
+            lastMessage: null,
+            lastContactTime: new Date().getTime()
+        });
+        //保存修改后的最近联系人数组
+        localStorage.setItem('recentdigset', JSON.stringify(recentDigset));
+        //保存聊天类型
+        localStorage.setItem('chattype', 'groupchat');
+    }
+    //渲染最近联系人
+    renderRecentDigset(recentDigset);
+    //换个聊天的头部名称
+    $j_move.html($(this).attr('data-name'));
+    //删除保存的聊天历史
+    localStorage.removeItem('historychats');
+    //获取历史聊天信息
+    getHistoryMessage(0, $(this).attr('data-id'), 'groupchat');
+});

@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -25,6 +25,29 @@
 </div>
 <div class="yyim-box">
     <div class="yyim-main">
+        <!-- 菜单栏 -->
+        <div class="side-menu">
+            <ul class="sm-top">
+                <!-- 头像 -->
+                <li class="avatar">
+                    <div class="own_avatar">
+                            <img src="./imgs/avatar.jpg" alt="">
+                    </div>
+                </li>
+                <li class="smchat active">
+                    <span class="menu-icom" title="聊天"></span>
+                </li>
+                <li class="smfriend">
+                    <span class="menu-icom" title="好友"></span>
+                </li>
+                <li class="smgroup">
+                        <span class="menu-icom" title="群组"></span>
+                </li>
+                <li class="smpubcount">
+                    <span class="menu-icom" title="订阅号"></span>
+                </li>
+            </ul>
+        </div>
         <!--侧边栏-->
         <div class="sidebar scrollbar">
             <!--搜索-->
@@ -34,7 +57,7 @@
             </div>
             <!--最近联系人-->
             <div class="history-contacts-con">
-                <div class="history-contacts ">
+                <div class="history-contacts scrollbar">
                     <!--联系人-->
                     <ul class="hcontacts">
                         <!--<li>-->
@@ -58,6 +81,8 @@
                             <!--<i class="newtip cuttxt">99</i>-->
                         <!--</li>-->
                     </ul>
+                    <!--群组-->
+                    <ul class="hgroups" style="display: none"></ul>
                     <!--订阅号-->
                     <ul class="hsubscribe" style="display: none"></ul>
                 </div>
@@ -142,6 +167,23 @@
                     </div>
                 </div>
             </div>
+        </div>
+        <!-- 个人信息框 -->
+        <div class="chatmsk personinfo">
+            <!-- <div class="site">
+                <div class="hd">
+                    <div class="hdpic">
+                        <img src="./imgs/avatar.jpg" alt="">
+                    </div>
+                    <h3 class="nickname">哈哈</h3>
+                </div>
+                <ul class="infolist">
+                    <li><label>邮箱</label>fafafa</li>
+                    <li><label>性别</label>dfsf</li>
+                    <li><label>手机</label>23232323</li>
+                </ul>
+                <span class="close_chatmsk">×</span>
+            </div> -->
         </div>
     </div>
 </div>

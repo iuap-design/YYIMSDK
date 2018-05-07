@@ -7,6 +7,8 @@ import getRecentDigset from './js/getRecentDigset';
 //渲染历史聊天记录
 import renderHistoryMessage from './js/renderHistoryMessage';
 
+import { $own_avatar } from './js/jqelements';
+
 //初始化SDK，正式环境
 YYIMChat.initSDK({
     app: 'udn', //appId
@@ -44,6 +46,7 @@ YYIMChat.init({
         // 获取自己信息
         YYIMChat.getVCard({
             success: function (res) {
+                if(res.photo)$own_avatar.find('img').attr('src',YYIMChat.getFileUrl(res.photo));
                 //保存自己的信息
                 localStorage.setItem('currentuserinfo', JSON.stringify(res));
             }
@@ -86,8 +89,12 @@ YYIMChat.init({
         //好友信息更改
     },
     onMessage: function(msg) {
-        //渲染历史聊天记录
-        renderHistoryMessage(msg);
+        //从本地拿取聊天类型
+        let chattype = localStorage.getItem('chattype');
+        if(chattype == 'chat'){   //如果给群组发消息会出发此回调
+            //渲染历史聊天记录
+            renderHistoryMessage(msg);
+        }
     },
     onGroupUpdate: function(arg) {
         //群组更新
@@ -102,7 +109,7 @@ YYIMChat.init({
         //好友presence改变
     },
     onRosterDeleted: function(arg) {
-        //好友被删除
+        //好友被删除 
     },
     onPubaccountUpdate: function(pubaccounts) {
         //公共号信息更新

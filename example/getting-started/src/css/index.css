@@ -61,6 +61,85 @@ body{
     cursor: pointer;
 }
 
+/* 聊天框中遮罩 */
+.chatmsk{
+    position: absolute;
+    height: 100%;
+    width: 100%;
+    left: 0;
+    top: 0;
+    z-index: 110;
+    background-color: rgba(0,0,0,0.4);
+}
+
+/* 个人信息框 */
+.personinfo{
+    display: none;
+}
+.personinfo .site{
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    margin: auto;
+    width: 400px;
+    height: 500px;
+    background-color: white;
+    border-radius: 4px;
+    box-shadow: 0 0 20px #666;
+    overflow: hidden;
+}
+.personinfo .hd{
+    height: 100px;
+    padding: 25px 10px;
+    background-color: rgba(0,0,0,0.5);
+}
+.personinfo .hdpic{
+    height: 76px;
+    width: 76px;
+    margin: 0 auto;
+    padding: 2px;
+    background-color: white;
+    border-radius: 50%;
+}
+.personinfo .hdpic img{
+    float: left;
+    height: 100%;
+    width: 100%;
+    border-radius: 50%;
+}
+.personinfo .nickname{
+    text-align: center;
+    color: white;
+    font-weight: normal;
+    font-size: 14px;
+    padding-top: 6px;
+}
+.personinfo .infolist li{
+    padding: 10px 15px;
+}
+.personinfo .infolist label{
+    display: inline-block;
+    width: 100px;
+    color: #999;
+}
+.close_chatmsk{
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    height: 20px;
+    width: 20px;
+    text-align: center;
+    line-height: 20px;
+    color: #eee;
+    font-size: 20px;
+    cursor: pointer;
+}
+.close_chatmsk:hover{
+    color: tomato;
+}
+
 /*聊天面板*/
 .yyim-box{
     display: none; /*默认隐藏*/
@@ -79,7 +158,7 @@ body{
     bottom: 0;
     margin: auto;
     height: 590px;
-    width: 812px;
+    width: 882px;
     border-radius: 4px;
     box-shadow: 10px 10px 20px rgba(0,0,0,.3);
     background-color: white;
@@ -89,11 +168,78 @@ body{
     height: 100%;
     width: 100%;
 }
+
+/* 菜单栏 */
+.side-menu{
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 70px;
+    height: 100%;
+    background-color: #1A2940;
+}
+.side-menu li{
+    height: 40px;
+    background: white;
+    padding: 20px 15px 5px;
+    background-color: transparent;
+    cursor: pointer;
+}
+.side-menu .avatar{
+    cursor: default;
+}
+.side-menu .own_avatar{
+    height: 100%;
+    width: 100%;
+    border-radius: 50%;
+    cursor: pointer;
+}
+.side-menu .avatar img{
+    float: left;
+    height: 100%;
+    width: 100%;
+    border-radius: 50%;
+    background-color: #ccc;
+}
+.side-menu .menu-icom{
+    display: block;
+    margin: 0 auto;
+    height: 30px;
+    width: 30px;
+    background-size: 20px;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+.side-menu .smchat .menu-icom{
+    background-image: url(../imgs/sidemenu/chat.png);
+}
+.side-menu .smfriend .menu-icom{
+    background-image: url(../imgs/sidemenu/friend.png);
+}
+.side-menu .smgroup .menu-icom{
+    background-image: url(../imgs/sidemenu/group.png);
+}
+.side-menu .smpubcount .menu-icom{
+    background-image: url(../imgs/sidemenu/pubcount.png);
+}
+.side-menu .smchat.active .menu-icom{
+    background-image: url(../imgs/sidemenu/chat_active.png);
+}
+.side-menu .smfriend.active .menu-icom{
+    background-image: url(../imgs/sidemenu/friend_active.png);
+}
+.side-menu .smgroup.active .menu-icom{
+    background-image: url(../imgs/sidemenu/group_active.png);
+}
+.side-menu .smpubcount.active .menu-icom{
+    background-image: url(../imgs/sidemenu/pubcount_active.png);
+}
+
 /*侧边栏*/
 .sidebar{
     position: absolute;
     top: 0;
-    left: 0;
+    left: 70px;
     width: 210px;
     height: 100%;
 }
@@ -236,7 +382,7 @@ body{
 
 /*聊天框主体*/
 .chat-con{
-    margin-left: 210px;
+    margin-left: 280px;
     height: 100%;
 }
 /*右边历史聊天记录*/

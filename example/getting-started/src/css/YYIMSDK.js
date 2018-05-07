@@ -1095,7 +1095,7 @@ var YYIMUtil = {
  * 正则表达式
  */
 var YYIMRegExp = {
-	mobile: /^[1][358][0-9]{9}$/, //手机号
+	mobile: /^1[3578][0-9]{9}$/, //手机号
 	phone: /((\d{11})|^((\d{7,8})|(\d{4}|\d{3})-(\d{7,8})|(\d{4}|\d{3})-(\d{7,8})-(\d{4}|\d{3}|\d{2}|\d{1})|(\d{7,8})-(\d{4}|\d{3}|\d{2}|\d{1}))$)/ //手机和座机两种格式	
 };
 /**
@@ -1529,7 +1529,6 @@ var SERVICE_OPCODE = {
 	 */
 	SERVICE_RECEIPTS : new _Opcode('ServiceReceipts', 0x1802)
 };
-
 YYIMUtil.extend(OPCODE,SERVICE_OPCODE);
 
 /**
@@ -1823,6 +1822,1112 @@ if (window.XMLSerializer &&
                                     return (new XMLSerializer()).serializeToString(this);
                                   });
  }
+
+/* Copyright (c) 1998 - 2007, Paul Johnston & Contributors
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * Redistributions of source code must retain the above copyright
+ * notice, this list of conditions and the following
+ * disclaimer. Redistributions in binary form must reproduce the above
+ * copyright notice, this list of conditions and the following
+ * disclaimer in the documentation and/or other materials provided
+ * with the distribution.
+ *
+ * Neither the name of the author nor the names of its contributors
+ * may be used to endorse or promote products derived from this
+ * software without specific prior written permission.
+ *
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+ * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
+ * OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ */
+
+/**
+ * @fileoverview Collection of MD5 and SHA1 hashing and encoding
+ * methods.
+ * @author Stefan Strigler steve@zeank.in-berlin.de
+ */
+
+
+/*
+ * A JavaScript implementation of the Secure Hash Algorithm, SHA-1, as defined
+ * in FIPS 180-1
+ * Version 2.2 Copyright Paul Johnston 2000 - 2009.
+ * Other contributors: Greg Holt, Andrew Kepert, Ydnar, Lostinet
+ * Distributed under the BSD License
+ * See http://pajhome.org.uk/crypt/md5 for details.
+ */
+
+/*
+ * Configurable variables. You may need to tweak these to be compatible with
+ * the server-side, but the defaults work in most cases.
+ */
+var hexcase = 0;  /* hex output format. 0 - lowercase; 1 - uppercase        */
+var b64pad  = "="; /* base-64 pad character. "=" for strict RFC compliance   */
+
+/*
+ * These are the functions you'll usually want to call
+ * They take string arguments and return either hex or base-64 encoded strings
+ */
+function hex_sha1(s)    { return rstr2hex(rstr_sha1(str2rstr_utf8(s))); }
+function b64_sha1(s)    { return rstr2b64(rstr_sha1(str2rstr_utf8(s))); }
+function any_sha1(s, e) { return rstr2any(rstr_sha1(str2rstr_utf8(s)), e); }
+function hex_hmac_sha1(k, d)
+  { return rstr2hex(rstr_hmac_sha1(str2rstr_utf8(k), str2rstr_utf8(d))); }
+function b64_hmac_sha1(k, d)
+  { return rstr2b64(rstr_hmac_sha1(str2rstr_utf8(k), str2rstr_utf8(d))); }
+function any_hmac_sha1(k, d, e)
+  { return rstr2any(rstr_hmac_sha1(str2rstr_utf8(k), str2rstr_utf8(d)), e); }
+
+/*
+ * Perform a simple self-test to see if the VM is working
+ */
+function sha1_vm_test()
+{
+  return hex_sha1("abc").toLowerCase() == "a9993e364706816aba3e25717850c26c9cd0d89d";
+}
+
+/*
+ * Calculate the SHA1 of a raw string
+ */
+function rstr_sha1(s)
+{
+  return binb2rstr(binb_sha1(rstr2binb(s), s.length * 8));
+}
+
+/*
+ * Calculate the HMAC-SHA1 of a key and some data (raw strings)
+ */
+function rstr_hmac_sha1(key, data)
+{
+  var bkey = rstr2binb(key);
+  if(bkey.length > 16) bkey = binb_sha1(bkey, key.length * 8);
+
+  var ipad = Array(16), opad = Array(16);
+  for(var i = 0; i < 16; i++)
+  {
+    ipad[i] = bkey[i] ^ 0x36363636;
+    opad[i] = bkey[i] ^ 0x5C5C5C5C;
+  }
+
+  var hash = binb_sha1(ipad.concat(rstr2binb(data)), 512 + data.length * 8);
+  return binb2rstr(binb_sha1(opad.concat(hash), 512 + 160));
+}
+
+/*
+ * Convert a raw string to an array of big-endian words
+ * Characters >255 have their high-byte silently ignored.
+ */
+function rstr2binb(input)
+{
+  var output = Array(input.length >> 2);
+  for(var i = 0; i < output.length; i++)
+    output[i] = 0;
+  for(var i = 0; i < input.length * 8; i += 8)
+    output[i>>5] |= (input.charCodeAt(i / 8) & 0xFF) << (24 - i % 32);
+  return output;
+}
+
+/*
+ * Convert an array of big-endian words to a string
+ */
+function binb2rstr(input)
+{
+  var output = "";
+  for(var i = 0; i < input.length * 32; i += 8)
+    output += String.fromCharCode((input[i>>5] >>> (24 - i % 32)) & 0xFF);
+  return output;
+}
+
+/*
+ * Calculate the SHA-1 of an array of big-endian words, and a bit length
+ */
+function binb_sha1(x, len)
+{
+  /* append padding */
+  x[len >> 5] |= 0x80 << (24 - len % 32);
+  x[((len + 64 >> 9) << 4) + 15] = len;
+
+  var w = Array(80);
+  var a =  1732584193;
+  var b = -271733879;
+  var c = -1732584194;
+  var d =  271733878;
+  var e = -1009589776;
+
+  for(var i = 0; i < x.length; i += 16)
+  {
+    var olda = a;
+    var oldb = b;
+    var oldc = c;
+    var oldd = d;
+    var olde = e;
+
+    for(var j = 0; j < 80; j++)
+    {
+      if(j < 16) w[j] = x[i + j];
+      else w[j] = bit_rol(w[j-3] ^ w[j-8] ^ w[j-14] ^ w[j-16], 1);
+      var t = safe_add(safe_add(bit_rol(a, 5), sha1_ft(j, b, c, d)),
+                       safe_add(safe_add(e, w[j]), sha1_kt(j)));
+      e = d;
+      d = c;
+      c = bit_rol(b, 30);
+      b = a;
+      a = t;
+    }
+
+    a = safe_add(a, olda);
+    b = safe_add(b, oldb);
+    c = safe_add(c, oldc);
+    d = safe_add(d, oldd);
+    e = safe_add(e, olde);
+  }
+  return Array(a, b, c, d, e);
+
+}
+
+/*
+ * Perform the appropriate triplet combination function for the current
+ * iteration
+ */
+function sha1_ft(t, b, c, d)
+{
+  if(t < 20) return (b & c) | ((~b) & d);
+  if(t < 40) return b ^ c ^ d;
+  if(t < 60) return (b & c) | (b & d) | (c & d);
+  return b ^ c ^ d;
+}
+
+/*
+ * Determine the appropriate additive constant for the current iteration
+ */
+function sha1_kt(t)
+{
+  return (t < 20) ?  1518500249 : (t < 40) ?  1859775393 :
+         (t < 60) ? -1894007588 : -899497514;
+}
+
+
+/*
+ * A JavaScript implementation of the RSA Data Security, Inc. MD5 Message
+ * Digest Algorithm, as defined in RFC 1321.
+ * Version 2.2 Copyright (C) Paul Johnston 1999 - 2009
+ * Other contributors: Greg Holt, Andrew Kepert, Ydnar, Lostinet
+ * Distributed under the BSD License
+ * See http://pajhome.org.uk/crypt/md5 for more info.
+ */
+
+/*
+ * These are the functions you'll usually want to call
+ * They take string arguments and return either hex or base-64 encoded strings
+ */
+function hex_md5(s)    { return rstr2hex(rstr_md5(str2rstr_utf8(s))); }
+function b64_md5(s)    { return rstr2b64(rstr_md5(str2rstr_utf8(s))); }
+function any_md5(s, e) { return rstr2any(rstr_md5(str2rstr_utf8(s)), e); }
+function hex_hmac_md5(k, d)
+  { return rstr2hex(rstr_hmac_md5(str2rstr_utf8(k), str2rstr_utf8(d))); }
+function b64_hmac_md5(k, d)
+  { return rstr2b64(rstr_hmac_md5(str2rstr_utf8(k), str2rstr_utf8(d))); }
+function any_hmac_md5(k, d, e)
+  { return rstr2any(rstr_hmac_md5(str2rstr_utf8(k), str2rstr_utf8(d)), e); }
+
+/*
+ * Perform a simple self-test to see if the VM is working
+ */
+function md5_vm_test()
+{
+  return hex_md5("abc").toLowerCase() == "900150983cd24fb0d6963f7d28e17f72";
+}
+
+/*
+ * Calculate the MD5 of a raw string
+ */
+function rstr_md5(s)
+{
+  return binl2rstr(binl_md5(rstr2binl(s), s.length * 8));
+}
+
+/*
+ * Calculate the HMAC-MD5, of a key and some data (raw strings)
+ */
+function rstr_hmac_md5(key, data)
+{
+  var bkey = rstr2binl(key);
+  if(bkey.length > 16) bkey = binl_md5(bkey, key.length * 8);
+
+  var ipad = Array(16), opad = Array(16);
+  for(var i = 0; i < 16; i++)
+  {
+    ipad[i] = bkey[i] ^ 0x36363636;
+    opad[i] = bkey[i] ^ 0x5C5C5C5C;
+  }
+
+  var hash = binl_md5(ipad.concat(rstr2binl(data)), 512 + data.length * 8);
+  return binl2rstr(binl_md5(opad.concat(hash), 512 + 128));
+}
+
+/*
+ * Convert a raw string to a hex string
+ */
+function rstr2hex(input)
+{
+  try { hexcase } catch(e) { hexcase=0; }
+  var hex_tab = hexcase ? "0123456789ABCDEF" : "0123456789abcdef";
+  var output = "";
+  var x;
+  for(var i = 0; i < input.length; i++)
+  {
+    x = input.charCodeAt(i);
+    output += hex_tab.charAt((x >>> 4) & 0x0F)
+           +  hex_tab.charAt( x        & 0x0F);
+  }
+  return output;
+}
+
+/*
+ * Convert a raw string to a base-64 string
+ */
+function rstr2b64(input)
+{
+  try { b64pad } catch(e) { b64pad=''; }
+  var tab = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+  var output = "";
+  var len = input.length;
+  for(var i = 0; i < len; i += 3)
+  {
+    var triplet = (input.charCodeAt(i) << 16)
+                | (i + 1 < len ? input.charCodeAt(i+1) << 8 : 0)
+                | (i + 2 < len ? input.charCodeAt(i+2)      : 0);
+    for(var j = 0; j < 4; j++)
+    {
+      if(i * 8 + j * 6 > input.length * 8) output += b64pad;
+      else output += tab.charAt((triplet >>> 6*(3-j)) & 0x3F);
+    }
+  }
+  return output;
+}
+
+/*
+ * Convert a array to a base-64 string
+ */
+function arr2b64(input)
+{
+  try { b64pad } catch(e) { b64pad=''; }
+  var tab = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+  var output = "";
+  var len = input.length;
+  for(var i = 0; i < len; i += 3)
+  {
+    var triplet = (input[i] << 16)
+                | (i + 1 < len ? input[i+1] << 8 : 0)
+                | (i + 2 < len ? input[i+2]      : 0);
+    for(var j = 0; j < 4; j++)
+    {
+      if(i * 8 + j * 6 > input.length * 8) output += b64pad;
+      else output += tab.charAt((triplet >>> 6*(3-j)) & 0x3F);
+    }
+  }
+  return output;
+}
+
+/*
+ * Convert a raw string to an arbitrary string encoding
+ */
+function rstr2any(input, encoding)
+{
+  var divisor = encoding.length;
+  var i, j, q, x, quotient;
+
+  /* Convert to an array of 16-bit big-endian values, forming the dividend */
+  var dividend = Array(Math.ceil(input.length / 2));
+  for(i = 0; i < dividend.length; i++)
+  {
+    dividend[i] = (input.charCodeAt(i * 2) << 8) | input.charCodeAt(i * 2 + 1);
+  }
+
+  /*
+   * Repeatedly perform a long division. The binary array forms the dividend,
+   * the length of the encoding is the divisor. Once computed, the quotient
+   * forms the dividend for the next step. All remainders are stored for later
+   * use.
+   */
+  var full_length = Math.ceil(input.length * 8 /
+                                    (Math.log(encoding.length) / Math.log(2)));
+  var remainders = Array(full_length);
+  for(j = 0; j < full_length; j++)
+  {
+    quotient = Array();
+    x = 0;
+    for(i = 0; i < dividend.length; i++)
+    {
+      x = (x << 16) + dividend[i];
+      q = Math.floor(x / divisor);
+      x -= q * divisor;
+      if(quotient.length > 0 || q > 0)
+        quotient[quotient.length] = q;
+    }
+    remainders[j] = x;
+    dividend = quotient;
+  }
+
+  /* Convert the remainders to the output string */
+  var output = "";
+  for(i = remainders.length - 1; i >= 0; i--)
+    output += encoding.charAt(remainders[i]);
+
+  return output;
+}
+
+/*
+ * Encode a string as utf-8.
+ * For efficiency, this assumes the input is valid utf-16.
+ */
+function str2rstr_utf8(input)
+{
+  var output = "";
+  var i = -1;
+  var x, y;
+
+  while(++i < input.length)
+  {
+    /* Decode utf-16 surrogate pairs */
+    x = input.charCodeAt(i);
+    y = i + 1 < input.length ? input.charCodeAt(i + 1) : 0;
+    if(0xD800 <= x && x <= 0xDBFF && 0xDC00 <= y && y <= 0xDFFF)
+    {
+      x = 0x10000 + ((x & 0x03FF) << 10) + (y & 0x03FF);
+      i++;
+    }
+
+    /* Encode output as utf-8 */
+    if(x <= 0x7F)
+      output += String.fromCharCode(x);
+    else if(x <= 0x7FF)
+      output += String.fromCharCode(0xC0 | ((x >>> 6 ) & 0x1F),
+                                    0x80 | ( x         & 0x3F));
+    else if(x <= 0xFFFF)
+      output += String.fromCharCode(0xE0 | ((x >>> 12) & 0x0F),
+                                    0x80 | ((x >>> 6 ) & 0x3F),
+                                    0x80 | ( x         & 0x3F));
+    else if(x <= 0x1FFFFF)
+      output += String.fromCharCode(0xF0 | ((x >>> 18) & 0x07),
+                                    0x80 | ((x >>> 12) & 0x3F),
+                                    0x80 | ((x >>> 6 ) & 0x3F),
+                                    0x80 | ( x         & 0x3F));
+  }
+  return output;
+}
+
+/*
+ * Encode a string as utf-16
+ */
+function str2rstr_utf16le(input)
+{
+  var output = "";
+  for(var i = 0; i < input.length; i++)
+    output += String.fromCharCode( input.charCodeAt(i)        & 0xFF,
+                                  (input.charCodeAt(i) >>> 8) & 0xFF);
+  return output;
+}
+
+function str2rstr_utf16be(input)
+{
+  var output = "";
+  for(var i = 0; i < input.length; i++)
+    output += String.fromCharCode((input.charCodeAt(i) >>> 8) & 0xFF,
+                                   input.charCodeAt(i)        & 0xFF);
+  return output;
+}
+
+/*
+ * Convert a raw string to an array of little-endian words
+ * Characters >255 have their high-byte silently ignored.
+ */
+function rstr2binl(input)
+{
+  var output = Array(input.length >> 2);
+  for(var i = 0; i < output.length; i++)
+    output[i] = 0;
+  for(var i = 0; i < input.length * 8; i += 8)
+    output[i>>5] |= (input.charCodeAt(i / 8) & 0xFF) << (i%32);
+  return output;
+}
+
+/*
+ * Convert an array of little-endian words to a string
+ */
+function binl2rstr(input)
+{
+  var output = "";
+  for(var i = 0; i < input.length * 32; i += 8)
+    output += String.fromCharCode((input[i>>5] >>> (i % 32)) & 0xFF);
+  return output;
+}
+
+/*
+ * Calculate the MD5 of an array of little-endian words, and a bit length.
+ */
+function binl_md5(x, len)
+{
+  /* append padding */
+  x[len >> 5] |= 0x80 << ((len) % 32);
+  x[(((len + 64) >>> 9) << 4) + 14] = len;
+
+  var a =  1732584193;
+  var b = -271733879;
+  var c = -1732584194;
+  var d =  271733878;
+
+  for(var i = 0; i < x.length; i += 16)
+  {
+    var olda = a;
+    var oldb = b;
+    var oldc = c;
+    var oldd = d;
+
+    a = md5_ff(a, b, c, d, x[i+ 0], 7 , -680876936);
+    d = md5_ff(d, a, b, c, x[i+ 1], 12, -389564586);
+    c = md5_ff(c, d, a, b, x[i+ 2], 17,  606105819);
+    b = md5_ff(b, c, d, a, x[i+ 3], 22, -1044525330);
+    a = md5_ff(a, b, c, d, x[i+ 4], 7 , -176418897);
+    d = md5_ff(d, a, b, c, x[i+ 5], 12,  1200080426);
+    c = md5_ff(c, d, a, b, x[i+ 6], 17, -1473231341);
+    b = md5_ff(b, c, d, a, x[i+ 7], 22, -45705983);
+    a = md5_ff(a, b, c, d, x[i+ 8], 7 ,  1770035416);
+    d = md5_ff(d, a, b, c, x[i+ 9], 12, -1958414417);
+    c = md5_ff(c, d, a, b, x[i+10], 17, -42063);
+    b = md5_ff(b, c, d, a, x[i+11], 22, -1990404162);
+    a = md5_ff(a, b, c, d, x[i+12], 7 ,  1804603682);
+    d = md5_ff(d, a, b, c, x[i+13], 12, -40341101);
+    c = md5_ff(c, d, a, b, x[i+14], 17, -1502002290);
+    b = md5_ff(b, c, d, a, x[i+15], 22,  1236535329);
+
+    a = md5_gg(a, b, c, d, x[i+ 1], 5 , -165796510);
+    d = md5_gg(d, a, b, c, x[i+ 6], 9 , -1069501632);
+    c = md5_gg(c, d, a, b, x[i+11], 14,  643717713);
+    b = md5_gg(b, c, d, a, x[i+ 0], 20, -373897302);
+    a = md5_gg(a, b, c, d, x[i+ 5], 5 , -701558691);
+    d = md5_gg(d, a, b, c, x[i+10], 9 ,  38016083);
+    c = md5_gg(c, d, a, b, x[i+15], 14, -660478335);
+    b = md5_gg(b, c, d, a, x[i+ 4], 20, -405537848);
+    a = md5_gg(a, b, c, d, x[i+ 9], 5 ,  568446438);
+    d = md5_gg(d, a, b, c, x[i+14], 9 , -1019803690);
+    c = md5_gg(c, d, a, b, x[i+ 3], 14, -187363961);
+    b = md5_gg(b, c, d, a, x[i+ 8], 20,  1163531501);
+    a = md5_gg(a, b, c, d, x[i+13], 5 , -1444681467);
+    d = md5_gg(d, a, b, c, x[i+ 2], 9 , -51403784);
+    c = md5_gg(c, d, a, b, x[i+ 7], 14,  1735328473);
+    b = md5_gg(b, c, d, a, x[i+12], 20, -1926607734);
+
+    a = md5_hh(a, b, c, d, x[i+ 5], 4 , -378558);
+    d = md5_hh(d, a, b, c, x[i+ 8], 11, -2022574463);
+    c = md5_hh(c, d, a, b, x[i+11], 16,  1839030562);
+    b = md5_hh(b, c, d, a, x[i+14], 23, -35309556);
+    a = md5_hh(a, b, c, d, x[i+ 1], 4 , -1530992060);
+    d = md5_hh(d, a, b, c, x[i+ 4], 11,  1272893353);
+    c = md5_hh(c, d, a, b, x[i+ 7], 16, -155497632);
+    b = md5_hh(b, c, d, a, x[i+10], 23, -1094730640);
+    a = md5_hh(a, b, c, d, x[i+13], 4 ,  681279174);
+    d = md5_hh(d, a, b, c, x[i+ 0], 11, -358537222);
+    c = md5_hh(c, d, a, b, x[i+ 3], 16, -722521979);
+    b = md5_hh(b, c, d, a, x[i+ 6], 23,  76029189);
+    a = md5_hh(a, b, c, d, x[i+ 9], 4 , -640364487);
+    d = md5_hh(d, a, b, c, x[i+12], 11, -421815835);
+    c = md5_hh(c, d, a, b, x[i+15], 16,  530742520);
+    b = md5_hh(b, c, d, a, x[i+ 2], 23, -995338651);
+
+    a = md5_ii(a, b, c, d, x[i+ 0], 6 , -198630844);
+    d = md5_ii(d, a, b, c, x[i+ 7], 10,  1126891415);
+    c = md5_ii(c, d, a, b, x[i+14], 15, -1416354905);
+    b = md5_ii(b, c, d, a, x[i+ 5], 21, -57434055);
+    a = md5_ii(a, b, c, d, x[i+12], 6 ,  1700485571);
+    d = md5_ii(d, a, b, c, x[i+ 3], 10, -1894986606);
+    c = md5_ii(c, d, a, b, x[i+10], 15, -1051523);
+    b = md5_ii(b, c, d, a, x[i+ 1], 21, -2054922799);
+    a = md5_ii(a, b, c, d, x[i+ 8], 6 ,  1873313359);
+    d = md5_ii(d, a, b, c, x[i+15], 10, -30611744);
+    c = md5_ii(c, d, a, b, x[i+ 6], 15, -1560198380);
+    b = md5_ii(b, c, d, a, x[i+13], 21,  1309151649);
+    a = md5_ii(a, b, c, d, x[i+ 4], 6 , -145523070);
+    d = md5_ii(d, a, b, c, x[i+11], 10, -1120210379);
+    c = md5_ii(c, d, a, b, x[i+ 2], 15,  718787259);
+    b = md5_ii(b, c, d, a, x[i+ 9], 21, -343485551);
+
+    a = safe_add(a, olda);
+    b = safe_add(b, oldb);
+    c = safe_add(c, oldc);
+    d = safe_add(d, oldd);
+  }
+  return Array(a, b, c, d);
+}
+
+/*
+ * These functions implement the four basic operations the algorithm uses.
+ */
+function md5_cmn(q, a, b, x, s, t)
+{
+  return safe_add(bit_rol(safe_add(safe_add(a, q), safe_add(x, t)), s),b);
+}
+function md5_ff(a, b, c, d, x, s, t)
+{
+  return md5_cmn((b & c) | ((~b) & d), a, b, x, s, t);
+}
+function md5_gg(a, b, c, d, x, s, t)
+{
+  return md5_cmn((b & d) | (c & (~d)), a, b, x, s, t);
+}
+function md5_hh(a, b, c, d, x, s, t)
+{
+  return md5_cmn(b ^ c ^ d, a, b, x, s, t);
+}
+function md5_ii(a, b, c, d, x, s, t)
+{
+  return md5_cmn(c ^ (b | (~d)), a, b, x, s, t);
+}
+
+/*
+ * Add integers, wrapping at 2^32. This uses 16-bit operations internally
+ * to work around bugs in some JS interpreters.
+ */
+function safe_add(x, y)
+{
+  var lsw = (x & 0xFFFF) + (y & 0xFFFF);
+  var msw = (x >> 16) + (y >> 16) + (lsw >> 16);
+  return (msw << 16) | (lsw & 0xFFFF);
+}
+
+/*
+ * Bitwise rotate a 32-bit number to the left.
+ */
+function bit_rol(num, cnt)
+{
+  return (num << cnt) | (num >>> (32 - cnt));
+}
+
+
+/* #############################################################################
+   UTF-8 Decoder and Encoder
+   base64 Encoder and Decoder
+   written by Tobias Kieslich, justdreams
+   Contact: tobias@justdreams.de				http://www.justdreams.de/
+   ############################################################################# */
+
+// returns an array of byterepresenting dezimal numbers which represent the
+// plaintext in an UTF-8 encoded version. Expects a string.
+// This function includes an exception management for those nasty browsers like
+// NN401, which returns negative decimal numbers for chars>128. I hate it!!
+// This handling is unfortunately limited to the user's charset. Anyway, it works
+// in most of the cases! Special signs with an unicode>256 return numbers, which
+// can not be converted to the actual unicode and so not to the valid utf-8
+// representation. Anyway, this function does always return values which can not
+// misinterpretd by RC4 or base64 en- or decoding, because every value is >0 and
+// <255!!
+// Arrays are faster and easier to handle in b64 encoding or encrypting....
+function utf8t2d(t)
+{
+  t = t.replace(/\r\n/g,"\n");
+  var d=new Array; var test=String.fromCharCode(237);
+  if (test.charCodeAt(0) < 0)
+    for(var n=0; n<t.length; n++)
+      {
+        var c=t.charCodeAt(n);
+        if (c>0)
+          d[d.length]= c;
+        else {
+          d[d.length]= (((256+c)>>6)|192);
+          d[d.length]= (((256+c)&63)|128);}
+      }
+  else
+    for(var n=0; n<t.length; n++)
+      {
+        var c=t.charCodeAt(n);
+        // all the signs of asci => 1byte
+        if (c<128)
+          d[d.length]= c;
+        // all the signs between 127 and 2047 => 2byte
+        else if((c>127) && (c<2048)) {
+          d[d.length]= ((c>>6)|192);
+          d[d.length]= ((c&63)|128);}
+        // all the signs between 2048 and 66536 => 3byte
+        else {
+          d[d.length]= ((c>>12)|224);
+          d[d.length]= (((c>>6)&63)|128);
+          d[d.length]= ((c&63)|128);}
+      }
+  return d;
+}
+
+// returns plaintext from an array of bytesrepresenting dezimal numbers, which
+// represent an UTF-8 encoded text; browser which does not understand unicode
+// like NN401 will show "?"-signs instead
+// expects an array of byterepresenting decimals; returns a string
+function utf8d2t(d)
+{
+  var r=new Array; var i=0;
+  while(i<d.length)
+    {
+      if (d[i]<128) {
+        r[r.length]= String.fromCharCode(d[i]); i++;}
+      else if((d[i]>191) && (d[i]<224)) {
+        r[r.length]= String.fromCharCode(((d[i]&31)<<6) | (d[i+1]&63)); i+=2;}
+      else {
+        r[r.length]= String.fromCharCode(((d[i]&15)<<12) | ((d[i+1]&63)<<6) | (d[i+2]&63)); i+=3;}
+    }
+  return r.join("");
+}
+
+// included in <body onload="b64arrays"> it creates two arrays which makes base64
+// en- and decoding faster
+// this speed is noticeable especially when coding larger texts (>5k or so)
+function b64arrays() {
+  var b64s='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+  b64 = new Array();f64 =new Array();
+  for (var i=0; i<b64s.length ;i++) {
+    b64[i] = b64s.charAt(i);
+    f64[b64s.charAt(i)] = i;
+  }
+}
+
+// creates a base64 encoded text out of an array of byerepresenting dezimals
+// it is really base64 :) this makes serversided handling easier
+// expects an array; returns a string
+function b64d2t(d) {
+  var r=new Array; var i=0; var dl=d.length;
+  // this is for the padding
+  if ((dl%3) == 1) {
+    d[d.length] = 0; d[d.length] = 0;}
+  if ((dl%3) == 2)
+    d[d.length] = 0;
+  // from here conversion
+  while (i<d.length)
+    {
+      r[r.length] = b64[d[i]>>2];
+      r[r.length] = b64[((d[i]&3)<<4) | (d[i+1]>>4)];
+      r[r.length] = b64[((d[i+1]&15)<<2) | (d[i+2]>>6)];
+      r[r.length] = b64[d[i+2]&63];
+      i+=3;
+    }
+  // this is again for the padding
+  if ((dl%3) == 1)
+    r[r.length-1] = r[r.length-2] = "=";
+  if ((dl%3) == 2)
+    r[r.length-1] = "=";
+  // we join the array to return a textstring
+  var t=r.join("");
+  return t;
+}
+
+// returns array of byterepresenting numbers created of an base64 encoded text
+// it is still the slowest function in this modul; I hope I can make it faster
+// expects string; returns an array
+function b64t2d(t) {
+  var d=new Array; var i=0;
+  // here we fix this CRLF sequenz created by MS-OS; arrrgh!!!
+  t=t.replace(/\n|\r/g,""); t=t.replace(/=/g,"");
+  while (i<t.length)
+    {
+      d[d.length] = (f64[t.charAt(i)]<<2) | (f64[t.charAt(i+1)]>>4);
+      d[d.length] = (((f64[t.charAt(i+1)]&15)<<4) | (f64[t.charAt(i+2)]>>2));
+      d[d.length] = (((f64[t.charAt(i+2)]&3)<<6) | (f64[t.charAt(i+3)]));
+      i+=4;
+    }
+  if (t.length%4 == 2)
+    d = d.slice(0, d.length-2);
+  if (t.length%4 == 3)
+    d = d.slice(0, d.length-1);
+  return d;
+}
+
+if (typeof(atob) == 'undefined' || typeof(btoa) == 'undefined')
+  b64arrays();
+
+if (typeof(atob) == 'undefined') {
+  b64decode = function(s) {
+    return utf8d2t(b64t2d(s));
+  };
+  b64decode_bin = function(s) {
+    var dec = b64t2d(s);
+    var ret = '';
+    for(var i = 0; i < dec.length; i++) {
+      ret += String.fromCharCode(dec[i]);
+    }
+    return ret;
+  };
+} else {
+  b64decode = function(s) {
+    return decodeURIComponent(escape(atob(s)));
+  };
+  b64decode_bin = atob;
+}
+
+if (typeof(btoa) == 'undefined') {
+  b64encode = function(s) {
+    return b64d2t(utf8t2d(s));
+  };
+} else {
+  b64encode = function(s) {
+    return btoa(unescape(encodeURIComponent(s)));
+  };
+}
+
+function createXHR() {
+	var xhr;
+	if (typeof ActiveXObject != 'undefined') {
+		var aVersions = [ "Microsoft.XMLHTTP", "Msxml2.XMLHttp.6.0",
+		                  "Msxml2.XMLHttp.5.0", "Msxml2.XMLHttp.4.0",
+		                  "Msxml2.XMLHttp.3.0" ];
+		for (var i = 0; i < aVersions.length; i++) {
+			try {
+				xhr = new ActiveXObject(aVersions[i]);
+			} catch (e) {
+			}
+		}
+	} else if (typeof XMLHttpRequest != 'undefined') {
+		xhr = new XMLHttpRequest();
+	}
+	return xhr;
+}
+
+if (window.XDomainRequest) {
+    window.ieXDRToXHR = function(window) {
+        "use strict";
+        var XHR = window.XMLHttpRequest;
+
+        window.XMLHttpRequest = function() {
+            this.onreadystatechange = Object;
+
+            this.xhr = null;
+            this.xdr = null;
+
+            this.readyState = 0;
+            this.status = '';
+            this.statusText = null;
+            this.responseText = null;
+
+            this.getResponseHeader = null;
+            this.getAllResponseHeaders = null;
+
+            this.setRequestHeader = null;
+
+            this.abort = null;
+            this.send = null;
+            this.isxdr = false;
+
+            // static binding
+            var self = this;
+
+            self.xdrLoadedBinded = function() {
+                self.xdrLoaded();
+            };
+            self.xdrErrorBinded = function() {
+                self.xdrError();
+            };
+            self.xdrProgressBinded = function() {
+                self.xdrProgress();
+            };
+            self.xhrReadyStateChangedBinded = function() {
+                self.xhrReadyStateChanged();
+            };
+        };
+
+        XMLHttpRequest.prototype.open = function(method, url, asynch, user, pwd) {
+            //improve CORS deteciton (chat.example.net exemple.net), remove hardcoded http-bind
+            var parser = document.createElement('a');
+            parser.href = url;
+            if (!!parser.hostname && parser.hostname!=document.domain) {
+                if (this.xdr === null){
+                    this.xdr = new window.XDomainRequest();
+                }
+
+                this.isxdr = true;
+                this.setXDRActive();
+                this.xdr.open(method, url);
+            } else {
+                if (this.xhr === null){
+                    this.xhr = new XHR();
+                }
+
+                this.isxdr = false;
+                this.setXHRActive();
+                this.xhr.open(method, url, asynch, user, pwd);
+            }
+        };
+
+        XMLHttpRequest.prototype.xdrGetResponseHeader = function(name) {
+            if (name === 'Content-Type' && this.xdr.contentType > ''){
+                return this.xdr.contentType;
+            }
+
+            return '';
+        };
+        
+        XMLHttpRequest.prototype.xdrGetAllResponseHeaders = function() {
+            return (this.xdr.contentType > '') ? 'Content-Type: ' + this.xdr.contentType : '';
+        };
+        
+        XMLHttpRequest.prototype.xdrSetRequestHeader = function(name, value) {
+            //throw new Error('Request headers not supported');
+        };
+        
+        XMLHttpRequest.prototype.xdrLoaded = function() {
+            if (this.onreadystatechange !== null) {
+                this.readyState = 4;
+                this.status = 200;
+                this.statusText = 'OK';
+                this.responseText = this.xdr.responseText;
+                if (window.ActiveXObject){
+                    var doc = new ActiveXObject('Microsoft.XMLDOM');
+                    doc.async='false';
+                    doc.loadXML(this.responseText);
+                    this.responseXML = doc;
+                }
+                this.onreadystatechange();
+            }
+        };
+        
+        XMLHttpRequest.prototype.xdrError = function() {
+            if (this.onreadystatechange !== null) {
+                this.readyState = 4;
+                this.status = 0;
+                this.statusText = '';
+                // ???
+                this.responseText = '';
+                this.onreadystatechange();
+            }
+        };
+        
+        XMLHttpRequest.prototype.xdrProgress = function() {
+            if (this.onreadystatechange !== null && this.status !== 3) {
+                this.readyState = 3;
+                this.status = 3;
+                this.statusText = '';
+                this.onreadystatechange();
+            }
+        };
+        
+        XMLHttpRequest.prototype.finalXDRRequest = function() {
+            var xdr = this.xdr;
+            delete xdr.onload;
+            delete xdr.onerror;
+            delete xdr.onprogress;
+        };
+        
+        XMLHttpRequest.prototype.sendXDR = function(data) {
+            var xdr = this.xdr;
+
+            xdr.onload = this.xdrLoadedBinded;
+            xdr.onerror = this.xdr.ontimeout = this.xdrErrorBinded;
+            xdr.onprogress = this.xdrProgressBinded;
+            this.responseText = null;
+
+            this.xdr.send(data);
+        };
+        
+        XMLHttpRequest.prototype.abortXDR = function() {
+            this.finalXDRRequest();
+            this.xdr.abort();
+        };
+        
+        XMLHttpRequest.prototype.setXDRActive = function() {
+            this.send = this.sendXDR;
+            this.abort = this.abortXDR;
+            this.getResponseHeader = this.xdrGetResponseHeader;
+            this.getAllResponseHeaders = this.xdrGetAllResponseHeaders;
+            this.setRequestHeader = this.xdrSetRequestHeader;
+        };
+
+        XMLHttpRequest.prototype.xhrGetResponseHeader = function(name) {
+            return this.xhr.getResponseHeader(name);
+        };
+        
+        XMLHttpRequest.prototype.xhrGetAllResponseHeaders = function() {
+            return this.xhr.getAllResponseHeaders();
+        };
+        
+        XMLHttpRequest.prototype.xhrSetRequestHeader = function(name, value) {
+            return this.xhr.setRequestHeader(name, value);
+        };
+        
+        XMLHttpRequest.prototype.xhrReadyStateChanged = function() {
+            if (this.onreadystatechange !== null && this.readyState !== this.xhr.readyState) {
+                var xhr = this.xhr;
+
+                this.readyState = xhr.readyState;
+                if (this.readyState === 4) {
+                    this.status = xhr.status;
+                    this.statusText = xhr.statusText;
+                    this.responseText = xhr.responseText;
+                    this.responseXML = xhr.responseXML;
+                }
+
+                this.onreadystatechange();
+            }
+        };
+        
+        XMLHttpRequest.prototype.finalXHRRequest = function() {
+            delete this.xhr.onreadystatechange;
+        };
+        XMLHttpRequest.prototype.abortXHR = function() {
+            this.finalXHRRequest();
+            this.xhr.abort();
+        };
+        XMLHttpRequest.prototype.sendXHR = function(data) {
+            this.xhr.onreadystatechange = this.xhrReadyStateChangedBinded;
+
+            this.xhr.send(data);
+        };
+        XMLHttpRequest.prototype.setXHRActive = function() {
+            this.send = this.sendXHR;
+            this.abort = this.abortXHR;
+            this.getResponseHeader = this.xhrGetResponseHeader;
+            this.getAllResponseHeaders = this.xhrGetAllResponseHeaders;
+            this.setRequestHeader = this.xhrSetRequestHeader;
+        };
+
+        window.ieXDRToXHR = undefined;
+    };
+    var isWebsocketSupport = (function() {
+		var isSafari = navigator.userAgent.indexOf("Safari") > -1 && navigator.userAgent.indexOf("Chrome") < 1 ; //判断是否Safari 
+		if(isSafari)
+			return false;
+		window.WebSocket =window.WebSocket || window.MozWebSocket;
+		if (window.WebSocket) {
+			return true;
+		}
+		return false;
+	})();
+    if(!isWebsocketSupport)
+    	window.ieXDRToXHR(window);
+}
+
+/**
+ * @fileoverview Collection of functions to make live easier
+ * @author Stefan Strigler
+ */
+
+/**
+ * Convert special chars to HTML entities
+ * @addon
+ * @return The string with chars encoded for HTML
+ * @type String
+ */
+String.prototype.htmlEnc = function() {
+  if(!this)
+    return this;
+
+  var str = this.replace(/&/g,"&amp;");
+  str = str.replace(/</g,"&lt;");
+  str = str.replace(/>/g,"&gt;");
+  str = str.replace(/\"/g,"&quot;");
+  str = str.replace(/\n/g,"<br />");
+  return str;
+};
+
+/**
+ * Convert HTML entities to special chars
+ * @addon
+ * @return The normal string
+ * @type String
+ */
+String.prototype.revertHtmlEnc = function() {
+  if(!this)
+    return this;
+
+  var str = this.replace(/&amp;/gi,'&');
+  str = str.replace(/&lt;/gi,'<');
+  str = str.replace(/&gt;/gi,'>');
+  str = str.replace(/&quot;/gi,'\"');
+  str = str.replace(/<br( )?(\/)?>/gi,'\n');
+  return str;
+};
+
+/**
+ * Converts from jabber timestamps to JavaScript Date objects
+ * @addon
+ * @param {String} ts A string representing a jabber datetime timestamp as
+ * defined by {@link http://www.xmpp.org/extensions/xep-0082.html XEP-0082}
+ * @return A javascript Date object corresponding to the jabber DateTime given
+ * @type Date
+ */
+Date.jab2date = function(ts) {
+  var date = new Date(Date.UTC(ts.substr(0,4),ts.substr(5,2)-1,ts.substr(8,2),ts.substr(11,2),ts.substr(14,2),ts.substr(17,2)));
+  if (ts.substr(ts.length-6,1) != 'Z') { // there's an offset
+    var offset = new Date();
+    offset.setTime(0);
+    offset.setUTCHours(ts.substr(ts.length-5,2));
+    offset.setUTCMinutes(ts.substr(ts.length-2,2));
+    if (ts.substr(ts.length-6,1) == '+')
+      date.setTime(date.getTime() - offset.getTime());
+    else if (ts.substr(ts.length-6,1) == '-')
+      date.setTime(date.getTime() + offset.getTime());
+  }
+  return date;
+};
+
+/**
+ * Takes a timestamp in the form of 2004-08-13T12:07:04+02:00 as argument
+ * and converts it to some sort of humane readable format
+ * @addon
+ */
+Date.hrTime = function(ts) {
+  return Date.jab2date(ts).toLocaleString();
+};
+
+/**
+ * somewhat opposit to {@link #hrTime}
+ * expects a javascript Date object as parameter and returns a jabber
+ * date string conforming to
+ * {@link http://www.xmpp.org/extensions/xep-0082.html XEP-0082}
+ * @see #hrTime
+ * @return The corresponding jabber DateTime string
+ * @type String
+ */
+Date.prototype.jabberDate = function() {
+  var padZero = function(i) {
+    if (i < 10) return "0" + i;
+    return i;
+  };
+
+  var jDate = this.getUTCFullYear() + "-";
+  jDate += padZero(this.getUTCMonth()+1) + "-";
+  jDate += padZero(this.getUTCDate()) + "T";
+  jDate += padZero(this.getUTCHours()) + ":";
+  jDate += padZero(this.getUTCMinutes()) + ":";
+  jDate += padZero(this.getUTCSeconds()) + "Z";
+
+  return jDate;
+};
+
+/**
+ * Determines the maximum of two given numbers
+ * @addon
+ * @param {Number} A a number
+ * @param {Number} B another number
+ * @return the maximum of A and B
+ * @type Number
+ */
+Number.max = function(A, B) {
+  return (A > B)? A : B;
+};
+
+Number.min = function(A, B) {
+  return (A < B)? A : B;
+};
 
 /**
  * @fileoverview Magic dependency loading. Taken from script.aculo.us
@@ -7179,1551 +8284,2260 @@ JSJaCWebSocketConnection.prototype._parseUint8Array = function(opcodeArr, bodyAr
 		} catch(e) {}
 	}
 };
-/* Copyright (c) 1998 - 2007, Paul Johnston & Contributors
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- *
- * Redistributions of source code must retain the above copyright
- * notice, this list of conditions and the following
- * disclaimer. Redistributions in binary form must reproduce the above
- * copyright notice, this list of conditions and the following
- * disclaimer in the documentation and/or other materials provided
- * with the distribution.
- *
- * Neither the name of the author nor the names of its contributors
- * may be used to endorse or promote products derived from this
- * software without specific prior written permission.
- *
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
- * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
- * OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- */
-
-/**
- * @fileoverview Collection of MD5 and SHA1 hashing and encoding
- * methods.
- * @author Stefan Strigler steve@zeank.in-berlin.de
- */
-
-
-/*
- * A JavaScript implementation of the Secure Hash Algorithm, SHA-1, as defined
- * in FIPS 180-1
- * Version 2.2 Copyright Paul Johnston 2000 - 2009.
- * Other contributors: Greg Holt, Andrew Kepert, Ydnar, Lostinet
- * Distributed under the BSD License
- * See http://pajhome.org.uk/crypt/md5 for details.
- */
-
-/*
- * Configurable variables. You may need to tweak these to be compatible with
- * the server-side, but the defaults work in most cases.
- */
-var hexcase = 0;  /* hex output format. 0 - lowercase; 1 - uppercase        */
-var b64pad  = "="; /* base-64 pad character. "=" for strict RFC compliance   */
-
-/*
- * These are the functions you'll usually want to call
- * They take string arguments and return either hex or base-64 encoded strings
- */
-function hex_sha1(s)    { return rstr2hex(rstr_sha1(str2rstr_utf8(s))); }
-function b64_sha1(s)    { return rstr2b64(rstr_sha1(str2rstr_utf8(s))); }
-function any_sha1(s, e) { return rstr2any(rstr_sha1(str2rstr_utf8(s)), e); }
-function hex_hmac_sha1(k, d)
-  { return rstr2hex(rstr_hmac_sha1(str2rstr_utf8(k), str2rstr_utf8(d))); }
-function b64_hmac_sha1(k, d)
-  { return rstr2b64(rstr_hmac_sha1(str2rstr_utf8(k), str2rstr_utf8(d))); }
-function any_hmac_sha1(k, d, e)
-  { return rstr2any(rstr_hmac_sha1(str2rstr_utf8(k), str2rstr_utf8(d)), e); }
-
-/*
- * Perform a simple self-test to see if the VM is working
- */
-function sha1_vm_test()
-{
-  return hex_sha1("abc").toLowerCase() == "a9993e364706816aba3e25717850c26c9cd0d89d";
-}
-
-/*
- * Calculate the SHA1 of a raw string
- */
-function rstr_sha1(s)
-{
-  return binb2rstr(binb_sha1(rstr2binb(s), s.length * 8));
-}
-
-/*
- * Calculate the HMAC-SHA1 of a key and some data (raw strings)
- */
-function rstr_hmac_sha1(key, data)
-{
-  var bkey = rstr2binb(key);
-  if(bkey.length > 16) bkey = binb_sha1(bkey, key.length * 8);
-
-  var ipad = Array(16), opad = Array(16);
-  for(var i = 0; i < 16; i++)
-  {
-    ipad[i] = bkey[i] ^ 0x36363636;
-    opad[i] = bkey[i] ^ 0x5C5C5C5C;
-  }
-
-  var hash = binb_sha1(ipad.concat(rstr2binb(data)), 512 + data.length * 8);
-  return binb2rstr(binb_sha1(opad.concat(hash), 512 + 160));
-}
-
-/*
- * Convert a raw string to an array of big-endian words
- * Characters >255 have their high-byte silently ignored.
- */
-function rstr2binb(input)
-{
-  var output = Array(input.length >> 2);
-  for(var i = 0; i < output.length; i++)
-    output[i] = 0;
-  for(var i = 0; i < input.length * 8; i += 8)
-    output[i>>5] |= (input.charCodeAt(i / 8) & 0xFF) << (24 - i % 32);
-  return output;
-}
-
-/*
- * Convert an array of big-endian words to a string
- */
-function binb2rstr(input)
-{
-  var output = "";
-  for(var i = 0; i < input.length * 32; i += 8)
-    output += String.fromCharCode((input[i>>5] >>> (24 - i % 32)) & 0xFF);
-  return output;
-}
-
-/*
- * Calculate the SHA-1 of an array of big-endian words, and a bit length
- */
-function binb_sha1(x, len)
-{
-  /* append padding */
-  x[len >> 5] |= 0x80 << (24 - len % 32);
-  x[((len + 64 >> 9) << 4) + 15] = len;
-
-  var w = Array(80);
-  var a =  1732584193;
-  var b = -271733879;
-  var c = -1732584194;
-  var d =  271733878;
-  var e = -1009589776;
-
-  for(var i = 0; i < x.length; i += 16)
-  {
-    var olda = a;
-    var oldb = b;
-    var oldc = c;
-    var oldd = d;
-    var olde = e;
-
-    for(var j = 0; j < 80; j++)
-    {
-      if(j < 16) w[j] = x[i + j];
-      else w[j] = bit_rol(w[j-3] ^ w[j-8] ^ w[j-14] ^ w[j-16], 1);
-      var t = safe_add(safe_add(bit_rol(a, 5), sha1_ft(j, b, c, d)),
-                       safe_add(safe_add(e, w[j]), sha1_kt(j)));
-      e = d;
-      d = c;
-      c = bit_rol(b, 30);
-      b = a;
-      a = t;
-    }
-
-    a = safe_add(a, olda);
-    b = safe_add(b, oldb);
-    c = safe_add(c, oldc);
-    d = safe_add(d, oldd);
-    e = safe_add(e, olde);
-  }
-  return Array(a, b, c, d, e);
-
-}
-
-/*
- * Perform the appropriate triplet combination function for the current
- * iteration
- */
-function sha1_ft(t, b, c, d)
-{
-  if(t < 20) return (b & c) | ((~b) & d);
-  if(t < 40) return b ^ c ^ d;
-  if(t < 60) return (b & c) | (b & d) | (c & d);
-  return b ^ c ^ d;
-}
-
-/*
- * Determine the appropriate additive constant for the current iteration
- */
-function sha1_kt(t)
-{
-  return (t < 20) ?  1518500249 : (t < 40) ?  1859775393 :
-         (t < 60) ? -1894007588 : -899497514;
-}
-
-
-/*
- * A JavaScript implementation of the RSA Data Security, Inc. MD5 Message
- * Digest Algorithm, as defined in RFC 1321.
- * Version 2.2 Copyright (C) Paul Johnston 1999 - 2009
- * Other contributors: Greg Holt, Andrew Kepert, Ydnar, Lostinet
- * Distributed under the BSD License
- * See http://pajhome.org.uk/crypt/md5 for more info.
- */
-
-/*
- * These are the functions you'll usually want to call
- * They take string arguments and return either hex or base-64 encoded strings
- */
-function hex_md5(s)    { return rstr2hex(rstr_md5(str2rstr_utf8(s))); }
-function b64_md5(s)    { return rstr2b64(rstr_md5(str2rstr_utf8(s))); }
-function any_md5(s, e) { return rstr2any(rstr_md5(str2rstr_utf8(s)), e); }
-function hex_hmac_md5(k, d)
-  { return rstr2hex(rstr_hmac_md5(str2rstr_utf8(k), str2rstr_utf8(d))); }
-function b64_hmac_md5(k, d)
-  { return rstr2b64(rstr_hmac_md5(str2rstr_utf8(k), str2rstr_utf8(d))); }
-function any_hmac_md5(k, d, e)
-  { return rstr2any(rstr_hmac_md5(str2rstr_utf8(k), str2rstr_utf8(d)), e); }
-
-/*
- * Perform a simple self-test to see if the VM is working
- */
-function md5_vm_test()
-{
-  return hex_md5("abc").toLowerCase() == "900150983cd24fb0d6963f7d28e17f72";
-}
-
-/*
- * Calculate the MD5 of a raw string
- */
-function rstr_md5(s)
-{
-  return binl2rstr(binl_md5(rstr2binl(s), s.length * 8));
-}
-
-/*
- * Calculate the HMAC-MD5, of a key and some data (raw strings)
- */
-function rstr_hmac_md5(key, data)
-{
-  var bkey = rstr2binl(key);
-  if(bkey.length > 16) bkey = binl_md5(bkey, key.length * 8);
-
-  var ipad = Array(16), opad = Array(16);
-  for(var i = 0; i < 16; i++)
-  {
-    ipad[i] = bkey[i] ^ 0x36363636;
-    opad[i] = bkey[i] ^ 0x5C5C5C5C;
-  }
-
-  var hash = binl_md5(ipad.concat(rstr2binl(data)), 512 + data.length * 8);
-  return binl2rstr(binl_md5(opad.concat(hash), 512 + 128));
-}
-
-/*
- * Convert a raw string to a hex string
- */
-function rstr2hex(input)
-{
-  try { hexcase } catch(e) { hexcase=0; }
-  var hex_tab = hexcase ? "0123456789ABCDEF" : "0123456789abcdef";
-  var output = "";
-  var x;
-  for(var i = 0; i < input.length; i++)
-  {
-    x = input.charCodeAt(i);
-    output += hex_tab.charAt((x >>> 4) & 0x0F)
-           +  hex_tab.charAt( x        & 0x0F);
-  }
-  return output;
-}
-
-/*
- * Convert a raw string to a base-64 string
- */
-function rstr2b64(input)
-{
-  try { b64pad } catch(e) { b64pad=''; }
-  var tab = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-  var output = "";
-  var len = input.length;
-  for(var i = 0; i < len; i += 3)
-  {
-    var triplet = (input.charCodeAt(i) << 16)
-                | (i + 1 < len ? input.charCodeAt(i+1) << 8 : 0)
-                | (i + 2 < len ? input.charCodeAt(i+2)      : 0);
-    for(var j = 0; j < 4; j++)
-    {
-      if(i * 8 + j * 6 > input.length * 8) output += b64pad;
-      else output += tab.charAt((triplet >>> 6*(3-j)) & 0x3F);
-    }
-  }
-  return output;
-}
-
-/*
- * Convert a array to a base-64 string
- */
-function arr2b64(input)
-{
-  try { b64pad } catch(e) { b64pad=''; }
-  var tab = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-  var output = "";
-  var len = input.length;
-  for(var i = 0; i < len; i += 3)
-  {
-    var triplet = (input[i] << 16)
-                | (i + 1 < len ? input[i+1] << 8 : 0)
-                | (i + 2 < len ? input[i+2]      : 0);
-    for(var j = 0; j < 4; j++)
-    {
-      if(i * 8 + j * 6 > input.length * 8) output += b64pad;
-      else output += tab.charAt((triplet >>> 6*(3-j)) & 0x3F);
-    }
-  }
-  return output;
-}
-
-/*
- * Convert a raw string to an arbitrary string encoding
- */
-function rstr2any(input, encoding)
-{
-  var divisor = encoding.length;
-  var i, j, q, x, quotient;
-
-  /* Convert to an array of 16-bit big-endian values, forming the dividend */
-  var dividend = Array(Math.ceil(input.length / 2));
-  for(i = 0; i < dividend.length; i++)
-  {
-    dividend[i] = (input.charCodeAt(i * 2) << 8) | input.charCodeAt(i * 2 + 1);
-  }
-
-  /*
-   * Repeatedly perform a long division. The binary array forms the dividend,
-   * the length of the encoding is the divisor. Once computed, the quotient
-   * forms the dividend for the next step. All remainders are stored for later
-   * use.
-   */
-  var full_length = Math.ceil(input.length * 8 /
-                                    (Math.log(encoding.length) / Math.log(2)));
-  var remainders = Array(full_length);
-  for(j = 0; j < full_length; j++)
-  {
-    quotient = Array();
-    x = 0;
-    for(i = 0; i < dividend.length; i++)
-    {
-      x = (x << 16) + dividend[i];
-      q = Math.floor(x / divisor);
-      x -= q * divisor;
-      if(quotient.length > 0 || q > 0)
-        quotient[quotient.length] = q;
-    }
-    remainders[j] = x;
-    dividend = quotient;
-  }
-
-  /* Convert the remainders to the output string */
-  var output = "";
-  for(i = remainders.length - 1; i >= 0; i--)
-    output += encoding.charAt(remainders[i]);
-
-  return output;
-}
-
-/*
- * Encode a string as utf-8.
- * For efficiency, this assumes the input is valid utf-16.
- */
-function str2rstr_utf8(input)
-{
-  var output = "";
-  var i = -1;
-  var x, y;
-
-  while(++i < input.length)
-  {
-    /* Decode utf-16 surrogate pairs */
-    x = input.charCodeAt(i);
-    y = i + 1 < input.length ? input.charCodeAt(i + 1) : 0;
-    if(0xD800 <= x && x <= 0xDBFF && 0xDC00 <= y && y <= 0xDFFF)
-    {
-      x = 0x10000 + ((x & 0x03FF) << 10) + (y & 0x03FF);
-      i++;
-    }
-
-    /* Encode output as utf-8 */
-    if(x <= 0x7F)
-      output += String.fromCharCode(x);
-    else if(x <= 0x7FF)
-      output += String.fromCharCode(0xC0 | ((x >>> 6 ) & 0x1F),
-                                    0x80 | ( x         & 0x3F));
-    else if(x <= 0xFFFF)
-      output += String.fromCharCode(0xE0 | ((x >>> 12) & 0x0F),
-                                    0x80 | ((x >>> 6 ) & 0x3F),
-                                    0x80 | ( x         & 0x3F));
-    else if(x <= 0x1FFFFF)
-      output += String.fromCharCode(0xF0 | ((x >>> 18) & 0x07),
-                                    0x80 | ((x >>> 12) & 0x3F),
-                                    0x80 | ((x >>> 6 ) & 0x3F),
-                                    0x80 | ( x         & 0x3F));
-  }
-  return output;
-}
-
-/*
- * Encode a string as utf-16
- */
-function str2rstr_utf16le(input)
-{
-  var output = "";
-  for(var i = 0; i < input.length; i++)
-    output += String.fromCharCode( input.charCodeAt(i)        & 0xFF,
-                                  (input.charCodeAt(i) >>> 8) & 0xFF);
-  return output;
-}
-
-function str2rstr_utf16be(input)
-{
-  var output = "";
-  for(var i = 0; i < input.length; i++)
-    output += String.fromCharCode((input.charCodeAt(i) >>> 8) & 0xFF,
-                                   input.charCodeAt(i)        & 0xFF);
-  return output;
-}
-
-/*
- * Convert a raw string to an array of little-endian words
- * Characters >255 have their high-byte silently ignored.
- */
-function rstr2binl(input)
-{
-  var output = Array(input.length >> 2);
-  for(var i = 0; i < output.length; i++)
-    output[i] = 0;
-  for(var i = 0; i < input.length * 8; i += 8)
-    output[i>>5] |= (input.charCodeAt(i / 8) & 0xFF) << (i%32);
-  return output;
-}
-
-/*
- * Convert an array of little-endian words to a string
- */
-function binl2rstr(input)
-{
-  var output = "";
-  for(var i = 0; i < input.length * 32; i += 8)
-    output += String.fromCharCode((input[i>>5] >>> (i % 32)) & 0xFF);
-  return output;
-}
-
-/*
- * Calculate the MD5 of an array of little-endian words, and a bit length.
- */
-function binl_md5(x, len)
-{
-  /* append padding */
-  x[len >> 5] |= 0x80 << ((len) % 32);
-  x[(((len + 64) >>> 9) << 4) + 14] = len;
-
-  var a =  1732584193;
-  var b = -271733879;
-  var c = -1732584194;
-  var d =  271733878;
-
-  for(var i = 0; i < x.length; i += 16)
-  {
-    var olda = a;
-    var oldb = b;
-    var oldc = c;
-    var oldd = d;
-
-    a = md5_ff(a, b, c, d, x[i+ 0], 7 , -680876936);
-    d = md5_ff(d, a, b, c, x[i+ 1], 12, -389564586);
-    c = md5_ff(c, d, a, b, x[i+ 2], 17,  606105819);
-    b = md5_ff(b, c, d, a, x[i+ 3], 22, -1044525330);
-    a = md5_ff(a, b, c, d, x[i+ 4], 7 , -176418897);
-    d = md5_ff(d, a, b, c, x[i+ 5], 12,  1200080426);
-    c = md5_ff(c, d, a, b, x[i+ 6], 17, -1473231341);
-    b = md5_ff(b, c, d, a, x[i+ 7], 22, -45705983);
-    a = md5_ff(a, b, c, d, x[i+ 8], 7 ,  1770035416);
-    d = md5_ff(d, a, b, c, x[i+ 9], 12, -1958414417);
-    c = md5_ff(c, d, a, b, x[i+10], 17, -42063);
-    b = md5_ff(b, c, d, a, x[i+11], 22, -1990404162);
-    a = md5_ff(a, b, c, d, x[i+12], 7 ,  1804603682);
-    d = md5_ff(d, a, b, c, x[i+13], 12, -40341101);
-    c = md5_ff(c, d, a, b, x[i+14], 17, -1502002290);
-    b = md5_ff(b, c, d, a, x[i+15], 22,  1236535329);
-
-    a = md5_gg(a, b, c, d, x[i+ 1], 5 , -165796510);
-    d = md5_gg(d, a, b, c, x[i+ 6], 9 , -1069501632);
-    c = md5_gg(c, d, a, b, x[i+11], 14,  643717713);
-    b = md5_gg(b, c, d, a, x[i+ 0], 20, -373897302);
-    a = md5_gg(a, b, c, d, x[i+ 5], 5 , -701558691);
-    d = md5_gg(d, a, b, c, x[i+10], 9 ,  38016083);
-    c = md5_gg(c, d, a, b, x[i+15], 14, -660478335);
-    b = md5_gg(b, c, d, a, x[i+ 4], 20, -405537848);
-    a = md5_gg(a, b, c, d, x[i+ 9], 5 ,  568446438);
-    d = md5_gg(d, a, b, c, x[i+14], 9 , -1019803690);
-    c = md5_gg(c, d, a, b, x[i+ 3], 14, -187363961);
-    b = md5_gg(b, c, d, a, x[i+ 8], 20,  1163531501);
-    a = md5_gg(a, b, c, d, x[i+13], 5 , -1444681467);
-    d = md5_gg(d, a, b, c, x[i+ 2], 9 , -51403784);
-    c = md5_gg(c, d, a, b, x[i+ 7], 14,  1735328473);
-    b = md5_gg(b, c, d, a, x[i+12], 20, -1926607734);
-
-    a = md5_hh(a, b, c, d, x[i+ 5], 4 , -378558);
-    d = md5_hh(d, a, b, c, x[i+ 8], 11, -2022574463);
-    c = md5_hh(c, d, a, b, x[i+11], 16,  1839030562);
-    b = md5_hh(b, c, d, a, x[i+14], 23, -35309556);
-    a = md5_hh(a, b, c, d, x[i+ 1], 4 , -1530992060);
-    d = md5_hh(d, a, b, c, x[i+ 4], 11,  1272893353);
-    c = md5_hh(c, d, a, b, x[i+ 7], 16, -155497632);
-    b = md5_hh(b, c, d, a, x[i+10], 23, -1094730640);
-    a = md5_hh(a, b, c, d, x[i+13], 4 ,  681279174);
-    d = md5_hh(d, a, b, c, x[i+ 0], 11, -358537222);
-    c = md5_hh(c, d, a, b, x[i+ 3], 16, -722521979);
-    b = md5_hh(b, c, d, a, x[i+ 6], 23,  76029189);
-    a = md5_hh(a, b, c, d, x[i+ 9], 4 , -640364487);
-    d = md5_hh(d, a, b, c, x[i+12], 11, -421815835);
-    c = md5_hh(c, d, a, b, x[i+15], 16,  530742520);
-    b = md5_hh(b, c, d, a, x[i+ 2], 23, -995338651);
-
-    a = md5_ii(a, b, c, d, x[i+ 0], 6 , -198630844);
-    d = md5_ii(d, a, b, c, x[i+ 7], 10,  1126891415);
-    c = md5_ii(c, d, a, b, x[i+14], 15, -1416354905);
-    b = md5_ii(b, c, d, a, x[i+ 5], 21, -57434055);
-    a = md5_ii(a, b, c, d, x[i+12], 6 ,  1700485571);
-    d = md5_ii(d, a, b, c, x[i+ 3], 10, -1894986606);
-    c = md5_ii(c, d, a, b, x[i+10], 15, -1051523);
-    b = md5_ii(b, c, d, a, x[i+ 1], 21, -2054922799);
-    a = md5_ii(a, b, c, d, x[i+ 8], 6 ,  1873313359);
-    d = md5_ii(d, a, b, c, x[i+15], 10, -30611744);
-    c = md5_ii(c, d, a, b, x[i+ 6], 15, -1560198380);
-    b = md5_ii(b, c, d, a, x[i+13], 21,  1309151649);
-    a = md5_ii(a, b, c, d, x[i+ 4], 6 , -145523070);
-    d = md5_ii(d, a, b, c, x[i+11], 10, -1120210379);
-    c = md5_ii(c, d, a, b, x[i+ 2], 15,  718787259);
-    b = md5_ii(b, c, d, a, x[i+ 9], 21, -343485551);
-
-    a = safe_add(a, olda);
-    b = safe_add(b, oldb);
-    c = safe_add(c, oldc);
-    d = safe_add(d, oldd);
-  }
-  return Array(a, b, c, d);
-}
-
-/*
- * These functions implement the four basic operations the algorithm uses.
- */
-function md5_cmn(q, a, b, x, s, t)
-{
-  return safe_add(bit_rol(safe_add(safe_add(a, q), safe_add(x, t)), s),b);
-}
-function md5_ff(a, b, c, d, x, s, t)
-{
-  return md5_cmn((b & c) | ((~b) & d), a, b, x, s, t);
-}
-function md5_gg(a, b, c, d, x, s, t)
-{
-  return md5_cmn((b & d) | (c & (~d)), a, b, x, s, t);
-}
-function md5_hh(a, b, c, d, x, s, t)
-{
-  return md5_cmn(b ^ c ^ d, a, b, x, s, t);
-}
-function md5_ii(a, b, c, d, x, s, t)
-{
-  return md5_cmn(c ^ (b | (~d)), a, b, x, s, t);
-}
-
-/*
- * Add integers, wrapping at 2^32. This uses 16-bit operations internally
- * to work around bugs in some JS interpreters.
- */
-function safe_add(x, y)
-{
-  var lsw = (x & 0xFFFF) + (y & 0xFFFF);
-  var msw = (x >> 16) + (y >> 16) + (lsw >> 16);
-  return (msw << 16) | (lsw & 0xFFFF);
-}
-
-/*
- * Bitwise rotate a 32-bit number to the left.
- */
-function bit_rol(num, cnt)
-{
-  return (num << cnt) | (num >>> (32 - cnt));
-}
-
-
-/* #############################################################################
-   UTF-8 Decoder and Encoder
-   base64 Encoder and Decoder
-   written by Tobias Kieslich, justdreams
-   Contact: tobias@justdreams.de				http://www.justdreams.de/
-   ############################################################################# */
-
-// returns an array of byterepresenting dezimal numbers which represent the
-// plaintext in an UTF-8 encoded version. Expects a string.
-// This function includes an exception management for those nasty browsers like
-// NN401, which returns negative decimal numbers for chars>128. I hate it!!
-// This handling is unfortunately limited to the user's charset. Anyway, it works
-// in most of the cases! Special signs with an unicode>256 return numbers, which
-// can not be converted to the actual unicode and so not to the valid utf-8
-// representation. Anyway, this function does always return values which can not
-// misinterpretd by RC4 or base64 en- or decoding, because every value is >0 and
-// <255!!
-// Arrays are faster and easier to handle in b64 encoding or encrypting....
-function utf8t2d(t)
-{
-  t = t.replace(/\r\n/g,"\n");
-  var d=new Array; var test=String.fromCharCode(237);
-  if (test.charCodeAt(0) < 0)
-    for(var n=0; n<t.length; n++)
-      {
-        var c=t.charCodeAt(n);
-        if (c>0)
-          d[d.length]= c;
-        else {
-          d[d.length]= (((256+c)>>6)|192);
-          d[d.length]= (((256+c)&63)|128);}
-      }
-  else
-    for(var n=0; n<t.length; n++)
-      {
-        var c=t.charCodeAt(n);
-        // all the signs of asci => 1byte
-        if (c<128)
-          d[d.length]= c;
-        // all the signs between 127 and 2047 => 2byte
-        else if((c>127) && (c<2048)) {
-          d[d.length]= ((c>>6)|192);
-          d[d.length]= ((c&63)|128);}
-        // all the signs between 2048 and 66536 => 3byte
-        else {
-          d[d.length]= ((c>>12)|224);
-          d[d.length]= (((c>>6)&63)|128);
-          d[d.length]= ((c&63)|128);}
-      }
-  return d;
-}
-
-// returns plaintext from an array of bytesrepresenting dezimal numbers, which
-// represent an UTF-8 encoded text; browser which does not understand unicode
-// like NN401 will show "?"-signs instead
-// expects an array of byterepresenting decimals; returns a string
-function utf8d2t(d)
-{
-  var r=new Array; var i=0;
-  while(i<d.length)
-    {
-      if (d[i]<128) {
-        r[r.length]= String.fromCharCode(d[i]); i++;}
-      else if((d[i]>191) && (d[i]<224)) {
-        r[r.length]= String.fromCharCode(((d[i]&31)<<6) | (d[i+1]&63)); i+=2;}
-      else {
-        r[r.length]= String.fromCharCode(((d[i]&15)<<12) | ((d[i+1]&63)<<6) | (d[i+2]&63)); i+=3;}
-    }
-  return r.join("");
-}
-
-// included in <body onload="b64arrays"> it creates two arrays which makes base64
-// en- and decoding faster
-// this speed is noticeable especially when coding larger texts (>5k or so)
-function b64arrays() {
-  var b64s='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
-  b64 = new Array();f64 =new Array();
-  for (var i=0; i<b64s.length ;i++) {
-    b64[i] = b64s.charAt(i);
-    f64[b64s.charAt(i)] = i;
-  }
-}
-
-// creates a base64 encoded text out of an array of byerepresenting dezimals
-// it is really base64 :) this makes serversided handling easier
-// expects an array; returns a string
-function b64d2t(d) {
-  var r=new Array; var i=0; var dl=d.length;
-  // this is for the padding
-  if ((dl%3) == 1) {
-    d[d.length] = 0; d[d.length] = 0;}
-  if ((dl%3) == 2)
-    d[d.length] = 0;
-  // from here conversion
-  while (i<d.length)
-    {
-      r[r.length] = b64[d[i]>>2];
-      r[r.length] = b64[((d[i]&3)<<4) | (d[i+1]>>4)];
-      r[r.length] = b64[((d[i+1]&15)<<2) | (d[i+2]>>6)];
-      r[r.length] = b64[d[i+2]&63];
-      i+=3;
-    }
-  // this is again for the padding
-  if ((dl%3) == 1)
-    r[r.length-1] = r[r.length-2] = "=";
-  if ((dl%3) == 2)
-    r[r.length-1] = "=";
-  // we join the array to return a textstring
-  var t=r.join("");
-  return t;
-}
-
-// returns array of byterepresenting numbers created of an base64 encoded text
-// it is still the slowest function in this modul; I hope I can make it faster
-// expects string; returns an array
-function b64t2d(t) {
-  var d=new Array; var i=0;
-  // here we fix this CRLF sequenz created by MS-OS; arrrgh!!!
-  t=t.replace(/\n|\r/g,""); t=t.replace(/=/g,"");
-  while (i<t.length)
-    {
-      d[d.length] = (f64[t.charAt(i)]<<2) | (f64[t.charAt(i+1)]>>4);
-      d[d.length] = (((f64[t.charAt(i+1)]&15)<<4) | (f64[t.charAt(i+2)]>>2));
-      d[d.length] = (((f64[t.charAt(i+2)]&3)<<6) | (f64[t.charAt(i+3)]));
-      i+=4;
-    }
-  if (t.length%4 == 2)
-    d = d.slice(0, d.length-2);
-  if (t.length%4 == 3)
-    d = d.slice(0, d.length-1);
-  return d;
-}
-
-if (typeof(atob) == 'undefined' || typeof(btoa) == 'undefined')
-  b64arrays();
-
-if (typeof(atob) == 'undefined') {
-  b64decode = function(s) {
-    return utf8d2t(b64t2d(s));
-  };
-  b64decode_bin = function(s) {
-    var dec = b64t2d(s);
-    var ret = '';
-    for(var i = 0; i < dec.length; i++) {
-      ret += String.fromCharCode(dec[i]);
-    }
-    return ret;
-  };
-} else {
-  b64decode = function(s) {
-    return decodeURIComponent(escape(atob(s)));
-  };
-  b64decode_bin = atob;
-}
-
-if (typeof(btoa) == 'undefined') {
-  b64encode = function(s) {
-    return b64d2t(utf8t2d(s));
-  };
-} else {
-  b64encode = function(s) {
-    return btoa(unescape(encodeURIComponent(s)));
-  };
-}
-
-function createXHR() {
-	var xhr;
-	if (typeof ActiveXObject != 'undefined') {
-		var aVersions = [ "Microsoft.XMLHTTP", "Msxml2.XMLHttp.6.0",
-		                  "Msxml2.XMLHttp.5.0", "Msxml2.XMLHttp.4.0",
-		                  "Msxml2.XMLHttp.3.0" ];
-		for (var i = 0; i < aVersions.length; i++) {
-			try {
-				xhr = new ActiveXObject(aVersions[i]);
-			} catch (e) {
+/******/ (function(modules) { // webpackBootstrap
+/******/ 	// The module cache
+/******/ 	var installedModules = {};
+/******/
+/******/ 	// The require function
+/******/ 	function __webpack_require__(moduleId) {
+/******/
+/******/ 		// Check if module is in cache
+/******/ 		if(installedModules[moduleId]) {
+/******/ 			return installedModules[moduleId].exports;
+/******/ 		}
+/******/ 		// Create a new module (and put it into the cache)
+/******/ 		var module = installedModules[moduleId] = {
+/******/ 			i: moduleId,
+/******/ 			l: false,
+/******/ 			exports: {}
+/******/ 		};
+/******/
+/******/ 		// Execute the module function
+/******/ 		modules[moduleId].call(module.exports, module, module.exports, __webpack_require__);
+/******/
+/******/ 		// Flag the module as loaded
+/******/ 		module.l = true;
+/******/
+/******/ 		// Return the exports of the module
+/******/ 		return module.exports;
+/******/ 	}
+/******/
+/******/
+/******/ 	// expose the modules object (__webpack_modules__)
+/******/ 	__webpack_require__.m = modules;
+/******/
+/******/ 	// expose the module cache
+/******/ 	__webpack_require__.c = installedModules;
+/******/
+/******/ 	// define getter function for harmony exports
+/******/ 	__webpack_require__.d = function(exports, name, getter) {
+/******/ 		if(!__webpack_require__.o(exports, name)) {
+/******/ 			Object.defineProperty(exports, name, {
+/******/ 				configurable: false,
+/******/ 				enumerable: true,
+/******/ 				get: getter
+/******/ 			});
+/******/ 		}
+/******/ 	};
+/******/
+/******/ 	// getDefaultExport function for compatibility with non-harmony modules
+/******/ 	__webpack_require__.n = function(module) {
+/******/ 		var getter = module && module.__esModule ?
+/******/ 			function getDefault() { return module['default']; } :
+/******/ 			function getModuleExports() { return module; };
+/******/ 		__webpack_require__.d(getter, 'a', getter);
+/******/ 		return getter;
+/******/ 	};
+/******/
+/******/ 	// Object.prototype.hasOwnProperty.call
+/******/ 	__webpack_require__.o = function(object, property) { return Object.prototype.hasOwnProperty.call(object, property); };
+/******/
+/******/ 	// __webpack_public_path__
+/******/ 	__webpack_require__.p = "";
+/******/
+/******/ 	// Load entry module and return exports
+/******/ 	return __webpack_require__(__webpack_require__.s = 16);
+/******/ })
+/************************************************************************/
+/******/ ([
+/* 0 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+	value: true
+});
+exports.YYIMChat = exports.YYIMManager = undefined;
+
+var _classCallCheck2 = __webpack_require__(2);
+
+var _classCallCheck3 = _interopRequireDefault(_classCallCheck2);
+
+var _createClass2 = __webpack_require__(3);
+
+var _createClass3 = _interopRequireDefault(_createClass2);
+
+var _YYIMConnection = __webpack_require__(8);
+
+var _YYIMConsoleLogger = __webpack_require__(33);
+
+var _YYIMJIDUtil = __webpack_require__(12);
+
+var _config = __webpack_require__(4);
+
+var _constant = __webpack_require__(13);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+var YYIMManager = function () {
+	function YYIMManager() {
+		(0, _classCallCheck3.default)(this, YYIMManager);
+
+		this._user;
+		this._token = {};
+		this.appkey;
+		this.connectStatus = _constant.CONNECT_STATUS.INIT;
+		this.offlineStatus = [_constant.CONNECT_STATUS.ERROR, _constant.CONNECT_STATUS.OFFLINE, _constant.CONNECT_STATUS.CONFLICT, _constant.CONNECT_STATUS.AUTHERROR, _constant.CONNECT_STATUS.ONCLIENTKICKOUT, _constant.CONNECT_STATUS.INIT, _constant.CONNECT_STATUS.ONUPDATEPASSWORD];
+
+		this.onlineStatus = [_constant.CONNECT_STATUS.CONNECTED, _constant.CONNECT_STATUS.PROCESSING];
+
+		this.apiKey;
+		this.init();
+	}
+
+	(0, _createClass3.default)(YYIMManager, [{
+		key: 'log',
+		value: function log(groupname, level, obj1, obj2) {
+			this._logger = this._logger || new _YYIMConsoleLogger.YYIMConsoleLogger(_config.YYIMConfiguration.LOG.FILTER_LEVEL);
+			this._logger.log(groupname, level, obj1, obj2);
+		}
+	}, {
+		key: 'init',
+		value: function init(options) {
+			var _this = this;
+
+			options = options || {};
+
+			this.onConnectStatusChanged = function (status) {
+				_this.connectStatus = status || _this.connectStatus;
+				_this.log('connectStatus: ', 3, _this.connectStatus);
+			};
+
+			this.onClosed = function (arg) {
+				_this.onConnectStatusChanged(_constant.CONNECT_STATUS.OFFLINE);
+				options.onClosed && options.onClosed(arg);
+			};
+
+			this.onAuthError = function (arg) {
+				_this.onConnectStatusChanged(_constant.CONNECT_STATUS.AUTHERROR);
+				options.onAuthError && options.onAuthError(arg);
+			};
+
+			this.onStatusChanged = function (status) {
+				if (YYIMCommonUtil.isStringAndNotEmpty(status)) {
+					_this.onConnectStatusChanged(status);
+				}
+			};
+
+			this.onOpened = function (arg) {
+				_this.onConnectStatusChanged(_constant.CONNECT_STATUS.CONNECTED);
+				_this.getTimeCorrection && _this.getTimeCorrection();
+				options.onOpened && options.onOpened(arg);
+			};
+
+			this.onUpdatePassword = function (arg) {
+				_this.disConnect(_constant.CONNECT_STATUS.ONUPDATEPASSWORD);
+				options.onUpdatePassword && options.onUpdatePassword(arg);
+			};
+
+			this.onClientKickout = function (arg) {
+				_this.disConnect(_constant.CONNECT_STATUS.ONCLIENTKICKOUT);
+				options.onClientKickout && options.onClientKickout(arg);
+			};
+
+			this.onConflicted = function (arg) {
+				_this.disConnect(_constant.CONNECT_STATUS.CONFLICT);
+				options.onConflicted && options.onConflicted(arg);
+			};
+
+			this.onConnectError = function (arg) {
+				if (_this.connectStatus == _constant.CONNECT_STATUS.OFFLINE || _this.connectStatus == _constant.CONNECT_STATUS.INIT || _this.connectStatus == _constant.CONNECT_STATUS.CONFLICT || _this.connectStatus == _constant.CONNECT_STATUS.AUTHERROR || _this.connectStatus == _constant.CONNECT_STATUS.ONCLIENTKICKOUT || _this.connectStatus == _constant.CONNECT_STATUS.ONUPDATEPASSWORD) {
+					if (_this.ConnectErrorTimer) {
+						clearInterval(_this.ConnectErrorTimer);
+						_this.ConnectErrorTimer = null;
+					}
+				} else {
+					_this.onConnectStatusChanged(_constant.CONNECT_STATUS.ERROR);
+					if (!_this.ConnectErrorTimer) {
+						_this.ConnectErrorTimer = setInterval(function () {
+							if (_this.connectStatus == _constant.CONNECT_STATUS.CONNECTED || _this.connectStatus == _constant.CONNECT_STATUS.PROCESSING || _this.connectStatus == _constant.CONNECT_STATUS.OFFLINE || _this.connectStatus == _constant.CONNECT_STATUS.INIT) {
+								clearInterval(_this.ConnectErrorTimer);
+								_this.ConnectErrorTimer = null;
+							} else if (_this.connectStatus == _constant.CONNECT_STATUS.ERROR) {
+								_this.log('连接出现异常，正在尝试重连！', 3, arg);
+								_this.connect();
+								_this.onConnectStatusChanged(_constant.CONNECT_STATUS.CONNECTING);
+							}
+						}, 500);
+					}
+					options.onConnectError && options.onConnectError(arg);
+				}
+			};
+
+			this.onUserBind = options.onUserBind || function () {};
+
+			this.onExpiration = options.onExpiration;
+
+			this.exeBackhander('initCallback', options);
+
+			(function () {
+				jQuery(window).on({
+					'unload offline': function unloadOffline() {
+						if (_this.connectStatus != _constant.CONNECT_STATUS.INIT) {
+							_this.disConnect();
+						}
+					},
+					'online': function online() {
+						if (_this.connectStatus != _constant.CONNECT_STATUS.INIT && _this.connectStatus != _constant.CONNECT_STATUS.CONFLICT && _this.connectStatus != _constant.CONNECT_STATUS.AUTHERROR && _this.connectStatus != _constant.CONNECT_STATUS.ONCLIENTKICKOUT && _this.connectStatus != _constant.CONNECT_STATUS.ONUPDATEPASSWORD) {
+							_this.connect();
+						}
+					}
+				});
+			})();
+
+			jQuery.ajaxSetup({
+				statusCode: {
+					401: function _() {
+						options.onExpirationed && options.onExpirationed();
+					}
+				}
+			});
+		}
+	}, {
+		key: 'initSDK',
+		value: function initSDK(options) {
+			_config.ConfigSetting.init(options);
+			var conf = _config.YYIMConfiguration.MULTI_TENANCY;
+			this.appkey = conf.SEPARATOR + conf.APP_KEY + conf.SEPARATOR + conf.ETP_KEY;
+
+			this.apiKey = options.apiKey;
+		}
+	}, {
+		key: 'logEnable',
+		value: function logEnable(_logEnable) {
+			if (YYIMUtil['isWhateType'](_logEnable, 'Boolean')) {
+				_config.YYIMConfiguration.LOG.ENABLE = _logEnable;
+			} else {
+				_config.YYIMConfiguration.LOG.ENABLE = !_config.YYIMConfiguration.LOG.ENABLE;
 			}
 		}
-	} else if (typeof XMLHttpRequest != 'undefined') {
-		xhr = new XMLHttpRequest();
-	}
-	return xhr;
-}
-
-if (window.XDomainRequest) {
-    window.ieXDRToXHR = function(window) {
-        "use strict";
-        var XHR = window.XMLHttpRequest;
-
-        window.XMLHttpRequest = function() {
-            this.onreadystatechange = Object;
-
-            this.xhr = null;
-            this.xdr = null;
-
-            this.readyState = 0;
-            this.status = '';
-            this.statusText = null;
-            this.responseText = null;
-
-            this.getResponseHeader = null;
-            this.getAllResponseHeaders = null;
-
-            this.setRequestHeader = null;
-
-            this.abort = null;
-            this.send = null;
-            this.isxdr = false;
-
-            // static binding
-            var self = this;
-
-            self.xdrLoadedBinded = function() {
-                self.xdrLoaded();
-            };
-            self.xdrErrorBinded = function() {
-                self.xdrError();
-            };
-            self.xdrProgressBinded = function() {
-                self.xdrProgress();
-            };
-            self.xhrReadyStateChangedBinded = function() {
-                self.xhrReadyStateChanged();
-            };
-        };
-
-        XMLHttpRequest.prototype.open = function(method, url, asynch, user, pwd) {
-            //improve CORS deteciton (chat.example.net exemple.net), remove hardcoded http-bind
-            var parser = document.createElement('a');
-            parser.href = url;
-            if (!!parser.hostname && parser.hostname!=document.domain) {
-                if (this.xdr === null){
-                    this.xdr = new window.XDomainRequest();
-                }
-
-                this.isxdr = true;
-                this.setXDRActive();
-                this.xdr.open(method, url);
-            } else {
-                if (this.xhr === null){
-                    this.xhr = new XHR();
-                }
-
-                this.isxdr = false;
-                this.setXHRActive();
-                this.xhr.open(method, url, asynch, user, pwd);
-            }
-        };
-
-        XMLHttpRequest.prototype.xdrGetResponseHeader = function(name) {
-            if (name === 'Content-Type' && this.xdr.contentType > ''){
-                return this.xdr.contentType;
-            }
-
-            return '';
-        };
-        
-        XMLHttpRequest.prototype.xdrGetAllResponseHeaders = function() {
-            return (this.xdr.contentType > '') ? 'Content-Type: ' + this.xdr.contentType : '';
-        };
-        
-        XMLHttpRequest.prototype.xdrSetRequestHeader = function(name, value) {
-            //throw new Error('Request headers not supported');
-        };
-        
-        XMLHttpRequest.prototype.xdrLoaded = function() {
-            if (this.onreadystatechange !== null) {
-                this.readyState = 4;
-                this.status = 200;
-                this.statusText = 'OK';
-                this.responseText = this.xdr.responseText;
-                if (window.ActiveXObject){
-                    var doc = new ActiveXObject('Microsoft.XMLDOM');
-                    doc.async='false';
-                    doc.loadXML(this.responseText);
-                    this.responseXML = doc;
-                }
-                this.onreadystatechange();
-            }
-        };
-        
-        XMLHttpRequest.prototype.xdrError = function() {
-            if (this.onreadystatechange !== null) {
-                this.readyState = 4;
-                this.status = 0;
-                this.statusText = '';
-                // ???
-                this.responseText = '';
-                this.onreadystatechange();
-            }
-        };
-        
-        XMLHttpRequest.prototype.xdrProgress = function() {
-            if (this.onreadystatechange !== null && this.status !== 3) {
-                this.readyState = 3;
-                this.status = 3;
-                this.statusText = '';
-                this.onreadystatechange();
-            }
-        };
-        
-        XMLHttpRequest.prototype.finalXDRRequest = function() {
-            var xdr = this.xdr;
-            delete xdr.onload;
-            delete xdr.onerror;
-            delete xdr.onprogress;
-        };
-        
-        XMLHttpRequest.prototype.sendXDR = function(data) {
-            var xdr = this.xdr;
-
-            xdr.onload = this.xdrLoadedBinded;
-            xdr.onerror = this.xdr.ontimeout = this.xdrErrorBinded;
-            xdr.onprogress = this.xdrProgressBinded;
-            this.responseText = null;
-
-            this.xdr.send(data);
-        };
-        
-        XMLHttpRequest.prototype.abortXDR = function() {
-            this.finalXDRRequest();
-            this.xdr.abort();
-        };
-        
-        XMLHttpRequest.prototype.setXDRActive = function() {
-            this.send = this.sendXDR;
-            this.abort = this.abortXDR;
-            this.getResponseHeader = this.xdrGetResponseHeader;
-            this.getAllResponseHeaders = this.xdrGetAllResponseHeaders;
-            this.setRequestHeader = this.xdrSetRequestHeader;
-        };
-
-        XMLHttpRequest.prototype.xhrGetResponseHeader = function(name) {
-            return this.xhr.getResponseHeader(name);
-        };
-        
-        XMLHttpRequest.prototype.xhrGetAllResponseHeaders = function() {
-            return this.xhr.getAllResponseHeaders();
-        };
-        
-        XMLHttpRequest.prototype.xhrSetRequestHeader = function(name, value) {
-            return this.xhr.setRequestHeader(name, value);
-        };
-        
-        XMLHttpRequest.prototype.xhrReadyStateChanged = function() {
-            if (this.onreadystatechange !== null && this.readyState !== this.xhr.readyState) {
-                var xhr = this.xhr;
-
-                this.readyState = xhr.readyState;
-                if (this.readyState === 4) {
-                    this.status = xhr.status;
-                    this.statusText = xhr.statusText;
-                    this.responseText = xhr.responseText;
-                    this.responseXML = xhr.responseXML;
-                }
-
-                this.onreadystatechange();
-            }
-        };
-        
-        XMLHttpRequest.prototype.finalXHRRequest = function() {
-            delete this.xhr.onreadystatechange;
-        };
-        XMLHttpRequest.prototype.abortXHR = function() {
-            this.finalXHRRequest();
-            this.xhr.abort();
-        };
-        XMLHttpRequest.prototype.sendXHR = function(data) {
-            this.xhr.onreadystatechange = this.xhrReadyStateChangedBinded;
-
-            this.xhr.send(data);
-        };
-        XMLHttpRequest.prototype.setXHRActive = function() {
-            this.send = this.sendXHR;
-            this.abort = this.abortXHR;
-            this.getResponseHeader = this.xhrGetResponseHeader;
-            this.getAllResponseHeaders = this.xhrGetAllResponseHeaders;
-            this.setRequestHeader = this.xhrSetRequestHeader;
-        };
-
-        window.ieXDRToXHR = undefined;
-    };
-    var isWebsocketSupport = (function() {
-		var isSafari = navigator.userAgent.indexOf("Safari") > -1 && navigator.userAgent.indexOf("Chrome") < 1 ; //判断是否Safari 
-		if(isSafari)
-			return false;
-		window.WebSocket =window.WebSocket || window.MozWebSocket;
-		if (window.WebSocket) {
-			return true;
+	}, {
+		key: 'getTenancy',
+		value: function getTenancy() {
+			return _config.YYIMConfiguration.MULTI_TENANCY;
 		}
-		return false;
-	})();
-    if(!isWebsocketSupport)
-    	window.ieXDRToXHR(window);
-}
+	}, {
+		key: 'getAppkey',
+		value: function getAppkey() {
+			return this.appkey;
+		}
+	}, {
+		key: 'getApiKey',
+		value: function getApiKey() {
+			return this.apiKey;
+		}
+	}, {
+		key: 'isOnline',
+		value: function isOnline() {
+			if (this.onlineStatus.indexOf(this.connectStatus) > -1) {
+				return true;
+			}
+			return false;
+		}
+	}, {
+		key: 'disConnect',
+		value: function disConnect(status) {
+			if (this.getExpirationTimer) {
+				clearInterval(this.getExpirationTimer);
+				this.getExpirationTimer = 0;
+			}
 
-/**
- * @fileoverview Collection of functions to make live easier
- * @author Stefan Strigler
- */
+			_YYIMConnection.YYIMConnection.getInstance().disconnect();
 
-/**
- * Convert special chars to HTML entities
- * @addon
- * @return The string with chars encoded for HTML
- * @type String
- */
-String.prototype.htmlEnc = function() {
-  if(!this)
-    return this;
+			this.onConnectStatusChanged(status || _constant.CONNECT_STATUS.OFFLINE);
+		}
+	}, {
+		key: 'connect',
+		value: function connect() {
+			if (!this.isOnline()) {
+				_YYIMConnection.YYIMConnection.getInstance().connect();
+			}
+		}
+	}, {
+		key: 'getToken',
+		value: function getToken() {
+			var _this2 = this;
 
-  var str = this.replace(/&/g,"&amp;");
-  str = str.replace(/</g,"&lt;");
-  str = str.replace(/>/g,"&gt;");
-  str = str.replace(/\"/g,"&quot;");
-  str = str.replace(/\n/g,"<br />");
-  return str;
+			try {
+				if (this.getExpiration() && YYIMUtil['isWhateType'](this.onExpiration, 'Function')) {
+					if (this.getExpiration() - this.getServerNow() <= _config.YYIMConfiguration.EXPIRATION.INVALID) {
+						this.onExpiration(function (token, expiration) {
+							if (token) {
+								_this2._token.token = token;
+							}
+							if (expiration) {
+								_this2._token.expiration = expiration;
+							}
+						});
+					}
+				}
+			} catch (e) {
+				this.log('Token winll Invalid. Auto Get Token Error.', 0);
+			}
+			return this._token.token;
+		}
+	}, {
+		key: 'getExpiration',
+		value: function getExpiration() {
+			return this._token.expiration;
+		}
+	}, {
+		key: 'login',
+		value: function login(options) {
+			var _this3 = this;
+
+			options = options || {};
+			this._token = {
+				token: options.token,
+				expiration: options.expiration
+			};
+			if (options.username && options.token) {
+				if (!this.isOnline()) {
+					_YYIMConnection.YYIMConnection.getInstance().connect({
+						username: _YYIMJIDUtil.YYIMJIDUtil.getNode(options.username),
+						token: options.token,
+						appType: options.appType,
+						identify: options.identify
+					});
+				}
+				if (YYIMUtil['isWhateType'](this.onExpiration, 'Function')) {
+					if (!this.getExpirationTimer) {
+						this.getExpirationTimer = setInterval(function () {
+							_this3.getToken();
+						}, _config.YYIMConfiguration.EXPIRATION.INSPECTION_INTERVAL);
+					}
+				}
+			} else {
+				this.log((!options.username ? 'Username ' : '') + (!options.token ? 'Token ' : '') + ' Illegal.', 0);
+			}
+		}
+	}, {
+		key: 'getConnectStatus',
+		value: function getConnectStatus() {
+			return this.connectStatus;
+		}
+	}, {
+		key: 'logout',
+		value: function logout() {
+			this.disConnect.apply(this, arguments);
+			this.onConnectStatusChanged(_constant.CONNECT_STATUS.INIT);
+		}
+	}, {
+		key: 'getUserBareJID',
+		value: function getUserBareJID() {
+			return this._user.jid.getBareJID();
+		}
+	}, {
+		key: 'getUserFullJID',
+		value: function getUserFullJID() {
+			return this._user.jid.toString();
+		}
+	}, {
+		key: 'getUserNode',
+		value: function getUserNode() {
+			return _YYIMJIDUtil.YYIMJIDUtil.getNode(this.getUserBareJID());
+		}
+	}, {
+		key: 'getUserID',
+		value: function getUserID() {
+			return _YYIMJIDUtil.YYIMJIDUtil.getID(this.getUserBareJID());
+		}
+	}, {
+		key: 'getResource',
+		value: function getResource() {
+			return _config.YYIMConfiguration.RESOURCE;
+		}
+	}, {
+		key: 'getServerName',
+		value: function getServerName() {
+			return _config.YYIMConfiguration.CONNECTION.SERVER_NAME;
+		}
+	}, {
+		key: 'getServletPath',
+		value: function getServletPath() {
+			return _config.YYIMConfiguration.SERVLET;
+		}
+	}, {
+		key: 'getJIDUtil',
+		value: function getJIDUtil() {
+			return _YYIMJIDUtil.YYIMJIDUtil;
+		}
+	}, {
+		key: 'getServerNow',
+		value: function getServerNow() {
+			return _config.YYIMConfiguration.TIMECORRECTION.AUTOCORRECTION ? new Date().getTime() + YYIMManager.getInstance().getConfig().TIMECORRECTION.RESULT : new Date().getTime();
+		}
+	}, {
+		key: 'getBrowser',
+		value: function getBrowser() {
+			return _config.YYIMConfiguration.BROWSER;
+		}
+	}, {
+		key: 'getConstants',
+		value: function getConstants() {
+			return {
+				FAVORITE_TYPE: _constant.FAVORITE_TYPE,
+				STATUS: _constant.STATUS,
+				TYPE: _constant.TYPE,
+				PRESENCE_TYPE: _constant.PRESENCE_TYPE,
+				COLLECT_TYPE: _constant.COLLECT_TYPE,
+				CHAT_TYPE: _constant.CHAT_TYPE,
+				MESSAGE_CONTENT_TYPE: _constant.MESSAGE_CONTENT_TYPE
+			};
+		}
+	}, {
+		key: 'getConfig',
+		value: function getConfig() {
+			return _config.YYIMConfiguration;
+		}
+	}, {
+		key: 'getConnection',
+		value: function getConnection() {
+			return _YYIMConnection.YYIMConnection.getInstance();
+		}
+	}, {
+		key: 'getJIDUtil',
+		value: function getJIDUtil() {
+			return _YYIMJIDUtil.YYIMJIDUtil;
+		}
+	}, {
+		key: 'getUtil',
+		value: function getUtil() {
+			return YYIMUtil;
+		}
+	}, {
+		key: 'setBackhander',
+		value: function setBackhander(arg) {
+			if (arg) {
+				this.backhanders = this.backhanders || {};
+				for (var x in arg) {
+					this.backhanders[x] = this.backhanders[x] || {};
+					window.jQuery.extend(this.backhanders[x], arg[x]);
+				}
+			}
+		}
+	}, {
+		key: 'exeBackhander',
+		value: function exeBackhander(type, options) {
+			this.backhanders = this.backhanders || {};
+			if (type && this.backhanders[type]) {
+				for (var y in this.backhanders[type]) {
+					if (YYIMUtil['isWhateType'](this.backhanders[type][y], 'Function')) {
+						try {
+							this.backhanders[type][y](options || {});
+						} catch (e) {
+							this.log('exeBackhander: ' + type + ' ' + y + ' Error.', 0);
+						}
+					}
+				}
+			}
+		}
+	}]);
+	return YYIMManager;
+}();
+
+YYIMManager.getInstance = function () {
+	if (!YYIMManager._instance) {
+		YYIMManager._instance = new YYIMManager();
+	}
+	return YYIMManager._instance;
 };
 
-/**
- * Convert HTML entities to special chars
- * @addon
- * @return The normal string
- * @type String
- */
-String.prototype.revertHtmlEnc = function() {
-  if(!this)
-    return this;
+var YYIMChat = YYIMManager.getInstance();
 
-  var str = this.replace(/&amp;/gi,'&');
-  str = str.replace(/&lt;/gi,'<');
-  str = str.replace(/&gt;/gi,'>');
-  str = str.replace(/&quot;/gi,'\"');
-  str = str.replace(/<br( )?(\/)?>/gi,'\n');
-  return str;
-};
+exports.YYIMManager = YYIMManager;
+exports.YYIMChat = YYIMChat;
 
-/**
- * Converts from jabber timestamps to JavaScript Date objects
- * @addon
- * @param {String} ts A string representing a jabber datetime timestamp as
- * defined by {@link http://www.xmpp.org/extensions/xep-0082.html XEP-0082}
- * @return A javascript Date object corresponding to the jabber DateTime given
- * @type Date
- */
-Date.jab2date = function(ts) {
-  var date = new Date(Date.UTC(ts.substr(0,4),ts.substr(5,2)-1,ts.substr(8,2),ts.substr(11,2),ts.substr(14,2),ts.substr(17,2)));
-  if (ts.substr(ts.length-6,1) != 'Z') { // there's an offset
-    var offset = new Date();
-    offset.setTime(0);
-    offset.setUTCHours(ts.substr(ts.length-5,2));
-    offset.setUTCMinutes(ts.substr(ts.length-2,2));
-    if (ts.substr(ts.length-6,1) == '+')
-      date.setTime(date.getTime() - offset.getTime());
-    else if (ts.substr(ts.length-6,1) == '-')
-      date.setTime(date.getTime() + offset.getTime());
+/***/ }),
+/* 1 */
+/***/ (function(module, exports, __webpack_require__) {
+
+module.exports = { "default": __webpack_require__(36), __esModule: true };
+
+/***/ }),
+/* 2 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+exports.__esModule = true;
+
+exports.default = function (instance, Constructor) {
+  if (!(instance instanceof Constructor)) {
+    throw new TypeError("Cannot call a class as a function");
   }
-  return date;
 };
 
-/**
- * Takes a timestamp in the form of 2004-08-13T12:07:04+02:00 as argument
- * and converts it to some sort of humane readable format
- * @addon
- */
-Date.hrTime = function(ts) {
-  return Date.jab2date(ts).toLocaleString();
-};
+/***/ }),
+/* 3 */
+/***/ (function(module, exports, __webpack_require__) {
 
-/**
- * somewhat opposit to {@link #hrTime}
- * expects a javascript Date object as parameter and returns a jabber
- * date string conforming to
- * {@link http://www.xmpp.org/extensions/xep-0082.html XEP-0082}
- * @see #hrTime
- * @return The corresponding jabber DateTime string
- * @type String
- */
-Date.prototype.jabberDate = function() {
-  var padZero = function(i) {
-    if (i < 10) return "0" + i;
-    return i;
+"use strict";
+
+
+exports.__esModule = true;
+
+var _defineProperty = __webpack_require__(18);
+
+var _defineProperty2 = _interopRequireDefault(_defineProperty);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+exports.default = function () {
+  function defineProperties(target, props) {
+    for (var i = 0; i < props.length; i++) {
+      var descriptor = props[i];
+      descriptor.enumerable = descriptor.enumerable || false;
+      descriptor.configurable = true;
+      if ("value" in descriptor) descriptor.writable = true;
+      (0, _defineProperty2.default)(target, descriptor.key, descriptor);
+    }
+  }
+
+  return function (Constructor, protoProps, staticProps) {
+    if (protoProps) defineProperties(Constructor.prototype, protoProps);
+    if (staticProps) defineProperties(Constructor, staticProps);
+    return Constructor;
   };
-
-  var jDate = this.getUTCFullYear() + "-";
-  jDate += padZero(this.getUTCMonth()+1) + "-";
-  jDate += padZero(this.getUTCDate()) + "T";
-  jDate += padZero(this.getUTCHours()) + ":";
-  jDate += padZero(this.getUTCMinutes()) + ":";
-  jDate += padZero(this.getUTCSeconds()) + "Z";
-
-  return jDate;
-};
-
-/**
- * Determines the maximum of two given numbers
- * @addon
- * @param {Number} A a number
- * @param {Number} B another number
- * @return the maximum of A and B
- * @type Number
- */
-Number.max = function(A, B) {
-  return (A > B)? A : B;
-};
-
-Number.min = function(A, B) {
-  return (A < B)? A : B;
-};
-
-var YYAIAbility = (function () {
-    function YYAIAbility() {
-        this.dicts = [];
-        this.stopKeyword = {"的": 1};
-
-        // 是否启用过滤
-        this.isOpenFilter = false;
-
-        // AI分析开关是否启用
-        this.isAIAbility = true;
-
-        // 服务器获取最新热词
-        // 开关、时间戳
-        // 行业
-    }
-
-    /**
-    * 设置AI分析开关是否启用
-    * @param isAIAbility
-    */
-    YYAIAbility.prototype.openAIAbility = function openAIAbility(isAIAbility) {
-        this.isAIAbility = isAIAbility;
-    };
-
-    /**
-     * 设置是否启用热词过滤
-     * @param isOpenFilter
-     */
-    YYAIAbility.prototype.openFilterWords = function openFilterWords(isOpenFilter) {
-        this.isOpenFilter = isOpenFilter;
-    };
-
-    /**
-     * 设置热词字典
-     * @param dicts
-     */
-    YYAIAbility.prototype.setDictionaries = function setDictionaries(dictArray) {
-        if (dictArray) {
-            for (var i=0; i < dictArray.length; i++){
-                this.dicts.push(dictArray[i]);
-            }
-        }
-    };
-
-    /**
-     * 判断消息是否传递给AI分析
-     * @returns {boolean}
-     */
-    YYAIAbility.prototype.intelligentAnalysis = function intelligentAnalysis(keyword) {
-        if(!this.isOpenFilter){
-            return true;
-        }
-        if (keyword && this.isAIAbility) {
-            var trie = new YYIMAITrie();
-            trie.init(this.dicts);
-            var result = trie.splitWords(keyword);
-            return result.length > 0;
-        }
-        return false;
-    };
-
-    return new YYAIAbility();
-})();
-
-var YYIMAITrie = function () {
-    function YYIMAITrie() {
-        this.root = new YYIMAINode(null);
-    }
-
-    /**
-     * 将Unicode转成UTF8的三字节
-     */
-    YYIMAITrie.prototype.toBytes = function toBytes(word) {
-        var result = [];
-        for (var i = 0; i < word.length; i++) {
-            var code = word.charCodeAt(i);
-            // 单字节
-            if (code < 0x80) {
-                result.push(code);
-            } else {
-                // 三字节
-                result = result.concat(this.toUTF8(code));
-            }
-        }
-
-        return result;
-    };
-
-    YYIMAITrie.prototype.toUTF8 = function toUTF8(c) {
-        // 1110xxxx 10xxxxxx 10xxxxxx
-        // 1110xxxx
-        var byte1 = 0xE0 | c >> 12 & 0x0F;
-        // 10xxxxxx
-        var byte2 = 0x80 | c >> 6 & 0x3F;
-        // 10xxxxxx
-        var byte3 = 0x80 | c & 0x3F;
-
-        return [byte1, byte2, byte3];
-    };
-
-    YYIMAITrie.prototype.toUTF16 = function toUTF16(b1, b2, b3) {
-        // 1110xxxx 10xxxxxx 10xxxxxx
-        var byte1 = b1 << 4 | b2 >> 2 & 0x0F;
-        var byte2 = (b2 & 0x03) << 6 | b3 & 0x3F;
-        var utf16 = (byte1 & 0x00FF) << 8 | byte2;
-
-        return utf16;
-    };
-
-    /**
-     * 添加每个词到YYIMAITrie树
-     */
-    YYIMAITrie.prototype.add = function add(word) {
-        var node = this.root,
-            bytes = this.toBytes(word),
-            len = bytes.length;
-        for (var i = 0; i < len; i++) {
-            var c = bytes[i];
-            // 如果不存在则添加，否则不需要再保存了，因为共用前缀
-            if (!(c in node.childs)) {
-                node.childs[c] = new YYIMAINode(c);
-            }
-            node = node.childs[c];
-        }
-        node.asWord(); // 成词边界
-    };
-
-    /**
-     * 按字节在YYIMAITrie树中搜索
-     */
-    YYIMAITrie.prototype.search = function search(bytes) {
-        var node = this.root,
-            len = bytes.length,
-            result = [];
-        var word = [],
-            j = 0;
-        for (var i = 0; i < len; i++) {
-            var c = bytes[i],
-                childs = node.childs;
-            if (!(c in childs)) {
-                return result;
-            }
-
-            if (c < 0x80) {
-                word.push(String.fromCharCode(c));
-            } else {
-                j++;
-                if (j % 3 == 0) {
-                    var b1 = bytes[i - 2];
-                    var b2 = bytes[i - 1];
-                    var b3 = c;
-                    word.push(String.fromCharCode(this.toUTF16(b1, b2, b3)));
-                }
-            }
-            // 如果是停止词，则退出
-            if (word.join('') in stop) {
-                return result;
-            }
-
-            // 成词
-            var cnode = childs[c];
-            if (cnode.isWord()) {
-                cnode.addCount(); // 用于计数判断
-                result.push(word.join(''));
-            }
-            node = cnode;
-        }
-
-        return result;
-    };
-
-    /**
-     * 分词
-     */
-    YYIMAITrie.prototype.splitWords = function splitWords(words) {
-        // 转换成单字节进行搜索
-        var bytes = this.toBytes(words);
-        var start = 0,
-            end = bytes.length - 1,
-            result = [];
-
-        while (start != end) {
-            var word = [];
-            for (var i = start; i <= end; i++) {
-                var b = bytes[i]; // 逐个取出字节
-                word.push(b);
-
-                var finds = this.search(word);
-                if (finds !== false && finds.length > 0) {
-                    // 如果在字典中，则添加到分词结果集
-                    result = result.concat(finds);
-                }
-            }
-            start++;
-        }
-
-        return result;
-    };
-
-    /**
-     * 初始化整棵YYIMAITrie树
-     */
-    YYIMAITrie.prototype.init = function init(dict) {
-        for (var i = 0; i < dict.length; i++) {
-            this.add(dict[i]);
-        }
-    };
-
-    return YYIMAITrie;
 }();
 
-var YYIMAINode = function () {
-    function YYIMAINode(_byte) {
-        this.childs = {}; // 子节点集合
-        this._byte = _byte || null; // 此节点上存储的字节
-        this._isWord = false; // 边界保存，表示是否可以组成一个词
-        this._count = 0;
-    }
+/***/ }),
+/* 4 */
+/***/ (function(module, exports, __webpack_require__) {
 
-    YYIMAINode.prototype.isWord = function isWord() {
-        return this._isWord && this._count == 0;
-    };
+"use strict";
 
-    YYIMAINode.prototype.asWord = function asWord() {
-        this._isWord = true;
-    };
 
-    YYIMAINode.prototype.addCount = function addCount() {
-        this._count++;
-    };
+Object.defineProperty(exports, "__esModule", {
+	value: true
+});
+jQuery.support.cors = true;
 
-    YYIMAINode.prototype.getCount = function getCount() {
-        return this._count;
-    };
+var YYIMConfiguration = {};
 
-    return YYIMAINode;
+var ConfigSetting = function () {
+
+	var YY_IM_DOMAIN = 'im.yyuap.com';
+	var YY_IM_ADDRESS = 'stellar.yyuap.com';
+	var YY_IM_WSPORT = 5227;
+	var YY_IM_HTTPBIND_PORT = 7075;
+	var YY_IM_SERVLET_ADDRESS = 'http://im.yyuap.com/';
+	var YY_IM_CLIENT_MARK = 'web';
+
+	var TODO_SERVLET_ADDRESS = 'https://pubaccount.yonyoucloud.com/';
+
+	var init = function init(options) {
+		options = options || {};
+
+		YY_IM_CLIENT_MARK = options.clientMark || YY_IM_CLIENT_MARK;
+		YY_IM_ADDRESS = options.wsurl || YY_IM_ADDRESS;
+		YY_IM_WSPORT = options.wsport || YY_IM_WSPORT;
+		YY_IM_HTTPBIND_PORT = options.hbport || YY_IM_HTTPBIND_PORT;
+		YY_IM_SERVLET_ADDRESS = options.servlet || YY_IM_SERVLET_ADDRESS;
+
+		TODO_SERVLET_ADDRESS = options.todoServlet || TODO_SERVLET_ADDRESS;
+
+		var getBrowser = function getBrowser() {
+			var userAgent = navigator.userAgent.toLowerCase();
+
+			return {
+				version: (userAgent.match(/.+(?:rv|it|ra|ie)[\/: ]([\d.]+)/) || [])[1],
+				webkit: /webkit/.test(userAgent),
+				opera: /opera/.test(userAgent),
+				msie: /msie/.test(userAgent) && !/opera/.test(userAgent),
+				mozilla: /mozilla/.test(userAgent) && !/(compatible|webkit)/.test(userAgent)
+			};
+		};
+
+		var isMsielt10 = function isMsielt10() {
+			var browser = getBrowser();
+			if (browser.msie && window.parseInt(browser.version) < 10) {
+				return true;
+			}
+			return false;
+		};
+
+		var getClientMark = function getClientMark() {
+			return YY_IM_CLIENT_MARK;
+		};
+
+		if (isMsielt10()) {
+			YY_IM_SERVLET_ADDRESS = YY_IM_SERVLET_ADDRESS.replace(/^https?:\/\//, window.location.protocol + '//');
+		}
+
+		if (/https/.test(window.location.protocol) || options.useHttps === true) {
+			YY_IM_WSPORT = 5225;
+		}
+
+		exports.YYIMConfiguration = YYIMConfiguration = {
+			YY_IM_DOMAIN: YY_IM_DOMAIN,
+
+			RESOURCE: YY_IM_CLIENT_MARK + '-v2.6',
+
+			MULTI_TENANCY: {
+				ENABLE: true,
+				ETP_KEY: options.etp || 'etp',
+				APP_KEY: options.app || 'app',
+				SEPARATOR: '.'
+			},
+
+			SENDINTERVAL: 30,
+
+			GROUP: {
+				MEMBERSLIMIT: 5 },
+
+			BETCH_MAXLIMIT: {
+				ROSTER: 50,
+				PUBACCOUNT: 50
+			},
+
+			INPUT_STATE: {
+				INTERVAL: 2 * 1000
+			},
+
+			UPLOAD: {
+				AUTO_SEND: true,
+				MULTI_SELECTION: false,
+				PREVENT_DUPLICATES: false,
+				PREVIEW_SIZE: {
+					WIDTH: 100,
+					HEIGHT: 100
+				},
+				FLASH_SWF_URL: options.flash_swf_url || './Moxie.swf',
+				SILVERLIGHT_XAP_URL: options.silverlight_xap_url || './Moxie.xap',
+				MEDIATYPE: {
+					IMAGE: 1,
+					FILE: 2,
+					DOC: 3
+				},
+				IMAGE_TYPES: /\.(png|jpe?g|gif)$/i
+			},
+
+			TIMECORRECTION: {
+				AUTOCORRECTION: true,
+				TIMES: 3,
+				RESIDUAL: 50,
+				RESULT: 0,
+				LOAD: false },
+
+			MULTIPARTYCALL: {
+				ADDRESS: 'http://dudu.yonyoutelecom.cn/httpIntf/createConference.do',
+				ACCOUNT: '',
+				KEY: '',
+				PHONESMAXLENGTH: 200 },
+
+			SERVLET: {
+				REST_RESOURCE_SERVLET: YY_IM_SERVLET_ADDRESS + 'sysadmin/rest/resource/',
+				REST_VERSION_SERVLET: YY_IM_SERVLET_ADDRESS + 'sysadmin/rest/version/',
+				REST_USER_SERVLET: YY_IM_SERVLET_ADDRESS + 'sysadmin/rest/user/',
+				REST_UPLOAD_SERVLET: YY_IM_SERVLET_ADDRESS + 'im_upload/rest/resource/',
+				REST_DOWNLOAD_SERVLET: YY_IM_SERVLET_ADDRESS + 'im_download/rest/resource/',
+				REST_TRANSFORM_SERVLET: YY_IM_SERVLET_ADDRESS + 'im_download/rest/transform/resource/',
+				REST_SYSTEM_SERVLET: YY_IM_SERVLET_ADDRESS + 'sysadmin/rest/system/',
+				REST_SYSTEM_CUSTOMER_USER: YY_IM_SERVLET_ADDRESS + 'sysadmin/rest/customer/user/',
+
+				REST_TODO_USER: TODO_SERVLET_ADDRESS + 'todocenter/user/todo/'
+			},
+
+			SUPPORT: {
+				isWebSocketSupport: function () {
+					window.WebSocket = window.WebSocket || window.MozWebSocket;
+					if (window.WebSocket) {
+						return true;
+					}
+					return false;
+				}()
+			},
+
+			CONNECTION: {
+				TIMERVAL: 2000,
+				WAIT: 300,
+				SECURE: false,
+				ALLOW_PLAIN: true,
+				ENABLE_WEBSOCKET: true,
+				ENABLE_LOCAL_CONNECTION: true,
+				USE_HTTPS: function () {
+					if (/https/.test(window.location.protocol) || options.useHttps === true) {
+						return true;
+					}
+					return false;
+				}(),
+				SERVER_NAME: YY_IM_DOMAIN,
+				HTTP_BASE: YY_IM_ADDRESS,
+				HTTP_BIND_PORT: YY_IM_HTTPBIND_PORT,
+				WS_PORT: YY_IM_WSPORT
+			},
+
+			PING: {
+				INTERVAL: 10 * 1000,
+
+				SLOW_INTERVAL: 30 * 1000,
+
+				TIMEOUT: 10 * 1000
+			},
+
+			DOMAIN: {
+				CHATROOM: 'conference.' + YY_IM_DOMAIN,
+				SEARCH: 'search.' + YY_IM_DOMAIN,
+				PUBACCOUNT: 'pubaccount.' + YY_IM_DOMAIN
+			},
+
+			EXPIRATION: {
+				INVALID: 6 * 60 * 60 * 1000,
+				INSPECTION_INTERVAL: 30 * 60 * 1000 },
+
+			LOG: {
+				ENABLE: !!options.logEnable,
+				FILTER_LEVEL: 3
+			},
+
+			BROWSER: getBrowser()
+		};
+
+		YYIMConfiguration.getHttpBindUrl = function () {
+			var prefix = YYIMConfiguration.CONNECTION.USE_HTTPS ? 'https://' : 'http://';
+			return prefix + YYIMConfiguration.CONNECTION.HTTP_BASE + ':' + YYIMConfiguration.CONNECTION.HTTP_BIND_PORT + '/http-bind/';
+		};
+
+		YYIMConfiguration.getWebSocketUrl = function () {
+			var prefix = YYIMConfiguration.CONNECTION.USE_HTTPS ? 'wss://' : 'ws://';
+			return prefix + YYIMConfiguration.CONNECTION.HTTP_BASE + ':' + YYIMConfiguration.CONNECTION.WS_PORT;
+		};
+
+		YYIMConfiguration.useWebSocket = function () {
+			return YYIMConfiguration.SUPPORT.isWebSocketSupport && YYIMConfiguration.CONNECTION.ENABLE_WEBSOCKET;
+		};
+
+		YYIMConfiguration.getConnectionArgObj = function () {
+			return {
+				domain: YYIMConfiguration.CONNECTION.SERVER_NAME,
+				resource: YYIMConfiguration.RESOURCE,
+				allow_plain: YYIMConfiguration.CONNECTION.ALLOW_PLAIN,
+				secure: YYIMConfiguration.CONNECTION.SECURE,
+				register: false
+			};
+		};
+
+		YYIMConfiguration.getLocationOrigin = function () {
+			return window.location.origin ? window.location.origin : window.location.protocol + '//' + window.location.host;
+		};
+
+		YYIMConfiguration.getClientMark = getClientMark;
+	};
+
+	return { init: init };
 }();
 
-var YYIMChat = (function(){
-/**
- * jid相关的工具类，包含处理jid的相关静态方法
- * 
- * @Class YYIMJIDUtil
- */
-var YYIMJIDUtil = {};
+ConfigSetting.init();
 
-/**
- * 返回bareJid
- * 如果是设备（node同user的node），则返回全jid
- * 
- * @deprecated since version 2.0, use YYIMJIDUtil.buildUserJID or YYIMJIDUtil.buildChatGroupJID instead
- * 
- * @param {string | JSJaCJID|SNSRoster} 被处理的jid
- * @throws JSJaCJIDInvalidException Thrown if jid is not valid
- */
-YYIMJIDUtil.getBareJID = function(jid) {
-	var userBareJid = YYIMManager.getInstance().getUserBareJID();
-	var tmpJid;
-	if(jid) {
-		if(jid instanceof JSJaCJID) {
-			if(jid.getBareJID() == userBareJid)
-				return jid.toString();
+exports.YYIMConfiguration = YYIMConfiguration;
+exports.ConfigSetting = ConfigSetting;
+
+/***/ }),
+/* 5 */
+/***/ (function(module, exports, __webpack_require__) {
+
+// Thank's IE8 for his funny defineProperty
+module.exports = !__webpack_require__(11)(function () {
+  return Object.defineProperty({}, 'a', { get: function () { return 7; } }).a != 7;
+});
+
+
+/***/ }),
+/* 6 */
+/***/ (function(module, exports) {
+
+var core = module.exports = { version: '2.5.5' };
+if (typeof __e == 'number') __e = core; // eslint-disable-line no-undef
+
+
+/***/ }),
+/* 7 */
+/***/ (function(module, exports) {
+
+module.exports = function (it) {
+  return typeof it === 'object' ? it !== null : typeof it === 'function';
+};
+
+
+/***/ }),
+/* 8 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+	value: true
+});
+exports.YYIMConnection = undefined;
+
+var _classCallCheck2 = __webpack_require__(2);
+
+var _classCallCheck3 = _interopRequireDefault(_classCallCheck2);
+
+var _createClass2 = __webpack_require__(3);
+
+var _createClass3 = _interopRequireDefault(_createClass2);
+
+var _config = __webpack_require__(4);
+
+var _YYIMJIDUtil = __webpack_require__(12);
+
+var _manager = __webpack_require__(0);
+
+var _YYIMConnectDaemon = __webpack_require__(31);
+
+var _YYIMConnectEventHandler = __webpack_require__(32);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+var YYIMConnection = function () {
+	function YYIMConnection() {
+		(0, _classCallCheck3.default)(this, YYIMConnection);
+
+		this.daemon = new _YYIMConnectDaemon.YYIMConnectDaemon();
+		this.eventHandler = new _YYIMConnectEventHandler.YYIMConnectEventHandler();
+		this.connection = this.getConnection();
+		this.connectArg;
+		this.waitingList = [];
+		this.sending = false;
+		this.lastSendTime = 0;
+	}
+
+	(0, _createClass3.default)(YYIMConnection, [{
+		key: 'getDaemon',
+		value: function getDaemon() {
+			return this.daemon;
+		}
+	}, {
+		key: '_init',
+		value: function _init() {
+			_manager.YYIMManager.getInstance().exeBackhander('monitor');
+			this.eventHandler._init();
+			this.registerHandler(OPCODE.AUTH.KEY, function (userBindPacket) {
+				var jid = new JSJaCJID(userBindPacket.jid),
+				    id = _YYIMJIDUtil.YYIMJIDUtil.getID(userBindPacket.jid);
+
+				_manager.YYIMManager.getInstance()._user = {
+					jid: jid,
+					name: id
+				};
+				_manager.YYIMManager.getInstance().onUserBind(id, jid.getResource());
+			});
+		}
+	}, {
+		key: 'registerHandler',
+		value: function registerHandler(event, ns, type, handler) {
+			if (this.connection) {
+				this.connection.registerHandler.apply(this.connection, arguments);
+				return;
+			}
+			throw "connection is undefined!";
+		}
+	}, {
+		key: 'connected',
+		value: function connected() {
+			if (this.connection && this.connection.connected()) {
+				return true;
+			}
+			return false;
+		}
+	}, {
+		key: 'getConnection',
+		value: function getConnection() {
+			if (!this.connection) {
+				if (_config.YYIMConfiguration.useWebSocket()) {
+					this.connection = new JSJaCWebSocketConnection({
+						httpbase: _config.YYIMConfiguration.getWebSocketUrl()
+					});
+				} else {
+					this.connection = new JSJaCHttpBindingConnection({
+						httpbase: _config.YYIMConfiguration.getHttpBindUrl(),
+						timerval: _config.YYIMConfiguration.CONNECTION.TIMERVAL,
+						wait: _config.YYIMConfiguration.CONNECTION.WAIT
+					});
+				}
+			}
+
+			return this.connection;
+		}
+	}, {
+		key: 'connect',
+		value: function connect(options) {
+			options = options || {};
+			if (!this.connectArg) {
+				this.connectArg = _config.YYIMConfiguration.getConnectionArgObj();
+			}
+			if (options.username) {
+				this.connectArg.username = options.username;
+			}
+			if (options.token) {
+				this.connectArg.password = options.token;
+			}
+			if (options.appType) {
+				this.connectArg.appType = options.appType;
+			}
+			if (options.identify) {
+				this.connectArg.clientIdentify = options.identify;
+			}
+			_manager.YYIMManager.getInstance()._user = {
+				jid: new JSJaCJID(this.connectArg.username + '@' + _config.YYIMConfiguration.YY_IM_DOMAIN + '/' + this.connectArg.resource),
+				name: this.connectArg.username
+			};
+			this.connection.connect(this.connectArg);
+		}
+	}, {
+		key: 'disconnect',
+		value: function disconnect() {
+			this.daemon.stopPing(false);
+			if (this.connection) {
+				this.connection.disconnect();
+			}
+		}
+	}, {
+		key: 'send',
+		value: function send(packet, callback, data, callbackContext) {
+			this.waitingList.push({
+				packet: packet,
+				callback: callback,
+				data: data,
+				callbackContext: callbackContext
+			});
+			if (!this.sending) {
+				this.sendInterval();
+			}
+		}
+	}, {
+		key: 'sendInterval',
+		value: function sendInterval() {
+			var _this = this;
+
+			if (this.waitingList.length) {
+				this.sending = true;
+				var timespan = new Date().getTime() - this.lastSendTime;
+
+				if (timespan >= _config.YYIMConfiguration.SENDINTERVAL) {
+					var data = this.waitingList.shift();
+					this.sendJumpPacket(data);
+
+					if (data.packet && data.packet.opcode != OPCODE.PING.SEND) {
+						this.getDaemon().startPing();
+					}
+
+					if (data.packet && data.packet.opcode == OPCODE.PING.SEND) {
+						this.getDaemon().setTimeout();
+					}
+
+					this.lastSendTime = new Date().getTime();
+					this.sendInterval();
+				} else {
+					setTimeout(function () {
+						_this.sendInterval();
+					}, _config.YYIMConfiguration.SENDINTERVAL - timespan);
+				}
+			} else {
+				this.sending = false;
+			}
+		}
+	}, {
+		key: 'sendJumpPacket',
+		value: function sendJumpPacket(arg) {
+			if (arg) {
+				if (arg.callbackContext) {
+					return this.connection.sendJumpPacket(arg.packet, arg.callback.bind(arg.callbackContext), arg.data);
+				}
+				return this.connection.sendJumpPacket(arg.packet, arg.callback, arg.data);
+			}
+		}
+	}]);
+	return YYIMConnection;
+}();
+
+YYIMConnection.getInstance = function () {
+	if (!YYIMConnection._instance) {
+		YYIMConnection._instance = new YYIMConnection();
+		YYIMConnection._instance._init();
+	}
+	return YYIMConnection._instance;
+};
+
+exports.YYIMConnection = YYIMConnection;
+
+/***/ }),
+/* 9 */
+/***/ (function(module, exports) {
+
+// https://github.com/zloirock/core-js/issues/86#issuecomment-115759028
+var global = module.exports = typeof window != 'undefined' && window.Math == Math
+  ? window : typeof self != 'undefined' && self.Math == Math ? self
+  // eslint-disable-next-line no-new-func
+  : Function('return this')();
+if (typeof __g == 'number') __g = global; // eslint-disable-line no-undef
+
+
+/***/ }),
+/* 10 */
+/***/ (function(module, exports, __webpack_require__) {
+
+var anObject = __webpack_require__(25);
+var IE8_DOM_DEFINE = __webpack_require__(26);
+var toPrimitive = __webpack_require__(28);
+var dP = Object.defineProperty;
+
+exports.f = __webpack_require__(5) ? Object.defineProperty : function defineProperty(O, P, Attributes) {
+  anObject(O);
+  P = toPrimitive(P, true);
+  anObject(Attributes);
+  if (IE8_DOM_DEFINE) try {
+    return dP(O, P, Attributes);
+  } catch (e) { /* empty */ }
+  if ('get' in Attributes || 'set' in Attributes) throw TypeError('Accessors not supported!');
+  if ('value' in Attributes) O[P] = Attributes.value;
+  return O;
+};
+
+
+/***/ }),
+/* 11 */
+/***/ (function(module, exports) {
+
+module.exports = function (exec) {
+  try {
+    return !!exec();
+  } catch (e) {
+    return true;
+  }
+};
+
+
+/***/ }),
+/* 12 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+	value: true
+});
+exports.YYIMJIDUtil = undefined;
+
+var _constant = __webpack_require__(13);
+
+var _config = __webpack_require__(4);
+
+var _manager = __webpack_require__(0);
+
+var getBareJID = function getBareJID(jid) {
+	var userBareJid = _manager.YYIMManager.getInstance().getUserBareJID();
+	var tmpJid = void 0;
+	if (jid) {
+		if (jid instanceof JSJaCJID) {
+			if (jid.getBareJID() == userBareJid) return jid.toString();
 			return jid.getBareJID();
-		} else if(typeof jid == "string") {
+		} else if (typeof jid == "string") {
 			tmpJid = new JSJaCJID(jid);
-			if(tmpJid.getBareJID() == userBareJid)
-				return tmpJid.toString();
+			if (tmpJid.getBareJID() == userBareJid) return tmpJid.toString();
 			return tmpJid.getBareJID();
-		} else if(jid.jid && jid.jid instanceof JSJaCJID) {
+		} else if (jid.jid && jid.jid instanceof JSJaCJID) {
 			tmpJid = jid.jid;
-			if(tmpJid.getBareJID() == userBareJid)
-				return tmpJid.toString();
+			if (tmpJid.getBareJID() == userBareJid) return tmpJid.toString();
 			return tmpJid.getBareJID();
 		}
 	}
 	throw new JSJaCJIDInvalidException("invalid jid: " + jid);
 };
 
-/**
- * 根据id或node或jid获取id
- */
-YYIMJIDUtil.getID = function(jid) {
-	var appkey, tmp, index, id;
-	id = YYIMCommonUtil.isStringAndNotEmpty(jid) ?
-		(appkey = YYIMManager.getInstance().getAppkey(), index = jid.indexOf('@'), index != -1 ?
-			(tmp = jid.substring(0, index), tmp.indexOf(appkey) > 0 ?
-				tmp.replace(appkey, '') :
-				tmp) /*全的jid*/ :
-			(jid.indexOf(appkey) > 0 ?
-				jid.replace(appkey, '') :
-				jid) /*node或id*/ ) :
-		null;
-	return id? id.toString(): id;
+var getID = function getID(jid) {
+	var appkey = void 0,
+	    tmp = void 0,
+	    index = void 0,
+	    id = void 0;
+	id = YYIMCommonUtil.isStringAndNotEmpty(jid) ? (appkey = _manager.YYIMManager.getInstance().getAppkey(), index = jid.indexOf('@'), index != -1 ? (tmp = jid.substring(0, index), tmp.indexOf(appkey) > 0 ? tmp.replace(appkey, '') : tmp) : jid.indexOf(appkey) > 0 ? jid.replace(appkey, '') : jid) : null;
+	return id ? id.toString() : id;
 };
 
-/**
- * 根据id或node或jid获取node
- */
-YYIMJIDUtil.getNode = function(jid) {
-	jid = jid.toString();
-	if(YYIMCommonUtil.isStringAndNotEmpty(jid)) {
-		var appkey = YYIMManager.getInstance().getAppkey();
-		var node = jid;
+var YYIMJIDUtil = {
+	getNode: function getNode(jid) {
+		jid = jid.toString();
+		if (YYIMCommonUtil.isStringAndNotEmpty(jid)) {
+			var appkey = _manager.YYIMManager.getInstance().getAppkey();
+			var node = jid;
 
-		if(node.indexOf('\@') > -1) {
-			if(node.indexOf('\@') === 0) {
-				throw "\"" + jid + "\" Can't start with  \"@\"!";
-			} else {
-				node = node.substring(0, node.indexOf('\@'));
+			if (node.indexOf('\@') > -1) {
+				if (node.indexOf('\@') === 0) {
+					throw "\"" + jid + "\" Can't start with  \"@\"!";
+				} else {
+					node = node.substring(0, node.indexOf('\@'));
+				}
+			}
+
+			if (node.indexOf('\.') > -1) {
+				if (node.indexOf('\.') === 0) {
+					throw "\"" + jid + "\" Can't start with \".\"!";
+				} else {
+					node = node.substring(0, node.indexOf('\.'));
+				}
+			}
+			return node ? node + appkey : node;
+		} else {
+			throw "\"" + jid + "\" Can't be Number Or Empty!";
+		}
+	},
+	getResource: function getResource(jid) {
+		return YYIMCommonUtil.isStringAndNotEmpty(jid) ? jid.indexOf('/') != -1 ? jid.substring(jid.indexOf('/') + 1) : null : null;
+	},
+	buildUserJID: function buildUserJID(idOrJid, resource) {
+		return YYIMCommonUtil.isStringAndNotEmpty(idOrJid) ? idOrJid.indexOf('@') != -1 ? idOrJid : idOrJid + '@' + _config.YYIMConfiguration.YY_IM_DOMAIN + (resource ? '/' + resource : '') : null;
+	},
+	getDomain: function getDomain(jid) {
+		return YYIMCommonUtil.isStringAndNotEmpty(jid) ? jid.indexOf('@') != -1 ? jid.substring(jid.indexOf('@') + 1) : null : null;
+	},
+	buildChatGroupJID: function buildChatGroupJID(idOrJid) {
+		return YYIMCommonUtil.isStringAndNotEmpty(idOrJid) ? idOrJid.indexOf('@') != -1 ? idOrJid : idOrJid + '@' + _config.YYIMConfiguration.DOMAIN.CHATROOM : null;
+	},
+	buildPubAccountJID: function buildPubAccountJID(idOrJid) {
+		return YYIMCommonUtil.isStringAndNotEmpty(idOrJid) ? idOrJid.indexOf('@') != -1 ? idOrJid : idOrJid + '@' + _config.YYIMConfiguration.DOMAIN.PUBACCOUNT : null;
+	},
+	getChatTypeByJid: function getChatTypeByJid(Jid) {
+		if (!!Jid) {
+			switch (YYIMJIDUtil.getDomain(Jid)) {
+				case _config.YYIMConfiguration.DOMAIN.CHATROOM:
+					return _constant.CHAT_TYPE.GROUP_CHAT;
+				case _config.YYIMConfiguration.DOMAIN.PUBACCOUNT:
+					return _constant.CHAT_TYPE.PUB_ACCOUNT;
+				default:
+					return _constant.CHAT_TYPE.CHAT;
 			}
 		}
+	},
 
-		if(node.indexOf('\.') > -1) {
-			if(node.indexOf('\.') === 0) {
-				throw "\"" + jid + "\" Can't start with \".\"!";
-			} else {
-				node = node.substring(0, node.indexOf('\.'));
-			}
-		}
-		return node ? node + appkey : node;
+	getBareJID: getBareJID,
+	getID: getID
+};
+
+exports.YYIMJIDUtil = YYIMJIDUtil;
+
+/***/ }),
+/* 13 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+	value: true
+});
+var CONNECT_STATUS = exports.CONNECT_STATUS = {
+	INIT: 'init',
+	OFFLINE: 'offline',
+	CONNECTING: 'connecting',
+	PROCESSING: 'processing',
+	CONFLICT: 'conflict',
+	CONNECTED: 'connected',
+	ERROR: 'error',
+	AUTHERROR: 'AuthError',
+	ONCLIENTKICKOUT: 'onClientKickout',
+	ONUPDATEPASSWORD: 'onUpdatePassword'
+};
+
+var FAVORITE_TYPE = exports.FAVORITE_TYPE = {
+	FAVORITE: 'favorite',
+	REMOVE: 'remove',
+	NONE: 'none'
+};
+
+var STATUS = exports.STATUS = {
+	CHAT: 'chat',
+	AWAY: 'away',
+	XA: 'xa',
+	DND: 'dnd',
+	UNAVAILABLE: 'unavailable' };
+
+var TYPE = exports.TYPE = {
+	SET: 'set',
+	RESULT: 'result',
+	GET: 'get',
+	SUBMIT: 'submit',
+	UNAVAILABLE: 'unavailable'
+};
+
+var PRESENCE_TYPE = exports.PRESENCE_TYPE = {
+	SUBSCRIBE: 'subscribe',
+	UNSUBSCRIBE: 'unsubscribe',
+	SUBSCRIBED: 'subscribed',
+	UNSUBSCRIBED: 'unsubscribed',
+	PROBE: 'probe',
+	UNAVAILABLE: 'unavailable',
+	COLLECT: 'collect' };
+
+var COLLECT_TYPE = exports.COLLECT_TYPE = {
+	ADD: 'add',
+	REMOVE: 'remove'
+};
+
+var CHAT_TYPE = exports.CHAT_TYPE = {
+	CHAT: 'chat',
+	GROUP_CHAT: 'groupchat',
+	PUB_ACCOUNT: 'pubaccount'
+};
+
+var MESSAGE_CONTENT_TYPE = exports.MESSAGE_CONTENT_TYPE = {
+	TEXT: 2,
+	FILE: 4,
+	IMAGE: 8,
+	REDPACKET: 9,
+	SMALLVIDEO: 10,
+	REVOCATION: 13,
+	MERGEFORWARD: 15,
+	SINGLEGRAPHIC: 16,
+	MOREGRAPHIC: 32,
+	AUDO: 64,
+	LOCATION: 128,
+	SHARE: 256,
+	WHITEBOARD: 1024
+};
+
+/***/ }),
+/* 14 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
+var _classCallCheck2 = __webpack_require__(2);
+
+var _classCallCheck3 = _interopRequireDefault(_classCallCheck2);
+
+var _createClass2 = __webpack_require__(3);
+
+var _createClass3 = _interopRequireDefault(_createClass2);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+var YYIMAINode = function () {
+    function YYIMAINode(_byte) {
+        (0, _classCallCheck3.default)(this, YYIMAINode);
+
+        this.childs = {};
+        this._byte = _byte || null;
+        this._isWord = false;
+        this._count = 0;
+    }
+
+    (0, _createClass3.default)(YYIMAINode, [{
+        key: 'isWord',
+        value: function isWord() {
+            return this._isWord && this._count == 0;
+        }
+    }, {
+        key: 'asWord',
+        value: function asWord() {
+            this._isWord = true;
+        }
+    }, {
+        key: 'addCount',
+        value: function addCount() {
+            this._count++;
+        }
+    }, {
+        key: 'getCount',
+        value: function getCount() {
+            return this._count;
+        }
+    }]);
+    return YYIMAINode;
+}();
+
+var YYIMAITrie = function () {
+    function YYIMAITrie() {
+        (0, _classCallCheck3.default)(this, YYIMAITrie);
+
+        this.root = new YYIMAINode(null);
+    }
+
+    (0, _createClass3.default)(YYIMAITrie, [{
+        key: 'toBytes',
+        value: function toBytes(word) {
+            var result = [];
+            for (var i = 0; i < word.length; i++) {
+                var code = word.charCodeAt(i);
+
+                if (code < 0x80) {
+                    result.push(code);
+                } else {
+                    result = result.concat(this.toUTF8(code));
+                }
+            }
+            return result;
+        }
+    }, {
+        key: 'toUTF8',
+        value: function toUTF8(c) {
+            var byte1 = 0xE0 | c >> 12 & 0x0F;
+
+            var byte2 = 0x80 | c >> 6 & 0x3F;
+
+            var byte3 = 0x80 | c & 0x3F;
+
+            return [byte1, byte2, byte3];
+        }
+    }, {
+        key: 'toUTF16',
+        value: function toUTF16(b1, b2, b3) {
+            var byte1 = b1 << 4 | b2 >> 2 & 0x0F;
+            var byte2 = (b2 & 0x03) << 6 | b3 & 0x3F;
+            var utf16 = (byte1 & 0x00FF) << 8 | byte2;
+
+            return utf16;
+        }
+    }, {
+        key: 'add',
+        value: function add(word) {
+            var node = this.root,
+                bytes = this.toBytes(word),
+                len = bytes.length;
+            for (var i = 0; i < len; i++) {
+                var c = bytes[i];
+
+                if (!(c in node.childs)) {
+                    node.childs[c] = new YYIMAINode(c);
+                }
+                node = node.childs[c];
+            }
+            node.asWord();
+        }
+    }, {
+        key: 'search',
+        value: function search(bytes) {
+            var node = this.root,
+                len = bytes.length,
+                result = [];
+            var word = [],
+                j = 0;
+            for (var i = 0; i < len; i++) {
+                var c = bytes[i],
+                    childs = node.childs;
+                if (!(c in childs)) {
+                    return result;
+                }
+
+                if (c < 0x80) {
+                    word.push(String.fromCharCode(c));
+                } else {
+                    j++;
+                    if (j % 3 == 0) {
+                        var b1 = bytes[i - 2];
+                        var b2 = bytes[i - 1];
+                        var b3 = c;
+                        word.push(String.fromCharCode(this.toUTF16(b1, b2, b3)));
+                    }
+                }
+
+                if (word.join('') in stop) {
+                    return result;
+                }
+
+                var cnode = childs[c];
+                if (cnode.isWord()) {
+                    cnode.addCount();
+                    result.push(word.join(''));
+                }
+                node = cnode;
+            }
+
+            return result;
+        }
+    }, {
+        key: 'splitWords',
+        value: function splitWords(words) {
+            var bytes = this.toBytes(words);
+            var start = 0,
+                end = bytes.length - 1,
+                result = [];
+
+            while (start != end) {
+                var word = [];
+                for (var i = start; i <= end; i++) {
+                    var b = bytes[i];
+                    word.push(b);
+
+                    var finds = this.search(word);
+                    if (finds !== false && finds.length > 0) {
+                        result = result.concat(finds);
+                    }
+                }
+                start++;
+            }
+
+            return result;
+        }
+    }, {
+        key: 'init',
+        value: function init(dict) {
+            for (var i = 0; i < dict.length; i++) {
+                this.add(dict[i]);
+            }
+        }
+    }]);
+    return YYIMAITrie;
+}();
+
+var YYAIAbility = function () {
+    function YYAIAbility() {
+        (0, _classCallCheck3.default)(this, YYAIAbility);
+
+        this.dicts = [];
+        this.stopKeyword = { "的": 1 };
+
+        this.isOpenFilter = false;
+
+        this.isAIAbility = true;
+    }
+
+    (0, _createClass3.default)(YYAIAbility, [{
+        key: 'openAIAbility',
+        value: function openAIAbility(isAIAbility) {
+            this.isAIAbility = isAIAbility;
+        }
+    }, {
+        key: 'openFilterWords',
+        value: function openFilterWords(isOpenFilter) {
+            this.isOpenFilter = isOpenFilter;
+        }
+    }, {
+        key: 'setDictionaries',
+        value: function setDictionaries(dictArray) {
+            if (dictArray) {
+                for (var i = 0; i < dictArray.length; i++) {
+                    this.dicts.push(dictArray[i]);
+                }
+            }
+        }
+    }, {
+        key: 'intelligentAnalysis',
+        value: function intelligentAnalysis(keyword) {
+            if (!this.isOpenFilter) {
+                return true;
+            }
+            if (keyword && this.isAIAbility) {
+                var trie = new YYIMAITrie();
+                trie.init(this.dicts);
+                var result = trie.splitWords(keyword);
+                return result.length > 0;
+            }
+            return false;
+        }
+    }]);
+    return YYAIAbility;
+}();
+
+exports.default = new YYAIAbility();
+
+/***/ }),
+/* 15 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+	value: true
+});
+exports.FileUpload = undefined;
+
+var _manager = __webpack_require__(0);
+
+function FileUpload() {}
+
+FileUpload.prototype = new BaseList();
+
+FileUpload.getInstance = function () {
+	if (!this._instance) {
+		this._instance = new FileUpload();
+	}
+	return this._instance;
+};
+
+FileUpload.prototype.init = function (options, events) {
+	var settings = {
+		browse_button: 'fileUpload',
+		file_data_name: 'file',
+		url: this.getBaseUrl(),
+		filters: {
+			max_file_size: '100mb',
+			prevent_duplicates: !!_manager.YYIMChat.getConfig().UPLOAD.PREVENT_DUPLICATES },
+		flash_swf_url: _manager.YYIMChat.getConfig().UPLOAD.FLASH_SWF_URL,
+		silverlight_xap_url: _manager.YYIMChat.getConfig().UPLOAD.SILVERLIGHT_XAP_URL,
+		multi_selection: !!_manager.YYIMChat.getConfig().UPLOAD.MULTI_SELECTION,
+		multipart: true,
+		max_retries: 1,
+		chunk_size: 0,
+		runtimes: 'gears,html5,flash,silverlight,browserplus'
+	};
+
+	if (options['mediaType'] == _manager.YYIMChat.getConfig().UPLOAD.MEDIATYPE.IMAGE) {
+		settings['filters']['mime_types'] = [{ title: "Image files", extensions: "jpg,gif,png,jpeg,bmp" }];
 	} else {
-		throw "\"" + jid + "\" Can't be Number Or Empty!";
+		settings['filters']['mime_types'] = undefined;
 	}
+
+	jQuery.extend(settings, options);
+	var id = settings['browse_button'];
+	var uploader = new plupload.Uploader(settings);
+	uploader.init();
+	uploader.refresh();
+	this.bindEvents(uploader, events);
 };
 
-/**
- * 根据jid获取resource
- */
-YYIMJIDUtil.getResource = function(jid) {
-	return YYIMCommonUtil.isStringAndNotEmpty(jid) ?
-		(jid.indexOf('/') != -1 ?
-			jid.substring(jid.indexOf('/') + 1) :
-			null) :
-		null;
+FileUpload.prototype.getBaseUrl = function () {
+	return _manager.YYIMChat.getServletPath().REST_RESOURCE_SERVLET + _manager.YYIMChat.getTenancy().ETP_KEY + '/' + _manager.YYIMChat.getTenancy().APP_KEY + '/upload';
 };
 
-/**
- * 根据用户的id/node/jid和resource获取新的jid
- * 
- * @param idOrJid id, node, jid (e.g. yuenoqun, yuenoqun.app.etp@server)
- * @param resource e.g. pc
- * 
- * @returns yuenoqun.app.etp@server/pc or yuenoqun.app.etp@server when resource is null
- */
-YYIMJIDUtil.buildUserJID = function(idOrJid, resource) {
-	return YYIMCommonUtil.isStringAndNotEmpty(idOrJid) ?
-		(idOrJid.indexOf('@') != -1 ?
-			idOrJid :
-			idOrJid + '@' + YYIMConfiguration.YY_IM_DOMAIN + (
-				resource ?
-				'/' + resource :
-				'')) :
-		null;
+FileUpload.prototype.getUploadingSize = function () {
+	var size = 0;
+	for (var x in this.list) {
+		if (this.list.hasOwnProperty(x)) {
+			var uploader = this.list[x];
+			if (uploader) {
+				var file = uploader.getFile(x);
+
+				if (file.status != plupload.FAILED && file.status != plupload.STOPPED) {
+					size++;
+				}
+			}
+		}
+	}
+	return size;
 };
 
-/**
- * 根据jid返回域
- */
-YYIMJIDUtil.getDomain = function(jid) {
-	return YYIMCommonUtil.isStringAndNotEmpty(jid) ?
-		(jid.indexOf('@') != -1 ?
-			jid.substring(jid.indexOf('@') + 1) :
-			null) :
-		null;
-};
-
-/**
- * 根据群组的id/node/jid获取新的jid
- * 
- * @param idOrJid id, node, jid (e.g. huashan, huashan.app.etp, huashan.app.etp@conference.server)
- * 
- * @returns huashan.app.etp@conference.server
- */
-YYIMJIDUtil.buildChatGroupJID = function(idOrJid) {
-	return YYIMCommonUtil.isStringAndNotEmpty(idOrJid) ?
-		(idOrJid.indexOf('@') != -1 ?
-			idOrJid :
-			idOrJid + '@' + YYIMConfiguration.DOMAIN.CHATROOM) :
-		null;
-};
-
-/**
- * 根据公共号的id/node/jid获取新的jid
- * 
- * @param idOrJid id, node, jid (e.g. huashan, huashan.app.etp, huashan.app.etp@pubaccount.server)
- * 
- * @returns huashan.app.etp@pubaccount.server
- */
-YYIMJIDUtil.buildPubAccountJID = function(idOrJid) {
-	return YYIMCommonUtil.isStringAndNotEmpty(idOrJid) ?
-		(idOrJid.indexOf('@') != -1 ?
-			idOrJid :
-			idOrJid + '@' + YYIMConfiguration.DOMAIN.PUBACCOUNT) :
-		null;
-};
-
-/**
- * 根据 jid 判断 jid chatType
- */
-YYIMJIDUtil.getChatTypeByJid = function(Jid) {
-	if(!!Jid) {
-		switch(YYIMJIDUtil.getDomain(Jid)) {
-			case YYIMConfiguration.DOMAIN.CHATROOM:
-				return CHAT_TYPE.GROUP_CHAT;
-			case YYIMConfiguration.DOMAIN.PUBACCOUNT:
-				return CHAT_TYPE.PUB_ACCOUNT;
-			default:
-				return CHAT_TYPE.CHAT;
+FileUpload.prototype.start = function (file) {
+	var uploader;
+	if (file) {
+		uploader = this.get(file.id || file);
+		if (uploader) {
+			file = uploader.getFile(file.id || file);
+			if (file) {
+				file.status = 1;
+			}
+			uploader.start();
 		}
 	}
 };
-function YYIMConsoleLogger(level) {
 
-	this.level = !level ? (level == 0 ? 0 : 3) : level;
+FileUpload.prototype.end = function (file) {
+	var uploader;
+	if (file) {
+		var fileId = file.id || file;
+		uploader = this.get(fileId);
+		if (uploader) {
+			file = uploader.getFile(fileId);
+			if (file) {
+				uploader.removeFile(file);
+			}
+			this.remove(fileId);
+		}
+	} else {
+		this.forEach(function (uploader) {
+			uploader.splice(0);
+			uploader.destroy();
+		});
+		this.clear();
+	}
+};
 
-	this.start = function() {};
-	/**
-	 * 
-	 * @param {String}     groupname  将被打印出来的组名
-	 * 
-	 * @param {int} level : 0--error; 1--warn, 2--info, 3 --log, 4--debug	若设置系统过滤level = 3, 则只显示级别为1，2的日志
-	 * 
-	 * @param {Object} obj：不定参数，被调试的对象的当前状态, 采用clone方式保存当前对象状态
-	 */
-	this.log = function(groupname, level, obj1, obj2) {
+FileUpload.prototype.bindEvents = function (uploader, arg) {
+	var that = this;
 
-		if(!YYIMConfiguration.LOG.ENABLE) {
+	uploader.bind('init', function (uploader) {
+		arg && arg.init && arg.init(uploader);
+	});
+
+	uploader.bind('PostInit', function (uploader) {
+		arg && arg.PostInit && arg.PostInit(uploader);
+	});
+
+	uploader.bind('Refresh', function (uploader) {
+		arg && arg.Refresh && arg.Refresh(uploader);
+	});
+
+	uploader.bind('StateChanged', function (uploader) {
+		arg && arg.StateChanged && arg.StateChanged(uploader);
+	});
+
+	uploader.bind('UploadFile', function (uploader, file) {
+		arg && arg.StateChanged && arg.UploadFile(uploader, file);
+	});
+
+	uploader.bind('BeforeUpload', function (uploader, file) {
+		arg && arg.BeforeUpload && arg.BeforeUpload(uploader, file);
+	});
+
+	uploader.bind('QueueChanged', function (uploader) {
+		arg && arg.QueueChanged && arg.QueueChanged(uploader);
+	});
+
+	uploader.bind('OptionChanged', function (uploader, option_name, new_value, old_value) {
+		arg && arg.OptionChanged && arg.OptionChanged(uploader, option_name, new_value, old_value);
+	});
+
+	uploader.bind('UploadProgress', function (uploader, file) {
+		arg && arg.UploadProgress && arg.UploadProgress(uploader, file);
+	});
+
+	uploader.bind('FilesAdded', function (uploader, files) {
+		arg && arg.FilesAdded && arg.FilesAdded(uploader, files);
+	});
+
+	uploader.bind('FilesRemoved', function (uploader, files) {
+		files.forEach(function (file, index) {
+			that.remove(file.id);
+		});
+		arg && arg.FilesRemoved && arg.FilesRemoved(uploader, files);
+	});
+
+	uploader.bind('FileFiltered', function (uploader, file) {
+		that.set(file.id, uploader);
+		arg && arg.FileFiltered && arg.FileFiltered(uploader, file);
+	});
+
+	uploader.bind('FileUploaded', function (uploader, file, responseObject) {
+		arg && arg.FileUploaded && arg.FileUploaded(uploader, file, responseObject);
+	});
+
+	uploader.bind('ChunkUploaded', function (uploader, file, responseObject) {
+		arg && arg.ChunkUploaded && arg.ChunkUploaded(uploader, file, responseObject);
+	});
+
+	uploader.bind('UploadComplete', function (uploader, files) {
+		arg && arg.UploadComplete && arg.UploadComplete(uploader, files);
+	});
+
+	uploader.bind('Error', function (uploader, errObject) {
+		arg && arg.Error && arg.Error(uploader, errObject);
+	});
+
+	uploader.bind('Destroy', function (uploader) {
+		arg && arg.Destroy && arg.Destroy(uploader);
+	});
+};
+
+exports.FileUpload = FileUpload;
+
+/***/ }),
+/* 16 */
+/***/ (function(module, exports, __webpack_require__) {
+
+module.exports = __webpack_require__(17);
+
+
+/***/ }),
+/* 17 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+var _manager = __webpack_require__(0);
+
+__webpack_require__(34);
+
+__webpack_require__(37);
+
+__webpack_require__(39);
+
+__webpack_require__(41);
+
+__webpack_require__(43);
+
+__webpack_require__(45);
+
+__webpack_require__(47);
+
+__webpack_require__(49);
+
+__webpack_require__(51);
+
+__webpack_require__(53);
+
+__webpack_require__(55);
+
+__webpack_require__(57);
+
+window.YYIMChat = _manager.YYIMChat;
+
+/***/ }),
+/* 18 */
+/***/ (function(module, exports, __webpack_require__) {
+
+module.exports = { "default": __webpack_require__(19), __esModule: true };
+
+/***/ }),
+/* 19 */
+/***/ (function(module, exports, __webpack_require__) {
+
+__webpack_require__(20);
+var $Object = __webpack_require__(6).Object;
+module.exports = function defineProperty(it, key, desc) {
+  return $Object.defineProperty(it, key, desc);
+};
+
+
+/***/ }),
+/* 20 */
+/***/ (function(module, exports, __webpack_require__) {
+
+var $export = __webpack_require__(21);
+// 19.1.2.4 / 15.2.3.6 Object.defineProperty(O, P, Attributes)
+$export($export.S + $export.F * !__webpack_require__(5), 'Object', { defineProperty: __webpack_require__(10).f });
+
+
+/***/ }),
+/* 21 */
+/***/ (function(module, exports, __webpack_require__) {
+
+var global = __webpack_require__(9);
+var core = __webpack_require__(6);
+var ctx = __webpack_require__(22);
+var hide = __webpack_require__(24);
+var has = __webpack_require__(30);
+var PROTOTYPE = 'prototype';
+
+var $export = function (type, name, source) {
+  var IS_FORCED = type & $export.F;
+  var IS_GLOBAL = type & $export.G;
+  var IS_STATIC = type & $export.S;
+  var IS_PROTO = type & $export.P;
+  var IS_BIND = type & $export.B;
+  var IS_WRAP = type & $export.W;
+  var exports = IS_GLOBAL ? core : core[name] || (core[name] = {});
+  var expProto = exports[PROTOTYPE];
+  var target = IS_GLOBAL ? global : IS_STATIC ? global[name] : (global[name] || {})[PROTOTYPE];
+  var key, own, out;
+  if (IS_GLOBAL) source = name;
+  for (key in source) {
+    // contains in native
+    own = !IS_FORCED && target && target[key] !== undefined;
+    if (own && has(exports, key)) continue;
+    // export native or passed
+    out = own ? target[key] : source[key];
+    // prevent global pollution for namespaces
+    exports[key] = IS_GLOBAL && typeof target[key] != 'function' ? source[key]
+    // bind timers to global for call from export context
+    : IS_BIND && own ? ctx(out, global)
+    // wrap global constructors for prevent change them in library
+    : IS_WRAP && target[key] == out ? (function (C) {
+      var F = function (a, b, c) {
+        if (this instanceof C) {
+          switch (arguments.length) {
+            case 0: return new C();
+            case 1: return new C(a);
+            case 2: return new C(a, b);
+          } return new C(a, b, c);
+        } return C.apply(this, arguments);
+      };
+      F[PROTOTYPE] = C[PROTOTYPE];
+      return F;
+    // make static versions for prototype methods
+    })(out) : IS_PROTO && typeof out == 'function' ? ctx(Function.call, out) : out;
+    // export proto methods to core.%CONSTRUCTOR%.methods.%NAME%
+    if (IS_PROTO) {
+      (exports.virtual || (exports.virtual = {}))[key] = out;
+      // export proto methods to core.%CONSTRUCTOR%.prototype.%NAME%
+      if (type & $export.R && expProto && !expProto[key]) hide(expProto, key, out);
+    }
+  }
+};
+// type bitmap
+$export.F = 1;   // forced
+$export.G = 2;   // global
+$export.S = 4;   // static
+$export.P = 8;   // proto
+$export.B = 16;  // bind
+$export.W = 32;  // wrap
+$export.U = 64;  // safe
+$export.R = 128; // real proto method for `library`
+module.exports = $export;
+
+
+/***/ }),
+/* 22 */
+/***/ (function(module, exports, __webpack_require__) {
+
+// optional / simple context binding
+var aFunction = __webpack_require__(23);
+module.exports = function (fn, that, length) {
+  aFunction(fn);
+  if (that === undefined) return fn;
+  switch (length) {
+    case 1: return function (a) {
+      return fn.call(that, a);
+    };
+    case 2: return function (a, b) {
+      return fn.call(that, a, b);
+    };
+    case 3: return function (a, b, c) {
+      return fn.call(that, a, b, c);
+    };
+  }
+  return function (/* ...args */) {
+    return fn.apply(that, arguments);
+  };
+};
+
+
+/***/ }),
+/* 23 */
+/***/ (function(module, exports) {
+
+module.exports = function (it) {
+  if (typeof it != 'function') throw TypeError(it + ' is not a function!');
+  return it;
+};
+
+
+/***/ }),
+/* 24 */
+/***/ (function(module, exports, __webpack_require__) {
+
+var dP = __webpack_require__(10);
+var createDesc = __webpack_require__(29);
+module.exports = __webpack_require__(5) ? function (object, key, value) {
+  return dP.f(object, key, createDesc(1, value));
+} : function (object, key, value) {
+  object[key] = value;
+  return object;
+};
+
+
+/***/ }),
+/* 25 */
+/***/ (function(module, exports, __webpack_require__) {
+
+var isObject = __webpack_require__(7);
+module.exports = function (it) {
+  if (!isObject(it)) throw TypeError(it + ' is not an object!');
+  return it;
+};
+
+
+/***/ }),
+/* 26 */
+/***/ (function(module, exports, __webpack_require__) {
+
+module.exports = !__webpack_require__(5) && !__webpack_require__(11)(function () {
+  return Object.defineProperty(__webpack_require__(27)('div'), 'a', { get: function () { return 7; } }).a != 7;
+});
+
+
+/***/ }),
+/* 27 */
+/***/ (function(module, exports, __webpack_require__) {
+
+var isObject = __webpack_require__(7);
+var document = __webpack_require__(9).document;
+// typeof document.createElement is 'object' in old IE
+var is = isObject(document) && isObject(document.createElement);
+module.exports = function (it) {
+  return is ? document.createElement(it) : {};
+};
+
+
+/***/ }),
+/* 28 */
+/***/ (function(module, exports, __webpack_require__) {
+
+// 7.1.1 ToPrimitive(input [, PreferredType])
+var isObject = __webpack_require__(7);
+// instead of the ES6 spec version, we didn't implement @@toPrimitive case
+// and the second argument - flag - preferred type is a string
+module.exports = function (it, S) {
+  if (!isObject(it)) return it;
+  var fn, val;
+  if (S && typeof (fn = it.toString) == 'function' && !isObject(val = fn.call(it))) return val;
+  if (typeof (fn = it.valueOf) == 'function' && !isObject(val = fn.call(it))) return val;
+  if (!S && typeof (fn = it.toString) == 'function' && !isObject(val = fn.call(it))) return val;
+  throw TypeError("Can't convert object to primitive value");
+};
+
+
+/***/ }),
+/* 29 */
+/***/ (function(module, exports) {
+
+module.exports = function (bitmap, value) {
+  return {
+    enumerable: !(bitmap & 1),
+    configurable: !(bitmap & 2),
+    writable: !(bitmap & 4),
+    value: value
+  };
+};
+
+
+/***/ }),
+/* 30 */
+/***/ (function(module, exports) {
+
+var hasOwnProperty = {}.hasOwnProperty;
+module.exports = function (it, key) {
+  return hasOwnProperty.call(it, key);
+};
+
+
+/***/ }),
+/* 31 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+	value: true
+});
+exports.YYIMConnectDaemon = undefined;
+
+var _classCallCheck2 = __webpack_require__(2);
+
+var _classCallCheck3 = _interopRequireDefault(_classCallCheck2);
+
+var _createClass2 = __webpack_require__(3);
+
+var _createClass3 = _interopRequireDefault(_createClass2);
+
+var _config = __webpack_require__(4);
+
+var _YYIMConnection = __webpack_require__(8);
+
+var _manager = __webpack_require__(0);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+var YYIMConnectDaemon = function () {
+	function YYIMConnectDaemon() {
+		(0, _classCallCheck3.default)(this, YYIMConnectDaemon);
+
+		this.lastPongTime = Date.now();
+
+		this.pingInterval;
+
+		this.pingTimeout;
+
+		this.interval = 0;
+	}
+
+	(0, _createClass3.default)(YYIMConnectDaemon, [{
+		key: 'startPing',
+		value: function startPing(isOnline) {
+			if (isOnline === true) {
+				this.isOnline = isOnline;
+			}
+			if (_YYIMConnection.YYIMConnection.getInstance().connected()) {
+				this.interval = !this.interval ? _config.YYIMConfiguration.PING.SLOW_INTERVAL : _config.YYIMConfiguration.PING.INTERVAL;
+				this.ping();
+			} else {
+				this.stopPing();
+			}
+		}
+	}, {
+		key: 'stopPing',
+		value: function stopPing(isOnline) {
+			if (isOnline === false) {
+				this.isOnline = isOnline;
+			}
+
+			clearTimeout(this.pingTimeout);
+			clearTimeout(this.pingInterval);
+		}
+	}, {
+		key: 'ping',
+		value: function ping() {
+			if (!this.isOnline) {
+				this.stopPing();
+			} else {
+				if (!this.sending) {
+					this.stopPing();
+					this.interval = this.interval || _config.YYIMConfiguration.PING.SLOW_INTERVAL;
+
+					var duration = Date.now() - (this.lastPongTime + this.interval);
+					if (duration >= 0) {
+						try {
+							this.sending = true;
+							this.interval = _config.YYIMConfiguration.PING.SLOW_INTERVAL;
+							_YYIMConnection.YYIMConnection.getInstance().send(new JumpPacket(null, OPCODE.PING.SEND));
+						} catch (e) {
+							this.stopPing();
+							_manager.YYIMManager.getInstance().log("Ping_Error.", 0, e);
+							_manager.YYIMManager.getInstance().onConnectError({
+								errorCode: 408,
+								message: '连接失败'
+							});
+						}
+					} else {
+						this.pingInterval = setTimeout(this.ping.bind(this), -duration);
+					}
+				}
+			}
+		}
+	}, {
+		key: 'pong',
+		value: function pong() {
+			this.lastPongTime = Date.now();
+			if (!this.isOnline) {
+				this.stopPing();
+			} else {
+				_manager.YYIMManager.getInstance().log('【pong】\t' + new Date(this.lastPongTime), 3, this.lastPongTime);
+				this.sending = false;
+				this.ping();
+			}
+		}
+	}, {
+		key: 'setTimeout',
+		value: function (_setTimeout) {
+			function setTimeout() {
+				return _setTimeout.apply(this, arguments);
+			}
+
+			setTimeout.toString = function () {
+				return _setTimeout.toString();
+			};
+
+			return setTimeout;
+		}(function () {
+			if (!this.isOnline) {
+				this.stopPing();
+			} else {
+				var now = Date.now();
+				_manager.YYIMManager.getInstance().log('【setPingTimeout】\t' + new Date(now), 3, now);
+				clearTimeout(this.pingTimeout);
+				this.pingTimeout = setTimeout(this.timeoutHandler.bind(this), _config.YYIMConfiguration.PING.TIMEOUT);
+			}
+		})
+	}, {
+		key: 'timeoutHandler',
+		value: function timeoutHandler() {
+			this.sending = false;
+			this.stopPing();
+			_manager.YYIMManager.getInstance().log("Ping_Timeout.", 0);
+			_manager.YYIMManager.getInstance().onConnectError({
+				errorCode: 408,
+				message: '连接失败'
+			});
+		}
+	}]);
+	return YYIMConnectDaemon;
+}();
+
+exports.YYIMConnectDaemon = YYIMConnectDaemon;
+
+/***/ }),
+/* 32 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+	value: true
+});
+exports.YYIMConnectEventHandler = undefined;
+
+var _classCallCheck2 = __webpack_require__(2);
+
+var _classCallCheck3 = _interopRequireDefault(_classCallCheck2);
+
+var _createClass2 = __webpack_require__(3);
+
+var _createClass3 = _interopRequireDefault(_createClass2);
+
+var _manager = __webpack_require__(0);
+
+var _YYIMConnection = __webpack_require__(8);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+var YYIMConnectEventHandler = function () {
+	function YYIMConnectEventHandler() {
+		(0, _classCallCheck3.default)(this, YYIMConnectEventHandler);
+
+		this._inited = false;
+	}
+
+	(0, _createClass3.default)(YYIMConnectEventHandler, [{
+		key: '_init',
+		value: function _init() {
+			_manager.YYIMManager.getInstance().log("YYIMConnectEventHandler.prototype.registerHandler", 3);
+			if (this._inited) {
+				return;
+			}
+			var conn = _YYIMConnection.YYIMConnection.getInstance();
+			conn.registerHandler('onConnect', this.onConnected);
+			conn.registerHandler('onError', this.onConnectError);
+			conn.registerHandler('onDisconnect', this.onDisConnect);
+			conn.registerHandler("onStatusChanged", this.connectStatusChangeHandler);
+
+			conn.registerHandler(OPCODE.STREAM_ERROR.KEY, this.onStreamError);
+			conn.registerHandler(OPCODE.PACKET_ERROR.KEY, this.onPacketError);
+
+			conn.registerHandler("packet_in", conn.getDaemon().pong.bind(conn.getDaemon()));
+
+			this._inited = true;
+		}
+	}, {
+		key: 'onConnected',
+		value: function onConnected() {
+			_manager.YYIMManager.getInstance().onOpened();
+			_YYIMConnection.YYIMConnection.getInstance().getDaemon().startPing(true);
+		}
+	}, {
+		key: 'onConnectError',
+		value: function onConnectError(e) {
+			_manager.YYIMManager.getInstance().log("YYIMConnectEventHandler.prototype.onConnectError ", 0, e);
+			var errorCode = e.getAttribute("code");
+			_YYIMConnection.YYIMConnection.getInstance().getDaemon().stopPing(false);
+			if (errorCode == 401) {
+				_manager.YYIMManager.getInstance().onAuthError({
+					errorCode: 401,
+					message: '用户名或密码错误'
+				});
+			} else if (errorCode == 409) {
+				_manager.YYIMManager.getInstance().onConflicted({
+					errorCode: 409,
+					message: '连接冲突'
+				});
+			} else if (errorCode == 4010) {
+				_manager.YYIMManager.getInstance().onClientKickout({
+					errorCode: 4010,
+					message: '被客户端踢掉'
+				});
+			} else if (errorCode == 4011) {
+				_manager.YYIMManager.getInstance().onUpdatePassword({
+					errorCode: 4011,
+					message: '修改密码'
+				});
+			} else {
+				_manager.YYIMManager.getInstance().onConnectError({
+					errorCode: errorCode,
+					message: '连接失败'
+				});
+			}
+		}
+	}, {
+		key: 'onStreamError',
+		value: function onStreamError(packet) {
+			_manager.YYIMManager.getInstance().log("YYIMConnectEventHandler.prototype.onPacketError ", 0, packet);
+			_YYIMConnection.YYIMConnection.getInstance().getDaemon().stopPing(false);
+			var errorCode = packet.code;
+			if (errorCode == 401) {
+				_manager.YYIMManager.getInstance().onAuthError({
+					errorCode: 401,
+					message: '用户名或密码错误'
+				});
+			} else if (errorCode == 409) {
+				_manager.YYIMManager.getInstance().onConflicted({
+					errorCode: 409,
+					message: '连接冲突'
+				});
+			} else if (errorCode == 4010) {
+				_manager.YYIMManager.getInstance().onClientKickout({
+					errorCode: 4010,
+					message: '被客户端踢掉'
+				});
+			} else if (errorCode == 4011) {
+				_manager.YYIMManager.getInstance().onUpdatePassword({
+					errorCode: 4011,
+					message: '修改密码'
+				});
+			} else {
+				_manager.YYIMManager.getInstance().onConnectError({
+					errorCode: errorCode,
+					message: '连接失败'
+				});
+			}
+		}
+	}, {
+		key: 'onPacketError',
+		value: function onPacketError(packet) {
+			_manager.YYIMManager.getInstance().log("YYIMConnectEventHandler.prototype.onPacketError ", 0, packet);
+		}
+	}, {
+		key: 'onDisConnect',
+		value: function onDisConnect() {
+			_manager.YYIMManager.getInstance().onClosed();
+			_YYIMConnection.YYIMConnection.getInstance().getDaemon().stopPing(false);
+		}
+	}, {
+		key: 'connectStatusChangeHandler',
+		value: function connectStatusChangeHandler(status) {
+			_manager.YYIMManager.getInstance().onStatusChanged(status);
+		}
+	}]);
+	return YYIMConnectEventHandler;
+}();
+
+exports.YYIMConnectEventHandler = YYIMConnectEventHandler;
+
+/***/ }),
+/* 33 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+	value: true
+});
+exports.YYIMConsoleLogger = undefined;
+
+var _classCallCheck2 = __webpack_require__(2);
+
+var _classCallCheck3 = _interopRequireDefault(_classCallCheck2);
+
+var _config = __webpack_require__(4);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+var YYIMConsoleLogger = function YYIMConsoleLogger(level) {
+	var _this = this,
+	    _arguments = arguments;
+
+	(0, _classCallCheck3.default)(this, YYIMConsoleLogger);
+
+	this.level = !level ? level == 0 ? 0 : 3 : level;
+	this.start = function () {};
+
+	this.log = function (groupname, level, obj1, obj2) {
+		if (!_config.YYIMConfiguration.LOG.ENABLE) {
 			return;
 		}
-
-		level = !level ? (level == 0 ? 0 : 3) : level;
-
-		if(level > this.level)
+		level = !level ? level == 0 ? 0 : 3 : level;
+		if (level > _this.level) {
 			return;
-		if(typeof(console) == 'undefined' || typeof(console.group) == 'undefined')
+		}
+		if (typeof console == 'undefined' || typeof console.group == 'undefined') {
 			return;
+		}
 		try {
 			console.group(groupname);
-			switch(level) {
+			switch (level) {
 				case 0:
 					console.error(groupname);
 					console.trace();
@@ -8742,12 +10556,12 @@ function YYIMConsoleLogger(level) {
 					console.log(groupname);
 					break;
 			}
-			var argLength = arguments.length;
-			if(argLength > 2) {
-				for(var i = 2; i < argLength; i++) {
-					var obj = arguments[i];
-					if(obj) {
-						if(obj instanceof JSJaCPacket) {
+			var argLength = _arguments.length;
+			if (argLength > 2) {
+				for (var i = 2; i < argLength; i++) {
+					var obj = _arguments[i];
+					if (obj) {
+						if (obj instanceof JSJaCPacket) {
 							console.info(obj.doc.xml);
 						} else {
 							console.debug(obj);
@@ -8756,3561 +10570,1624 @@ function YYIMConsoleLogger(level) {
 				}
 			}
 			console.groupEnd();
-		} catch(e1) {
+		} catch (e1) {
 			try {
 				console.error(e1);
-			} catch(e2) {}
+			} catch (e2) {}
 		}
 	};
-
-	this.logParam = function(level) {
+	this.logParam = function (level) {
 		level = level || 3;
-		var caller = this.logParam.caller;
-		this.log("arguments:", level, caller.arguments);
+		var caller = _this.logParam.caller;
+		_this.log("arguments:", level, caller.arguments);
 	};
-
-	this.setLevel = function(level) {
-		this.level = level;
-		return this;
+	this.setLevel = function (level) {
+		_this.level = level;
+		return _this;
 	};
-
-	this.getLevel = function() {
-		return this.level;
-	};
-}
-jQuery.support.cors = true; //ie浏览器跨域支持
-
-var YYIMConfiguration;
-
-var ConfigSetting = (function(){
-
-	var YY_IM_DOMAIN = 'im.yyuap.com';
-	var YY_IM_ADDRESS = 'stellar.yyuap.com'; //websocket url
-	var YY_IM_WSPORT = 5227; 				 //websocket port
-	var YY_IM_HTTPBIND_PORT = 7075;          //httpbind port
-	var YY_IM_SERVLET_ADDRESS = 'http://im.yyuap.com/';
-	var YY_IM_CLIENT_MARK = 'web';
-
-	//for esn todo 20170831
-	var TODO_SERVLET_ADDRESS = 'https://pubaccount.yonyoucloud.com/';
-
-	/**
-	 * @param {Object} options {
-	 *  app: String,
-	 *  etp: String,
-	 * 	wsurl: String,
-	 * 	wsport: Number,
-	 * 	wsport: Number,
-	 * 	servlet: String,
-	 *  logEnable: Boolean
-	 * }
-	 */
-	function init(options){
-		options = options || {};
-
-		YY_IM_CLIENT_MARK = options.clientMark || YY_IM_CLIENT_MARK;
-		YY_IM_ADDRESS = options.wsurl || YY_IM_ADDRESS;
-		YY_IM_WSPORT = options.wsport || YY_IM_WSPORT;
-		YY_IM_HTTPBIND_PORT = options.hbport || YY_IM_HTTPBIND_PORT;
-		YY_IM_SERVLET_ADDRESS = options.servlet || YY_IM_SERVLET_ADDRESS;
-
-		TODO_SERVLET_ADDRESS = options.todoServlet || TODO_SERVLET_ADDRESS;
-
-		if(isMsielt10()){ // add for ie < 10 rongqb 20170412
-			YY_IM_SERVLET_ADDRESS = YY_IM_SERVLET_ADDRESS.replace(/^https?:\/\//,location.protocol + '//');
-		}
-
-		if(/https/.test(location.protocol) || (options.useHttps === true)){//add for https location rongqb 20170412
-			YY_IM_WSPORT = 5225;
-		}
-
-		YYIMConfiguration = {
-			YY_IM_DOMAIN: YY_IM_DOMAIN, //固定
-
-			RESOURCE: YY_IM_CLIENT_MARK + '-v2.6',
-
-			MULTI_TENANCY: {
-				ENABLE: true,
-				ETP_KEY: options.etp || 'etp',
-				APP_KEY: options.app || 'app',
-				SEPARATOR: '.'
-			},
-
-			SENDINTERVAL: 30, //两次发送报文的时间间隔 rongqb 20151124
-
-			GROUP: {
-				MEMBERSLIMIT: 5 //默认最多拉取5个群成员
-			},
-
-			ROSTER: {
-				BATCHVCRADMAXLIMIT: 50 //批量vcard 最大个数
-			},
-
-			INPUT_STATE: {
-				INTERVAL: 2 * 1000
-			},
-
-			UPLOAD: {
-				AUTO_SEND: true, //是否自动上传
-				MULTI_SELECTION: false, //是否可以在文件浏览对话框中选择多个文件
-				PREVENT_DUPLICATES: false, //是否重复上传
-				PREVIEW_SIZE: { //预览图片的压缩尺寸
-					WIDTH: 100,
-					HEIGHT: 100
-				},
-				FLASH_SWF_URL: options.flash_swf_url || './Moxie.swf',
-				SILVERLIGHT_XAP_URL: options.silverlight_xap_url || './Moxie.xap',
-				MEDIATYPE: {
-					IMAGE: 1,
-					FILE: 2,
-					DOC: 3
-				},
-				IMAGE_TYPES: /\.(png|jpe?g|gif)$/i
-			},
-
-			TIMECORRECTION: {
-				AUTOCORRECTION: true, //自动时间校正
-				TIMES: 3, //超出误差 校正次数
-				RESIDUAL: 50, //校正误差
-				RESULT: 0,
-				LOAD: false //是否加载过此值
-			},
-
-			MULTIPARTYCALL: {
-				ADDRESS: 'http://dudu.yonyoutelecom.cn/httpIntf/createConference.do', //多端通话接口地址 20160104
-				ACCOUNT: '', //账号
-				KEY: '', //密码
-				PHONESMAXLENGTH: 200 //最大被叫字符数
-			},
-
-			SERVLET: {
-				REST_RESOURCE_SERVLET: YY_IM_SERVLET_ADDRESS + 'sysadmin/rest/resource/',
-				REST_VERSION_SERVLET: YY_IM_SERVLET_ADDRESS + 'sysadmin/rest/version/',
-				REST_USER_SERVLET: YY_IM_SERVLET_ADDRESS + 'sysadmin/rest/user/',
-				REST_UPLOAD_SERVLET: YY_IM_SERVLET_ADDRESS + 'im_upload/rest/resource/',
-				REST_DOWNLOAD_SERVLET: YY_IM_SERVLET_ADDRESS + 'im_download/rest/resource/',
-				REST_TRANSFORM_SERVLET: YY_IM_SERVLET_ADDRESS + 'im_download/rest/transform/resource/',
-				REST_SYSTEM_SERVLET: YY_IM_SERVLET_ADDRESS + 'sysadmin/rest/system/',
-				REST_SYSTEM_CUSTOMER_USER: YY_IM_SERVLET_ADDRESS + 'sysadmin/rest/customer/user/',
-
-				REST_TODO_USER: TODO_SERVLET_ADDRESS + 'todocenter/user/todo/'
-			},
-
-			SUPPORT: {
-				isWebSocketSupport: (function() {
-					window.WebSocket = window.WebSocket || window.MozWebSocket;
-					if(window.WebSocket) {
-						return true;
-					}
-					return false;
-				})()
-			},
-
-			CONNECTION: {
-				TIMERVAL: 2000,
-				WAIT: 300,
-				SECURE: false,
-				ALLOW_PLAIN: true,
-				ENABLE_WEBSOCKET: true,
-				ENABLE_LOCAL_CONNECTION: true,
-				USE_HTTPS: (function(){
-					if(/https/.test(location.protocol) || (options.useHttps === true)){
-						return true;
-					}
-					return false;
-				})(),
-				SERVER_NAME: YY_IM_DOMAIN,
-				HTTP_BASE: YY_IM_ADDRESS,
-				HTTP_BIND_PORT: YY_IM_HTTPBIND_PORT,
-				WS_PORT: YY_IM_WSPORT
-			},
-
-			PING: {
-				/**
-				 * 两个ping之间的间隔毫秒数(快节奏ping)
-				 * @Type {Number}
-				 */
-				INTERVAL: 10 * 1000,
-
-				/**
-				 * 两个ping之间的间隔毫秒数（慢节奏ping）
-				 * @Type {Number}
-				 */
-				SLOW_INTERVAL: 30 * 1000,
-
-				/**
-				 * 当指定的毫秒数内服务器没有回复报文，则认为已断开连接
-				 *  @Type {Number}
-				 */
-				TIMEOUT: 10 * 1000
-			},
-
-			DOMAIN: {
-				CHATROOM: 'conference.' + YY_IM_DOMAIN,
-				SEARCH: 'search.' + YY_IM_DOMAIN,
-				PUBACCOUNT: 'pubaccount.' + YY_IM_DOMAIN
-			},
-
-			EXPIRATION: {
-				INVALID: 6 * 60 * 60 * 1000, //token失效的最小安全期
-				INSPECTION_INTERVAL: 30 * 60 * 1000 //定时检测时长
-			},
-
-			LOG: {
-				ENABLE: !!options.logEnable,
-				FILTER_LEVEL: 3
-			},
-
-			BROWSER: getBrowser()
-		};
-
-		YYIMConfiguration.getHttpBindUrl = function() {
-			var prefix = this.CONNECTION.USE_HTTPS ? 'https://' : 'http://';
-			return prefix + this.CONNECTION.HTTP_BASE + ':' + this.CONNECTION.HTTP_BIND_PORT + '/http-bind/';
-		};
-
-		YYIMConfiguration.getWebSocketUrl = function() {
-			var prefix = this.CONNECTION.USE_HTTPS ? 'wss://' : 'ws://';
-			return prefix + this.CONNECTION.HTTP_BASE + ':' + this.CONNECTION.WS_PORT;
-		};
-
-		YYIMConfiguration.useWebSocket = function() {
-			return this.SUPPORT.isWebSocketSupport && this.CONNECTION.ENABLE_WEBSOCKET;
-		};
-
-		YYIMConfiguration.getConnectionArgObj = function() {
-			return {
-				domain: this.CONNECTION.SERVER_NAME,
-				resource: this.RESOURCE,
-				allow_plain: this.CONNECTION.ALLOW_PLAIN,
-				secure: this.CONNECTION.SECURE,
-				register: false
-			};
-		};
-
-		YYIMConfiguration.getLocationOrigin = function(){
-			return location.origin? location.origin: (location.protocol + '//'+ location.host);
-		};
-
-		YYIMConfiguration.getClientMark = getClientMark;
-	}
-
-	function getBrowser() {
-		var userAgent = navigator.userAgent.toLowerCase();
-		// Figure out what browser is being used
-		return {
-			version: (userAgent.match(/.+(?:rv|it|ra|ie)[\/: ]([\d.]+)/) || [])[1],
-			webkit: /webkit/.test(userAgent),
-			opera: /opera/.test(userAgent),
-			msie: /msie/.test(userAgent) && !/opera/.test(userAgent),
-			mozilla: /mozilla/.test(userAgent) && !/(compatible|webkit)/.test(userAgent)
-		};
-	}
-
-	function isMsielt10(){
-		var browser = getBrowser();
-		if(browser.msie
-		&& parseInt(browser.version) < 10){
-			return true;
-		}
-		return false;
-	}
-
-	function getClientMark(){
-		return YY_IM_CLIENT_MARK;
-	}
-
-	return {
-		init: init
-	};
-})();
-
-ConfigSetting.init();
-
-var CONNECT_STATUS = {
-	INIT: 'init',
-	OFFLINE: 'offline',
-	CONNECTING: 'connecting',
-	PROCESSING: 'processing',
-	CONFLICT: 'conflict',
-	CONNECTED: 'connected',
-	ERROR: 'error',
-	AUTHERROR: 'AuthError',
-	ONCLIENTKICKOUT: 'onClientKickout',
-	ONUPDATEPASSWORD: 'onUpdatePassword'
-};
-
-var FAVORITE_TYPE = {
-	FAVORITE: 'favorite',
-	REMOVE: 'remove',
-	NONE: 'none'
-};
-
-var STATUS = {
-	CHAT: 'chat', //该实体或资源活跃并想聊天
-	AWAY: 'away', //该实体或资源临时离开
-	XA: 'xa', //该实体或资源要离开相当长时间(xa = 'eXtended Away'，长时间离开)
-	DND: 'dnd', //该实体或资源忙(dnd = 'Do Not Disturb'，免打扰)
-	UNAVAILABLE: 'unavailable' // 隐身(自定义,RFC6121未定义)
-};
-
-var TYPE = {
-	SET: 'set',
-	RESULT: 'result',
-	GET: 'get',
-	SUBMIT: 'submit',
-	UNAVAILABLE: 'unavailable'
-};
-
-var PRESENCE_TYPE = {
-	SUBSCRIBE: 'subscribe',
-	UNSUBSCRIBE: 'unsubscribe',
-	SUBSCRIBED: 'subscribed',
-	UNSUBSCRIBED: 'unsubscribed',
-	PROBE: 'probe',
-	UNAVAILABLE: 'unavailable',
-	COLLECT: 'collect' //收藏好友
-};
-
-var COLLECT_TYPE = {
-	ADD: 'add',
-	REMOVE: 'remove'
-};
-
-var CHAT_TYPE = {
-	CHAT: 'chat',
-	GROUP_CHAT: 'groupchat',
-	PUB_ACCOUNT: 'pubaccount'
-};
-
-//消息内容类型
-var MESSAGE_CONTENT_TYPE = {
-	TEXT: 2,
-	FILE: 4,
-	IMAGE: 8,
-	REDPACKET: 9,
-	SMALLVIDEO: 10,
-	REVOCATION: 13,
-	MERGEFORWARD: 15,
-	SINGLEGRAPHIC: 16,
-	MOREGRAPHIC: 32,
-	AUDO: 64,
-	LOCATION: 128,
-	SHARE: 256,
-	WHITEBOARD: 1024
-};
-function YYIMConnectDaemon(){
-	/**
-	 * 最后接收的报文的时间
-	 * @Type {Number}
-	 */
-	this.lastPongTime = Date.now();
-
-	/**
-	 * 循环发送ping包的interval
-	 * @Type {Number}
-	 */
-	this.pingInterval;
-
-	/**
-	 * 判断发送ping包是否超时的timeout
-	 * @Type {Number}
-	 */
-	this.pingTimeout;
-	
-	/**
-	 * 发ping包间隔
-	 */
-	this.interval = 0;
-
-};
-
-/**
- * 向服务器轮询发送ping包， 判断自己是否掉线
- */
-YYIMConnectDaemon.prototype.startPing = function(isOnline) {
-	if(isOnline === true){
-		this.isOnline = isOnline;
-	}
-	
-	if (YYIMConnection.getInstance().connected()) {
-		this.interval = !this.interval? YYIMConfiguration.PING.SLOW_INTERVAL: YYIMConfiguration.PING.INTERVAL;
-		this.ping();
-	}else{
-		this.stopPing();
-	}
-};
-
-/**
- * 清除发送ping包的定时器
- */
-YYIMConnectDaemon.prototype.stopPing = function(isOnline) {
-	if(isOnline === false){
-		this.isOnline = isOnline;
-	}
-	
-	clearTimeout(this.pingTimeout);
-	clearTimeout(this.pingInterval);
-};
-
-/**
- * 向服务器发送ping包，如果服务器在指定时间SNSConnectService.pingTimeout内未返回，则进行重连
- */
-YYIMConnectDaemon.prototype.ping = function() {
-	var that = this;
-	if(!this.isOnline){
-		this.stopPing();
-	}else{
-		if(!this.sending){			
-			this.stopPing();
-			this.interval = this.interval || YYIMConfiguration.PING.SLOW_INTERVAL;
-			
-			var duration = Date.now() - (this.lastPongTime + this.interval);
-			if(duration >= 0) {
-				try{
-					this.sending = true;
-					this.interval = YYIMConfiguration.PING.SLOW_INTERVAL;
-					YYIMConnection.getInstance().send(new JumpPacket(null, OPCODE.PING.SEND));
-				}catch(e){
-					that.stopPing();
-					YYIMManager.getInstance().log("Ping_Error.", 0, e);
-					YYIMManager.getInstance().onConnectError({
-						errorCode : 408,
-						message : '连接失败'
-					});
-				}
-			}else{
-				this.pingInterval = setTimeout(this.ping.bind(this), -duration);
-			}
-		}
-	}
-};
-
-/**
- * 更新最后收到的ping包的时间
- * @param packet
- */
-YYIMConnectDaemon.prototype.pong = function() {
-	this.lastPongTime = Date.now();
-	if(!this.isOnline){
-		this.stopPing();
-	}else{
-		YYIMManager.getInstance().log('【pong】\t' + (new Date(this.lastPongTime)), 3, this.lastPongTime);
-		this.sending = false;
-		this.ping();
-	}
-};
-
-YYIMConnectDaemon.prototype.setTimeout = function() {
-	if(!this.isOnline){
-		this.stopPing();
-	}else{
-		var now = Date.now();
-		YYIMManager.getInstance().log('【setPingTimeout】\t' + (new Date(now)), 3, now);
-		clearTimeout(this.pingTimeout);
-		this.pingTimeout = setTimeout(this.timeoutHandler.bind(this), YYIMConfiguration.PING.TIMEOUT);
-	}
-};
-
-YYIMConnectDaemon.prototype.timeoutHandler = function() {
-	this.sending = false;
-	this.stopPing();
-	YYIMManager.getInstance().log("Ping_Timeout.", 0);
-	YYIMManager.getInstance().onConnectError({
-		errorCode : 408,
-		message : '连接失败'
-	});
-};
-function YYIMConnectEventHandler() {
-	this._inited = false;
-};
-
-YYIMConnectEventHandler.prototype._init = function() {
-	
-	YYIMManager.getInstance().log("YYIMConnectEventHandler.prototype.registerHandler", 3);
-	
-	if(this._inited){
-		return;
-	}
-	
-	var conn = YYIMConnection.getInstance();
-
-	conn.registerHandler('onConnect', this.onConnected);
-	conn.registerHandler('onError', this.onConnectError);
-	conn.registerHandler('onDisconnect', this.onDisConnect);
-	conn.registerHandler("onStatusChanged", this.connectStatusChangeHandler);
-
-	conn.registerHandler(OPCODE.STREAM_ERROR.KEY, this.onStreamError);
-	conn.registerHandler(OPCODE.PACKET_ERROR.KEY, this.onPacketError);
-	
-	// 注册packet_in监听器， 以记录最后报文的到达时间
-	conn.registerHandler("packet_in", conn.getDaemon().pong.bind(conn.getDaemon()));
-	
-	this._inited = true;
-};
-
-/**
- * 连接成功
- */
-YYIMConnectEventHandler.prototype.onConnected = function(){
-	YYIMManager.getInstance().onOpened();
-	YYIMConnection.getInstance().getDaemon().startPing(true);
-};
-
-/**
- * 连接失败时, 触发全局事件CONNECT_FAILED， 附加参数：[errorCode, message]
- * @param e 错误信息
- */
-YYIMConnectEventHandler.prototype.onConnectError = function(e) {
-	YYIMManager.getInstance().log("YYIMConnectEventHandler.prototype.onConnectError ", 0, e);
-	errorCode = e.getAttribute("code");
-
-	YYIMConnection.getInstance().getDaemon().stopPing(false);
-	
-	if(errorCode == 401){
-		YYIMManager.getInstance().onAuthError({
-			errorCode : 401,
-			message : '用户名或密码错误'
-		});
-	}else if(errorCode == 409){
-		YYIMManager.getInstance().onConflicted({
-			errorCode : 409,
-			message : '连接冲突'
-		});
-	}else if(errorCode == 4010){
-		YYIMManager.getInstance().onClientKickout({
-			errorCode : 4010,
-			message : '被客户端踢掉'
-		});
-	}else if(errorCode == 4011){
-		YYIMManager.getInstance().onUpdatePassword({
-			errorCode : 4011,
-			message : '修改密码'
-		});
-	}else {
-		YYIMManager.getInstance().onConnectError({
-			errorCode : errorCode,
-			message : '连接失败'
-		});
-	}
-};
-
-YYIMConnectEventHandler.prototype.onStreamError = function(packet) {
-	YYIMManager.getInstance().log("YYIMConnectEventHandler.prototype.onPacketError ", 0, packet);
-	YYIMConnection.getInstance().getDaemon().stopPing(false);
-	errorCode = packet.code;
-	
-	if(errorCode == 401){
-		YYIMManager.getInstance().onAuthError({
-			errorCode : 401,
-			message : '用户名或密码错误'
-		});
-	}else if(errorCode == 409){
-		YYIMManager.getInstance().onConflicted({
-			errorCode : 409,
-			message : '连接冲突'
-		});
-	}else if(errorCode == 4010){
-		YYIMManager.getInstance().onClientKickout({
-			errorCode : 4010,
-			message : '被客户端踢掉'
-		});
-	}else if(errorCode == 4011){
-		YYIMManager.getInstance().onUpdatePassword({
-			errorCode : 4011,
-			message : '修改密码'
-		});
-	}else {
-		YYIMManager.getInstance().onConnectError({
-			errorCode : errorCode,
-			message : '连接失败'
-		});
-	}
-};
-
-YYIMConnectEventHandler.prototype.onPacketError = function(packet) {
-	YYIMManager.getInstance().log("YYIMConnectEventHandler.prototype.onPacketError ", 0, packet);
-};
-
-/**
- * 连接关闭
- */
-YYIMConnectEventHandler.prototype.onDisConnect = function(){
-	YYIMManager.getInstance().onClosed();
-	
-	YYIMConnection.getInstance().getDaemon().stopPing(false);
-};
-
-/**
- * 连接状态改变时将调用此事件, 触发ON_CONNECT_STATUS_CHANGE全局事件，参数status, 可能的值为：
- * <ul>
- * <li>'initializing' ... well
- * <li>'connecting' if connect() was called
- * <li>'resuming' if resume() was called
- * <li>'processing' if it's about to operate as normal
- * <li>'onerror_fallback' if there was an error with the request object
- * <li>'protoerror_fallback' if there was an error at the http binding protocol flow (most likely that's where you interested in)
- * <li>'internal_server_error' in case of an internal server error
- * <li>'suspending' if suspend() is being called
- * <li>'aborted' if abort() was called
- * <li>'disconnecting' if disconnect() has been called
- * </ul>
- */
-YYIMConnectEventHandler.prototype.connectStatusChangeHandler = function(status) {
-	YYIMManager.getInstance().onStatusChanged(status);
-};
-function YYIMConnection() {
-	this.daemon = new YYIMConnectDaemon();
-	this.eventHandler = new YYIMConnectEventHandler();
-	this.connection = this.getConnection();
-	this.connectArg;
-	this.waitingList = [];
-	this.sending = false;
-	this.lastSendTime = 0;
-};
-
-YYIMConnection.getInstance = function() {
-	if (!YYIMConnection._instance) {
-		YYIMConnection._instance = new YYIMConnection();
-		YYIMConnection._instance._init();
-	}
-	return YYIMConnection._instance;
-};
-
-YYIMConnection.prototype.getDaemon = function() {
-	return this.daemon;
-};
-
-YYIMConnection.prototype._init = function(){
-	
-	YYIMManager.getInstance().exeBackhander('monitor');
-
-	this.eventHandler._init();
-
-	this.registerHandler(OPCODE.AUTH.KEY, function(userBindPacket){
-		// change to use opcode judge
-		var jid = new JSJaCJID(userBindPacket.jid), id = YYIMJIDUtil.getID(userBindPacket.jid);
-		
-		YYIMManager.getInstance()._user = {
-			jid: jid,
-			name: id
-		};
-		YYIMManager.getInstance().onUserBind(id, jid.getResource());
-	});
-	
-//	rongqb 20170713
-//	this.registerHandler(OPCODE.PING.KEY, this.getDaemon().pong.bind(this.getDaemon()));
-};
-
-/**
- * 注册连接的报文处理器
- * @param {string} @See OPCODE.EVENT.KEY,
- * @param {String} ns childName对应的子节点命名空间 [optional]
- * @param {String} type 子节点类型，不限制设置为“*", [optional]
- * @param {Function} handler 处理函数
- */
-YYIMConnection.prototype.registerHandler = function(event, ns, type, handler) {
-//	if(this.event != 'ping')
-//		return;
-	if (this.connection) {
-		this.connection.registerHandler.apply(this.connection, arguments);
-		return;
-	}
-	throw "connection is undefined!";
-};
-
-/**
- * 若已经和服务器建立连接 返回true, 否则返回false
- * @return {boolean}
- */
-YYIMConnection.prototype.connected = function() {
-	if (this.connection && this.connection.connected()) {
-		return true;
-	}
-	return false;
-}
-
-/**
- * 根据浏览器支持的不同情况, 返回最合适的连接方式, 如果连接以存在则直接返回
- * @returns {JSJaCConnection}
- */
-YYIMConnection.prototype.getConnection = function() {
-
-	if (!this.connection) {
-		if (YYIMConfiguration.useWebSocket()) {
-			this.connection = new JSJaCWebSocketConnection({
-				httpbase : YYIMConfiguration.getWebSocketUrl()
-			});
-		} else {
-			this.connection = new JSJaCHttpBindingConnection({
-				httpbase : YYIMConfiguration.getHttpBindUrl(),
-				timerval : YYIMConfiguration.CONNECTION.TIMERVAL,
-				wait : YYIMConfiguration.CONNECTION.WAIT
-			});
-		}
-	}
-
-	return this.connection;
-};
-
-/**
- * 请求连接服务器
- */
-YYIMConnection.prototype.connect = function(options) {
-	options = options || {};
-	
-	if (!this.connectArg) {
-		this.connectArg = YYIMConfiguration.getConnectionArgObj();
-	}
-
-	if (options.username) {
-		this.connectArg.username = options.username;
-	}
-	
-	if (options.token) {
-		this.connectArg.password = options.token;
-	}
-	
-	if(options.appType){
-		this.connectArg.appType = options.appType;
-	}
-	
-	if(options.identify){
-		this.connectArg.clientIdentify = options.identify;
-	}
-			
-	YYIMManager.getInstance()._user = {
-		jid: new JSJaCJID(this.connectArg.username + '@' + YYIMConfiguration.YY_IM_DOMAIN + '/' + this.connectArg.resource),
-		name: this.connectArg.username
-	};
-	
-	this.connection.connect(this.connectArg);
-};
-
-/**
- * 请求断开服务器
- */
-YYIMConnection.prototype.disconnect = function() {
-	this.daemon.stopPing(false);
-	if (this.connection) {
-		this.connection.disconnect();
-	}
-};
-
-/**
- * 发送报文到服务器
- */
-YYIMConnection.prototype.send = function(packet, callback, data, callbackContext) {
-	
-	this.waitingList.push({
-		packet:	packet,
-		callback: callback,
-		data: data,
-		callbackContext: callbackContext
-	});
-	
-	if(!this.sending){
-		this.sendInterval();	
-	}
-};
-
-/**
- * 递归延时发送预发送报文队列
- */
-YYIMConnection.prototype.sendInterval = function(){
-	var that = this;
-	if(this.waitingList.length){
-		this.sending = true;
-		var timespan = new Date().getTime() - this.lastSendTime;
-		
-		if(timespan >= YYIMConfiguration.SENDINTERVAL){
-			var data = this.waitingList.shift();
-			this.sendJumpPacket(data);
-			
-			if(data.packet 
-			&& data.packet.opcode != OPCODE.PING.SEND){
-				this.getDaemon().startPing();
-			}
-			
-			if(data.packet 
-			&& data.packet.opcode == OPCODE.PING.SEND){
-				this.getDaemon().setTimeout();
-			}
-			
-			this.lastSendTime = new Date().getTime();
-			this.sendInterval();
-		}else{
-			setTimeout(function(){
-				that.sendInterval();
-			},YYIMConfiguration.SENDINTERVAL - timespan);
-		}
-	}else{
-		this.sending = false;
-	}
-};
-
-/**
- * 发送报文到服务器
- */
-YYIMConnection.prototype.sendJumpPacket = function(arg) {
-	if(arg){
-		if(arg.callbackContext){
-			return this.connection.sendJumpPacket(arg.packet, arg.callback.bind(arg.callbackContext), arg.data);
-		}
-		return this.connection.sendJumpPacket(arg.packet, arg.callback, arg.data);
-	}
-};
-/**
- * XHR异步请求
- * 有自动轮讯
- */
-function MyXHR(obj) {
-	this.url = obj.url;
-	this.data = obj.data;
-	this.sCallback = obj.successCallback;
-	this.eCallback = obj.errorCallback;
-	this.xhr = (function() {
-		if(window.XMLHttpRequest){
-			return new XMLHttpRequest();
-		}else{
-			return new ActiveXObject("Microsoft.XMLHTTP");
-		}
-	})();
-	this.timeout = 10*1000;
-	this.timeoutIndex;
-	this.loop = false;
-}
-
-MyXHR.prototype.get = function() {
-	var _xhr = this.xhr;
-	_xhr.open('GET', this.url, true);
-	MyXHR.prototype._listenFn.call(this);
-	_xhr.send();
-}
-
-MyXHR.prototype.post = function() {
-	var _xhr = this.xhr;
-	_xhr.open('POST', this.url, true);
-	MyXHR.prototype._listenFn.call(this);
-	_xhr.setRequestHeader('Content-Type','x-www-form-urlencoded');
-	_xhr.send(this.data);
-}
-
-MyXHR.prototype.isLoop = function(flag) {
-	this.loop = flag;
-}
-
-/*
- * 停止轮询
- */
-MyXHR.prototype.stopLoop = function() {
-	clearTimeout(_self.timeoutIndex);
-}
-
-/*
- * 回调监听
- */
-MyXHR.prototype._listenFn = function() {
-	var _self = this;
-	var _xhr = this.xhr;
-	this.timeoutIndex = setTimeout(function() {
-		if (_self.loop) {
-			MyXHR.prototype.get.call(_self);
-		}
-		_self.eCallback(_xhr.responseText);
-	}, _self.timeout);
-	_xhr.onreadystatechange = function() {
-		if(_xhr.readyState == 4){
-			clearTimeout(_self.timeoutIndex);
-			if (_xhr.status == 200) {
-				_self.sCallback(_xhr.responseText);
-			}else {
-				_self.eCallback(_xhr.responseText);
-			}
-		}
-	}
-}
-
-
-function YYIMManager() {
-	this._user;
-	this._token = {};
-	this.appkey;
-	this.connectStatus = CONNECT_STATUS.INIT;
-	this.offlineStatus = [CONNECT_STATUS.ERROR,
-						  CONNECT_STATUS.OFFLINE,
-						  CONNECT_STATUS.CONFLICT,
-						  CONNECT_STATUS.AUTHERROR,
-						  CONNECT_STATUS.ONCLIENTKICKOUT,
-						  CONNECT_STATUS.INIT,
-						  CONNECT_STATUS.ONUPDATEPASSWORD];
-						  
-	this.onlineStatus = [CONNECT_STATUS.CONNECTED,
-						 CONNECT_STATUS.PROCESSING];
-	// 定义AI Key变量 yaoleib20171212
-	this.apiKey;
-	this.init();
-};
-
-YYIMManager.getInstance = function() {
-	if(!YYIMManager._instance) {
-		YYIMManager._instance = new YYIMManager();
-	}
-	return YYIMManager._instance;
-};
-
-YYIMManager.prototype.log = function(groupname, level, obj1, obj2) {
-	this._logger = this._logger || new YYIMConsoleLogger(YYIMConfiguration.LOG.FILTER_LEVEL);
-	this._logger.log(groupname, level, obj1, obj2);
-};
-
-/**
- * [INIT] 初始化，回调方法的设置
- * @param options
- */
-YYIMManager.prototype.init = function(options) {
-	var that = this;
-	options = options || {};
-
-	//系统回调
-	this.onClosed = function(arg) {
-		this.onConnectStatusChanged(CONNECT_STATUS.OFFLINE);
-		options.onClosed && options.onClosed(arg);
-	};
-
-	this.onAuthError = function(arg){
-		this.onConnectStatusChanged(CONNECT_STATUS.AUTHERROR);
-		options.onAuthError && options.onAuthError(arg);
-	};
-	
-	this.onStatusChanged = function(status) {
-		if(YYIMCommonUtil.isStringAndNotEmpty(status)) {
-			this.onConnectStatusChanged(status);
-		}
-	};
-	
-	this.onConnectStatusChanged = function(status) {
-		this.connectStatus = status || this.connectStatus;
-		this.log('connectStatus: ', 3, this.connectStatus);
-	};
-	
-	this.onOpened = function(arg) {
-		this.onConnectStatusChanged(CONNECT_STATUS.CONNECTED);
-		this.getTimeCorrection && this.getTimeCorrection();
-		options.onOpened && options.onOpened(arg);
-	};
-	
-	//rongqb 20170227
-	this.onUpdatePassword = function(arg){
-		this.disConnect(CONNECT_STATUS.ONUPDATEPASSWORD);
-		options.onUpdatePassword && options.onUpdatePassword(arg);
-	};
-	
-	//rongqb 20170227
-	this.onClientKickout = function(arg){
-		this.disConnect(CONNECT_STATUS.ONCLIENTKICKOUT);
-		options.onClientKickout && options.onClientKickout(arg);
-	};
-	
-	this.onConflicted = function(arg){
-		this.disConnect(CONNECT_STATUS.CONFLICT);
-		options.onConflicted && options.onConflicted(arg);
-	};
-	
-	this.onConnectError = function(arg) {
-		if(this.connectStatus == CONNECT_STATUS.OFFLINE
-		|| this.connectStatus == CONNECT_STATUS.INIT
-		|| this.connectStatus == CONNECT_STATUS.CONFLICT
-		|| this.connectStatus == CONNECT_STATUS.AUTHERROR
-		|| this.connectStatus == CONNECT_STATUS.ONCLIENTKICKOUT
-		|| this.connectStatus == CONNECT_STATUS.ONUPDATEPASSWORD){
-			if(this.ConnectErrorTimer){
-				clearInterval(this.ConnectErrorTimer);
-				this.ConnectErrorTimer = null;
-			}
-		}else{
-			this.onConnectStatusChanged(CONNECT_STATUS.ERROR);
-			if(!this.ConnectErrorTimer){
-				this.ConnectErrorTimer = setInterval(function() {
-					if(that.connectStatus == CONNECT_STATUS.CONNECTED 
-					|| that.connectStatus == CONNECT_STATUS.PROCESSING
-					|| that.connectStatus == CONNECT_STATUS.OFFLINE
-					|| that.connectStatus == CONNECT_STATUS.INIT) {
-						clearInterval(that.ConnectErrorTimer);
-						that.ConnectErrorTimer = null;
-					} else if(that.connectStatus == CONNECT_STATUS.ERROR) {
-						that.log('连接出现异常，正在尝试重连！', 3, arg);
-						that.connect();
-						that.onConnectStatusChanged(CONNECT_STATUS.CONNECTING);
-					}
-				}, 500);
-			}
-			options.onConnectError && options.onConnectError(arg);
-		}
-	};
-	
-	this.onUserBind = options.onUserBind || function(){};
-	
-	//token即将过期 通过此获取有效的 token
-	this.onExpiration = options.onExpiration;
-	
-	//注册各模块回调处理函数
-	this.exeBackhander('initCallback',options);
-	
-	(function() {
-		jQuery(window).on({
-			'unload offline': function() {
-				if(that.connectStatus != CONNECT_STATUS.INIT){
-					that.disConnect();
-				}
-			},
-			'online': function() {
-				if(that.connectStatus != CONNECT_STATUS.INIT
-				&& that.connectStatus != CONNECT_STATUS.CONFLICT
-				&& that.connectStatus != CONNECT_STATUS.AUTHERROR
-				&& that.connectStatus != CONNECT_STATUS.ONCLIENTKICKOUT
-				&& that.connectStatus != CONNECT_STATUS.ONUPDATEPASSWORD){
-					that.connect();
-				}
-			}
-		});
-	})();
-	
-	/**
-	 * 接口状态批处理
-	 * rongqb 20170808
-	 */
-	jQuery.ajaxSetup({
-		statusCode: {
-			401: function(){
-				//token Expirationed
-				options.onExpirationed && options.onExpirationed();
-			}
-		}
-	});
-};
-
-/**
- * [INIT] 设置多租户参数, 非多租户环境可不设置
- * arg {
- * 	app: String, //必须
- *  etp: String, //必须
- * 	wsurl: String,
- *  wsport: String,
- *  hbport: String,
- *  servlet: String,
- *  logEnable: Boolean,
- *  clientMark: clientMark
- * }
- */
-YYIMManager.prototype.initSDK = function(options) {
-	ConfigSetting.init(options);
-	var conf = YYIMConfiguration.MULTI_TENANCY;
-	this.appkey = conf.SEPARATOR + conf.APP_KEY + conf.SEPARATOR + conf.ETP_KEY;
-	// 存储AI Key yaoleib20171212
-	this.apiKey = options.apiKey;
-};
-
-YYIMManager.prototype.logEnable = function(logEnable) {
-	if(YYIMUtil['isWhateType'](logEnable, 'Boolean')) {
-		YYIMConfiguration.LOG.ENABLE = logEnable;
-	}else{
-		YYIMConfiguration.LOG.ENABLE = !YYIMConfiguration.LOG.ENABLE;
-	}
-};
-
-YYIMManager.prototype.getTenancy = function() {
-	return YYIMConfiguration.MULTI_TENANCY;
-};
-
-/**
- * 获取appKey 
- * @returns '.app.etp'
- */
-YYIMManager.prototype.getAppkey = function() {
-	return this.appkey;
-};
-
-/**
- * 获取apiKey yaoleib20171212
- * @returns '85de79b9f7e34c37a99accaddb256990'
- */
-YYIMManager.prototype.getApiKey = function() {
-    return this.apiKey;
-};
-
-YYIMManager.prototype.isOnline = function() {
-	if(this.onlineStatus.indexOf(this.connectStatus) > -1){
-		return true;
-	}
-	return false;
-};
-
-/**
- * 主动断开连接
- */
-YYIMManager.prototype.disConnect = function(status) {
-	if(this.getExpirationTimer){
-		clearInterval(this.getExpirationTimer);
-		this.getExpirationTimer = 0;
-	}
-	
-	YYIMConnection.getInstance().disconnect();
-	
-	this.onConnectStatusChanged(status || CONNECT_STATUS.OFFLINE);
-};
-
-/**
- * 根据之前的连接参数进行连接
- */
-YYIMManager.prototype.connect = function() {
-	if(!this.isOnline()){
-		YYIMConnection.getInstance().connect();
-	}
-};
-
-/**
- * 获取当前用户的Token
- * @returns
- */
-YYIMManager.prototype.getToken = function() {
-	try{
-		if(this.getExpiration() && YYIMUtil['isWhateType'](this.onExpiration,'Function')){
-			if((this.getExpiration() - this.getServerNow()) <= YYIMConfiguration.EXPIRATION.INVALID){
-				var that = this;
-				this.onExpiration(function(token,expiration){
-					if(token){
-						that._token.token = token;
-					}
-					if(expiration){
-						that._token.expiration = expiration;
-					}
-				});
-			}
-		}
-	}catch(e){
-		this.log('Token winll Invalid. Auto Get Token Error.', 0);
-	}
-	return this._token.token;
-};
-
-/**
- * 获取当前用户的token过期时间
- * @returns
- */
-YYIMManager.prototype.getExpiration = function() {
-	return this._token.expiration;
-};
-
-/**
- * 登录
- * @param name
- * @param password
- */
-YYIMManager.prototype.login = function(options) {
-	options = options || {};
-	
-	this._token = {
-		token: options.token,
-		expiration: options.expiration
-	};
-	
-	if(options.username && options.token){
-		if(!this.isOnline()){
-			YYIMConnection.getInstance().connect({
-				username: YYIMJIDUtil.getNode(options.username), 
-				token: options.token, 
-				appType: options.appType, 
-				identify: options.identify
-			});
-		}
-		if(YYIMUtil['isWhateType'](this.onExpiration,'Function')){
-			if(!this.getExpirationTimer){
-				var that = this;
-				this.getExpirationTimer = setInterval(function(){
-					that.getToken();
-				},YYIMConfiguration.EXPIRATION.INSPECTION_INTERVAL);
-			}
-		}
-	}else{
-		this.log((!options.username? 'Username ':'') + (!options.token? 'Token ':'') + ' Illegal.', 0);	
-	}
-};
-
-/**
- * 获取 sdk 当前的连接状态
- */
-YYIMManager.prototype.getConnectStatus = function(){
-	return this.connectStatus;
-};
-
-/**
- * 退出登录, 仅负责断开连接
- */
-YYIMManager.prototype.logout = function() {
-	this.disConnect.apply(this,arguments);
-	this.onConnectStatusChanged(CONNECT_STATUS.INIT);
-};
-
-/**
- * 获取当前登录用户的bareJid
- */
-YYIMManager.prototype.getUserBareJID = function() {
-	return this._user.jid.getBareJID();
-};
-
-/**
- * 获取当前登录用户的全jid
- */
-YYIMManager.prototype.getUserFullJID = function() {
-	return this._user.jid.toString();
-};
-
-/**
- * 获取当前用户登录的node
- */
-YYIMManager.prototype.getUserNode = function() {
-	return YYIMJIDUtil.getNode(this.getUserBareJID());
-};
-
-/**
- * 获取当前登录用户的id
- */
-YYIMManager.prototype.getUserID = function() {
-	return YYIMJIDUtil.getID(this.getUserBareJID());
-};
-
-/**
- * 获取当前的resource rongqb20151206
- */
-YYIMManager.prototype.getResource = function() {
-	return YYIMConfiguration.RESOURCE;
-};
-
-// get config
-YYIMManager.prototype.getServerName = function() {
-	return YYIMConfiguration.CONNECTION.SERVER_NAME;
-};
-
-YYIMManager.prototype.getServletPath = function() {
-	return YYIMConfiguration.SERVLET;
-};
-
-YYIMManager.prototype.getJIDUtil = function() {
-	return YYIMJIDUtil;
-};
-
-YYIMManager.prototype.getServerNow = function() {
-	return YYIMConfiguration.TIMECORRECTION.AUTOCORRECTION? (new Date().getTime() + YYIMChat.getConfig().TIMECORRECTION.RESULT): new Date().getTime();
-};
-
-YYIMManager.prototype.getBrowser = function() {
-	return YYIMConfiguration.BROWSER;
-};
-
-/**
- * 获得sdk 的常量
- * @returns {//...}
- */
-YYIMManager.prototype.getConstants = function() {
-	return {
-		FAVORITE_TYPE: FAVORITE_TYPE,
-		STATUS: STATUS,
-		TYPE: TYPE,
-		PRESENCE_TYPE: PRESENCE_TYPE,
-		COLLECT_TYPE: COLLECT_TYPE,
-		CHAT_TYPE: CHAT_TYPE,
-		MESSAGE_CONTENT_TYPE: MESSAGE_CONTENT_TYPE
+	this.getLevel = function () {
+		return _this.level;
 	};
 };
 
-/**
- * 获得sdk的配置信息
- */
-YYIMManager.prototype.getConfig = function() {
-	return YYIMConfiguration;
-};
+exports.YYIMConsoleLogger = YYIMConsoleLogger;
 
-YYIMManager.prototype.getConnection = function() {
-	return YYIMConnection.getInstance();
-};
+/***/ }),
+/* 34 */
+/***/ (function(module, exports, __webpack_require__) {
 
-YYIMManager.prototype.getJIDUtil = function() {
-	return YYIMJIDUtil;
-};
+"use strict";
 
-YYIMManager.prototype.getUtil = function() {
-	return YYIMUtil;
-};
 
-/**
- * Extend 追加执行函数  rongqb 20161028
- * @param {Object} arg {
- * 	type: {
- * 		key: backhander
- *  }
- * }
- */
-YYIMManager.prototype.setBackhander = function(arg) {
-	if(arg){
-		this.backhanders = this.backhanders || {};
-		for(var x in arg){
-			this.backhanders[x] = this.backhanders[x] || {};
-			jQuery.extend(this.backhanders[x],arg[x]);
-		}
-	}
-};
+var _YYAIAbility = __webpack_require__(14);
 
-/**
- * 执行 Extend 追加函数   rongqb 20161028
- * @param {Object} type
- * }
- */
-YYIMManager.prototype.exeBackhander = function(type,options) {
-	this.backhanders = this.backhanders || {};
-	if(type && this.backhanders[type]){
-		for(var y in this.backhanders[type]){
-			if(YYIMUtil['isWhateType'](this.backhanders[type][y],'Function')){
-				try{
-					this.backhanders[type][y](options || {});
-				}catch(e){
-					this.log('exeBackhander: ' + type + ' ' + y + ' Error.',0);
-				}
-			}
-		}
-	}
-};
- 	return YYIMManager.getInstance();
-})();
-YYIMChat = (function(YYIMChat){
-	var YYIMManager = YYIMChat.constructor;
-	
-var Manager = (function(){
-	/**
-     * 设置IM具备AI能力 yaoleib20171214
-     * arg {
-	 * success:function,
-	 * error:function,
-	 * complete:function
-	 * }
-     */
-    function setAIAbility(arg){
-        jQuery.ajax({
-            url: YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + YYIMManager.getInstance().getUserID() + '/profile/intelligentable?token=' + YYIMManager.getInstance().getToken(),
-            type: 'post',
-            data: JSON.stringify(arg),
-            dataType: 'json',
-            cache: false,
-            processData:false,
-            contentType: "application/json", //必须有
-            success: function(data){
-                arg.success && arg.success(arg);
-                arg = null;
-            },
-            error: function(xhr){
-                try{
-                    arg.error && arg.error(JSON.parse(xhr.responseText));
-                    arg = null;
-                }catch(e){
-                    arg.error && arg.error();
-                    arg = null;
-                }
-            }
-        });
-    }
+var _YYAIAbility2 = _interopRequireDefault(_YYAIAbility);
 
-    /**
-     * 获取用户AI热词,用于前端过滤 yaoleib20171214
-     * arg {
-	 * success:function,
-	 * error:function,
-	 * complete:function
-	 * }
-     */
-    function getAIWords(arg){
-		jQuery.ajax({
-            url: YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + YYIMManager.getInstance().getUserID() + '/intelligent/words?token=' + YYIMManager.getInstance().getToken() + '&apiKey=' + YYIMChat.getApiKey(),
-            type: 'get',
-            data: '',
-            dataType: 'json',
-            cache: false,
-            processData:false,
-            contentType: "application/json", //必须有
-            success: function(data){
-                arg.success && arg.success(data);
-                arg = null;
-            },
-            error: function(xhr){
-                try{
-                    arg.error && arg.error(JSON.parse(xhr.responseText));
-                    arg = null;
-                }catch(e){
-                    arg.error && arg.error();
-                    arg = null;
-                }
-            }
-        });
-    }
+var _manager = __webpack_require__(0);
 
-	/**
-     * 获取当前在线的设备 yaoleib20171219
-     * arg {
-	 * success:function,
-	 * error:function,
-	 * complete:function
-	 * }
-     */
-    function getMultiTerminals(arg){
-		jQuery.ajax({
-            url: YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + YYIMManager.getInstance().getUserID() + '/multiterminals?token=' + YYIMManager.getInstance().getToken(),
-            type: 'get',
-            data: '',
-            dataType: 'json',
-            cache: false,
-            processData:false,
-            contentType: "application/json", //必须有
-            success: function(data){
-                arg.success && arg.success(data);
-                arg = null;
-            },
-            error: function(xhr){
-                try{
-                    arg.error && arg.error(JSON.parse(xhr.responseText));
-                    arg = null;
-                }catch(e){
-                    arg.error && arg.error();
-                    arg = null;
-                }
-            }
-        });
-    }
+var _Manager = __webpack_require__(35);
 
-	/**
-     * 发送协同命令 yaoleib20171219
-     * arg {
-	 * success:function,
-	 * error:function,
-	 * complete:function
-	 * }
-     */
-    function sendMultiTerminalsCommand(arg){
-		jQuery.ajax({
-            url: YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + YYIMManager.getInstance().getUserID() + '/multiterminals/command?token=' + YYIMManager.getInstance().getToken(),
-            type: 'POST',
-            data: arg.data,
-            dataType: 'json',
-            cache: false,
-            processData:false,
-            contentType: "application/json", //必须有
-            success: function(data){
-                arg.success && arg.success(data);
-                arg = null;
-            },
-            error: function(xhr){
-                try{
-                    arg.error && arg.error(JSON.parse(xhr.responseText));
-                    arg = null;
-                }catch(e){
-                    arg.error && arg.error();
-                    arg = null;
-                }
-            }
-        });
-    }
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-	return {
-        setAIAbility: setAIAbility,
-        getAIWords: getAIWords,
-        getMultiTerminals: getMultiTerminals,
-        sendMultiTerminalsCommand: sendMultiTerminalsCommand
-	};
-})();
-
-/**
- * 设置IM具备AI能力 yaoleib20171214
- * arg {
- *  success:function,
- *  error:function,
- *  complete:function
- * }
- */
-YYIMManager.prototype.setAIAbility = function(arg){
+_manager.YYIMManager.prototype.setAIAbility = function (arg) {
     arg = arg || {};
-    if(!!arg.intelligentable){
-        Manager.setAIAbility(arg);
-    }else{
+    if (!!arg.intelligentable) {
+        (0, _Manager.setAIAbility)(arg);
+    } else {
         arg.error && arg.error();
     }
 };
 
-/**
- * 获取用户AI热词,用于前端过滤 yaoleib20171214
- * arg {
- *  success:function,
- *  error:function,
- *  complete:function
- * }
- */
-YYIMManager.prototype.getAIWords = function(arg){
-    Manager.getAIWords(arg || {});
+_manager.YYIMManager.prototype.getAIWords = function (arg) {
+    (0, _Manager.getAIWords)(arg || {});
 };
 
-/**
-* 设置AI分析开关是否启用
-* isAIAbility boolean
-*/
-YYIMManager.prototype.openAIAbility = function(isAIAbility) {
+_manager.YYIMManager.prototype.openAIAbility = function (isAIAbility) {
     this.isAIAbility = isAIAbility;
 };
 
-/**
- * 设置是否启用热词过滤 yaoleib20171225
- * isOpenFilter boolean
- */
-YYIMManager.prototype.openFilterWords = function(isOpenFilter){
-    YYAIAbility.openFilterWords(isOpenFilter);
+_manager.YYIMManager.prototype.openFilterWords = function (isOpenFilter) {
+    _YYAIAbility2.default.openFilterWords(isOpenFilter);
 };
 
-/**
- * 注入热词 yaoleib20171225
- * arg string 热词时间戳
- */
-YYIMManager.prototype.setDictionaries = function(intelligentWordsTime){
+_manager.YYIMManager.prototype.setDictionaries = function (intelligentWordsTime) {
     var storageWordsTime = window.localStorage.intelligentWordsTime;
-    if(storageWordsTime != intelligentWordsTime){
-        YYIMChat.getAIWords({
-            success: function(data){
-                YYAIAbility.setDictionaries(data.intelligentWords || []);
+    if (storageWordsTime != intelligentWordsTime) {
+        _manager.YYIMChat.getAIWords({
+            success: function success(data) {
+                _YYAIAbility2.default.setDictionaries(data.intelligentWords || []);
 
-                // 设置新的时间戳
                 window.localStorage.intelligentWordsTime = intelligentWordsTime;
             },
-            error: function(xhr){
-                try{
-					arg.error && arg.error(JSON.parse(xhr.responseText));
-					arg = null;
-				}catch(e){
-					arg.error && arg.error();
-					arg = null;
-				}
+            error: function error(xhr) {
+                try {
+                    arg.error && arg.error(JSON.parse(xhr.responseText));
+                    arg = null;
+                } catch (e) {
+                    arg.error && arg.error();
+                    arg = null;
+                }
             }
         });
     }
 };
 
-/**
- * 判断消息是否传递给AI分析 yaoleib20171225
- * arg string
- */
-YYIMManager.prototype.intelligentAnalysis = function(keyword){
-    YYAIAbility.intelligentAnalysis(keyword);
+_manager.YYIMManager.prototype.intelligentAnalysis = function (keyword) {
+    _YYAIAbility2.default.intelligentAnalysis(keyword);
 };
 
-/**
- * 获取当前在线的设备 yaoleib20171219
- * arg {
- * success:function,
- * error:function,
- * complete:function
- * }
- */
-YYIMManager.prototype.getMultiTerminals = function(arg){
-    Manager.getMultiTerminals(arg || {});
+_manager.YYIMManager.prototype.getMultiTerminals = function (arg) {
+    (0, _Manager.getMultiTerminals)(arg || {});
 };
 
-/**
- * 发送协同命令 yaoleib20171219
- * arg {
- * success:function,
- * error:function,
- * complete:function
- * }
- */
-YYIMManager.prototype.sendMultiTerminalsCommand = function(arg){
-    Manager.sendMultiTerminalsCommand(arg || {});
+_manager.YYIMManager.prototype.sendMultiTerminalsCommand = function (arg) {
+    (0, _Manager.sendMultiTerminalsCommand)(arg || {});
 };
 
- 	return YYIMManager.getInstance();
-})(YYIMChat);
+/***/ }),
+/* 35 */
+/***/ (function(module, exports, __webpack_require__) {
 
-YYIMChat = (function(YYIMChat){
-	var YYIMManager = YYIMChat.constructor;
-	
-var Manager = (function() {
+"use strict";
 
-	/**
-	 * 获取最近联系（群组、公众号）摘要列表 rongqb 20160706
-	 * @param arg {
-	 * startDate: timestamp,
-	 * size: Number, //50
-	 * success:function,
-	 * error:function,
-	 * complete:function
-	 * }
-	 */
-	function getRecentDigset(arg) {
-		var param = {
-			startDate: arg.startDate
-		};
-		if(arg.size){
-			param.size = arg.size;
-		}
-		jQuery.ajax({
-			url: YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + YYIMChat.getUserID() + '/contactsmessage/digests?token=' + YYIMChat.getToken(),
-			type: 'get',
-			data: param,
-			dataType: 'json',
-			cache: false,
-			success: function(data) {
-				for(var x in data.list) {
-					if(data.list.hasOwnProperty(x)){
-						var item = data.list[x];
-						
-						item.id = YYIMChat.getJIDUtil().getID(item.jid);
-						item.type = YYIMChat.getJIDUtil().getChatTypeByJid(item.jid);
-						
-						try {
-							if(item.lastMessage) {
-								item.lastMessage = messageParser(JSON.parse(item.lastMessage), item.type);
-							}
-						} catch(e) {
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+exports.sendMultiTerminalsCommand = exports.getMultiTerminals = exports.getAIWords = exports.setAIAbility = undefined;
+
+var _stringify = __webpack_require__(1);
+
+var _stringify2 = _interopRequireDefault(_stringify);
+
+var _manager = __webpack_require__(0);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function setAIAbility(arg) {
+    var config = _manager.YYIMChat.getConfig();
+    jQuery.ajax({
+        url: config.SERVLET.REST_USER_SERVLET + config.MULTI_TENANCY.ETP_KEY + '/' + config.MULTI_TENANCY.APP_KEY + '/' + _manager.YYIMChat.getUserID() + '/profile/intelligentable?token=' + _manager.YYIMChat.getToken(),
+        type: 'post',
+        data: (0, _stringify2.default)(arg),
+        dataType: 'json',
+        cache: false,
+        processData: false,
+        contentType: "application/json",
+        success: function success(data) {
+            arg.success && arg.success(data);
+            arg = null;
+        },
+        error: function error(xhr) {
+            try {
+                arg.error && arg.error(JSON.parse(xhr.responseText));
+                arg = null;
+            } catch (e) {
+                arg.error && arg.error();
+                arg = null;
+            }
+        }
+    });
+}
+
+function getAIWords(arg) {
+    var config = _manager.YYIMChat.getConfig();
+    jQuery.ajax({
+        url: config.SERVLET.REST_USER_SERVLET + config.MULTI_TENANCY.ETP_KEY + '/' + config.MULTI_TENANCY.APP_KEY + '/' + _manager.YYIMChat.getUserID() + '/intelligent/words?token=' + _manager.YYIMChat.getToken() + '&apiKey=' + _manager.YYIMChat.getApiKey(),
+        type: 'get',
+        data: '',
+        dataType: 'json',
+        cache: false,
+        processData: false,
+        contentType: "application/json",
+        success: function success(data) {
+            arg.success && arg.success(data);
+            arg = null;
+        },
+        error: function error(xhr) {
+            try {
+                arg.error && arg.error(JSON.parse(xhr.responseText));
+                arg = null;
+            } catch (e) {
+                arg.error && arg.error();
+                arg = null;
+            }
+        }
+    });
+}
+
+function getMultiTerminals(arg) {
+    var config = _manager.YYIMChat.getConfig();
+    jQuery.ajax({
+        url: config.SERVLET.REST_USER_SERVLET + config.MULTI_TENANCY.ETP_KEY + '/' + config.MULTI_TENANCY.APP_KEY + '/' + _manager.YYIMChat.getUserID() + '/multiterminals?token=' + _manager.YYIMChat.getToken(),
+        type: 'get',
+        data: '',
+        dataType: 'json',
+        cache: false,
+        processData: false,
+        contentType: "application/json",
+        success: function success(data) {
+            arg.success && arg.success(data);
+            arg = null;
+        },
+        error: function error(xhr) {
+            try {
+                arg.error && arg.error(JSON.parse(xhr.responseText));
+                arg = null;
+            } catch (e) {
+                arg.error && arg.error();
+                arg = null;
+            }
+        }
+    });
+}
+
+function sendMultiTerminalsCommand(arg) {
+    var config = _manager.YYIMChat.getConfig();
+    jQuery.ajax({
+        url: config.SERVLET.REST_USER_SERVLET + config.MULTI_TENANCY.ETP_KEY + '/' + config.MULTI_TENANCY.APP_KEY + '/' + _manager.YYIMChat.getUserID() + '/multiterminals/command?token=' + _manager.YYIMChat.getToken(),
+        type: 'POST',
+        data: arg.data,
+        dataType: 'json',
+        cache: false,
+        processData: false,
+        contentType: "application/json",
+        success: function success(data) {
+            arg.success && arg.success(data);
+            arg = null;
+        },
+        error: function error(xhr) {
+            try {
+                arg.error && arg.error(JSON.parse(xhr.responseText));
+                arg = null;
+            } catch (e) {
+                arg.error && arg.error();
+                arg = null;
+            }
+        }
+    });
+}
+
+exports.setAIAbility = setAIAbility;
+exports.getAIWords = getAIWords;
+exports.getMultiTerminals = getMultiTerminals;
+exports.sendMultiTerminalsCommand = sendMultiTerminalsCommand;
+
+/***/ }),
+/* 36 */
+/***/ (function(module, exports, __webpack_require__) {
+
+var core = __webpack_require__(6);
+var $JSON = core.JSON || (core.JSON = { stringify: JSON.stringify });
+module.exports = function stringify(it) { // eslint-disable-line no-unused-vars
+  return $JSON.stringify.apply($JSON, arguments);
+};
+
+
+/***/ }),
+/* 37 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+var _manager = __webpack_require__(0);
+
+var _Manager = __webpack_require__(38);
+
+_manager.YYIMManager.prototype.getRecentDigset = function (arg) {
+  arg.startDate = YYIMUtil['isWhateType'](arg.startDate, 'Number') && arg.startDate > 0 ? arg.startDate : 0;
+  if (!(YYIMUtil['isWhateType'](arg.size, 'Number') && arg.size > 0)) {
+    delete arg.size;
+  }
+  (0, _Manager.getRecentDigset)(arg);
+};
+
+_manager.YYIMManager.prototype.removeRecentDigest = function (arg) {
+  if (arg.id) {
+    (0, _Manager.removeRecentDigest)(arg);
+  } else {
+    arg && arg.error && arg.error();
+  }
+};
+
+/***/ }),
+/* 38 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+	value: true
+});
+exports.removeRecentDigest = exports.getRecentDigset = undefined;
+
+var _manager = __webpack_require__(0);
+
+function getRecentDigset(arg) {
+	var config = _manager.YYIMChat.getConfig();
+	var param = {
+		startDate: arg.startDate
+	};
+	if (arg.size) {
+		param.size = arg.size;
+	}
+	jQuery.ajax({
+		url: config.SERVLET.REST_USER_SERVLET + config.MULTI_TENANCY.ETP_KEY + '/' + config.MULTI_TENANCY.APP_KEY + '/' + _manager.YYIMChat.getUserID() + '/contactsmessage/digests?token=' + _manager.YYIMChat.getToken(),
+		type: 'get',
+		data: param,
+		dataType: 'json',
+		cache: false,
+		success: function success(data) {
+			for (var x in data.list) {
+				if (data.list.hasOwnProperty(x)) {
+					var item = data.list[x];
+
+					item.id = _manager.YYIMChat.getJIDUtil().getID(item.jid);
+					item.type = _manager.YYIMChat.getJIDUtil().getChatTypeByJid(item.jid);
+
+					try {
+						if (item.lastMessage) {
+							item.lastMessage = messageParser(JSON.parse(item.lastMessage), item.type);
 						}
-					}
-				}
-				arg.success && arg.success(data);
-				arg = null;
-			},
-			error: function(xhr) {
-				try {
-					arg.error && arg.error(JSON.parse(xhr.responseText));
-					arg = null;
-				} catch(e) {
-					arg.error && arg.error();
-					arg = null;
+					} catch (e) {}
 				}
 			}
-		});
-	}
-
-	function parseContent(content,contentType) {
-		if (content) {
-			var body = JSON.parse(content);
-			try{
-				if(isNaN(Number(body.content))
-				&& contentType != YYIMChat.getConstants().MESSAGE_CONTENT_TYPE.TEXT){ //非数字字符串继续转换 rongqb 20151014
-					body.content = JSON.parse(body.content);
-					if (body.content.content) {
-						body.content = body.content.content;
-					}
-				}
-			}catch(e){
-			}
-			return body;
-		}else {
-			return null;
-		}
-	}
-
-	/**
-	 * 解析最近一条消息
-	 */
-	function messageParser(packet, type) {
-
-		var message = {
-			from: YYIMChat.getJIDUtil().getID(packet.sender),
-			to: YYIMChat.getJIDUtil().getID(packet.receiver || YYIMChat.getUserID()),
-			id: packet.packetId,
-			dateline: packet.dateline || packet.ts,
-			type: type,
-			sessionVersion: packet.sessionVersion
-		};
-
-		if(type){
-			if(type == YYIMChat.getConstants().CHAT_TYPE.GROUP_CHAT){
-				message.from = {
-					room: YYIMChat.getJIDUtil().getID(packet.mucid),
-					roster: YYIMChat.getJIDUtil().getID(packet.sender)
-				};
-			}else if(type == YYIMChat.getConstants().CHAT_TYPE.PUB_ACCOUNT){
-				message.from = {
-					room: YYIMChat.getJIDUtil().getID(packet.sender),
-					roster: YYIMChat.getJIDUtil().getID(YYIMChat.getJIDUtil().getResource(packet.sender))
-				};
-			}
-		}
-
-		if(packet.content) {
-			message.data = message.data || {};
+			arg.success && arg.success(data);
+			arg = null;
+		},
+		error: function error(xhr) {
 			try {
-				var content = parseContent(packet.content,packet.contentType);
-				if(!!content && (!!content.content || content.content === '')) {
-					message.data = content;
-				} else {
-					message.data.content = content;
-				}
-			} catch(e) {}
-
-			message.data.contentType = packet.contentType;
-			message.data.dateline = packet.dateline || packet.ts;
-
-			if(message.data.content 
-			&& message.data.contentType 
-			&& (message.data.contentType == YYIMChat.getConstants().MESSAGE_CONTENT_TYPE.IMAGE 
-			|| message.data.contentType == YYIMChat.getConstants().MESSAGE_CONTENT_TYPE.FILE)) {
-
-				message.data.content.attachId = message.data.content.path;
-				message.data.content.path = YYIMChat.getFileUrl(message.data.content.path);
-			}
-
-			if(YYIMChat.getJIDUtil().getID(packet.sender) != YYIMChat.getUserID()) {
-				var receipt = {
-					to: YYIMChat.getJIDUtil().getID(packet.mucid || packet.sender),
-					id: message.id,
-					type: message.type,
-					sessionVersion: message.sessionVersion
-				};
-				message.data.receipt = receipt;
-			}
-		}
-		return message;
-	}
-	
-	function removeRecentDigest(arg){
-		var typeRelation = {
-			'chat': 'user',
-			'groupchat': 'room',
-			'pubaccount': 'pub'
-		};
-		
-		jQuery.ajax({
-			url: YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + YYIMChat.getUserID() + '/contacts/' + (typeRelation[arg.type] || typeRelation['chat']) + '/' + arg.id + '?token=' + YYIMChat.getToken(),
-			type: 'DELETE',
-			dataType: 'json',
-			cache: false,
-			success: function(data) {
-				arg.success && arg.success(data);
+				arg.error && arg.error(JSON.parse(xhr.responseText));
 				arg = null;
-			},
-			error: function(xhr) {
-				try {
-					arg.error && arg.error(JSON.parse(xhr.responseText));
-					arg = null;
-				} catch(e) {
-					arg.error && arg.error();
-					arg = null;
-				}
+			} catch (e) {
+				arg.error && arg.error();
+				arg = null;
 			}
-		});
-	}
-
-	return {
-		getRecentDigset: getRecentDigset,
-		removeRecentDigest: removeRecentDigest
-	};
-})();
-/**
- * 获取最近联系人（群组、公众号）摘要列表 rongqb 20160908
- * @param arg {
- * startDate: timestamp,
- * size: Number, //default: 50, max: 500
- * success:function,
- * error:function,
- * complete:function
- * }
- */
-YYIMManager.prototype.getRecentDigset = function(arg) {
-	arg.startDate = (YYIMUtil['isWhateType'](arg.startDate,'Number') &&  arg.startDate > 0) ? arg.startDate: 0;
-	if(!(YYIMUtil['isWhateType'](arg.size,'Number') &&  arg.size > 0)){
-		delete arg.size;		
-	}
-	Manager.getRecentDigset(arg);
-};
-
-/**
- * 删除摘要 rognqb 20170225
- * @param arg {
- * id: String,
- * type: String,
- * success:function,
- * error:function,
- * complete:function
- */
-YYIMManager.prototype.removeRecentDigest = function(arg) {
-	if(arg.id){
-		Manager.removeRecentDigest(arg);
-	}else{
-		arg && arg.error && arg.error();	
-	}	
-};
- 	return YYIMManager.getInstance();
-})(YYIMChat);
-
-YYIMChat = (function(YYIMChat){
-	var YYIMManager = YYIMChat.constructor;
-	
-var Manager = (function() {
-	
-	/**
-	 * 获取缩略图列表
-	 * @param {Object} arg {
-	 * 	attachId: String,
-	 *  success: function,
-	 *  error: function,
-	 *  complete: function,
-	 * }
-	 */
-	function getTransformFileList(arg) {
-		jQuery.ajax({
-			url: YYIMChat.getConfig().SERVLET.REST_TRANSFORM_SERVLET + 'docInfo',
-			type: 'get',
-			data: {
-				attachId: arg.attachId,
-				token: YYIMChat.getToken(),
-				downloader: YYIMChat.getUserNode()
-			},
-			dataType: 'json',
-			cache: false,
-			success: arg.success,
-			error: function(xhr){
-				try{
-					arg.error && arg.error(JSON.parse(xhr.responseText));
-					arg = null;
-				}catch(e){
-					arg.error && arg.error();
-					arg = null;
-				}
-			}
-		});
-	}
-	
-	/**
-	 * 获取附件地址
-	 * @param {Object} 
-	 * attachId: String
-	 */
-	function getFileUrl(attachId,mediaType){
-		if(attachId){
-			if(/^https?:\/\/|^data:image\/jpeg;/.test(attachId)){
-				return attachId;
-			}
-			var url =  YYIMChat.getConfig().SERVLET.REST_RESOURCE_SERVLET +  YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' +  YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/download';
-			return url + '?' + jQuery.param({
-				attachId: attachId,
-				downloader: YYIMChat.getUserNode(),
-				token: YYIMChat.getToken(),
-				mediaType: (mediaType === 1)? mediaType: 2
-			});
 		}
-	}
+	});
+}
 
-	return {
-		getTransformFileList: getTransformFileList,
-		getFileUrl: getFileUrl
-	};
-})();
-/**
- * 根据附件id获取 文档转换（图片）后的信息
- * @param {Object} arg
- * {
- * 	attachId：
- *  success:function,
- *  error:function
- *  complete:function
- * }
- */
-YYIMManager.prototype.getTransformFileList = function(arg){
-	if(arg && arg.attachId) {
-		Manager.getTransformFileList(arg);
+function parseContent(content, contentType) {
+	if (content) {
+		var body = JSON.parse(content);
+		try {
+			if (isNaN(Number(body.content)) && contentType != _manager.YYIMChat.getConstants().MESSAGE_CONTENT_TYPE.TEXT) {
+				body.content = JSON.parse(body.content);
+				if (body.content.content) {
+					body.content = body.content.content;
+				}
+			}
+		} catch (e) {}
+		return body;
 	} else {
-		arg && arg.error && arg.error();
+		return null;
 	}
-};
+}
 
-YYIMManager.prototype.getFileUrl = function(attachId,mediaType){
-	if(attachId){
-		return Manager.getFileUrl(attachId,mediaType);
-	}
-};
- 	return YYIMManager.getInstance();
-})(YYIMChat);
+function messageParser(packet, type) {
 
-YYIMChat = (function(YYIMChat){
-	var YYIMManager = YYIMChat.constructor;
-	
-var Manager = (function(){
-	/**
-	 * 多方通话 rongqb 20160104
-	 * @param arg {
-	 * 	caller: ,//主叫号码
-	 *  phones：,//被叫号码
-	 *  accountMmanaged:true, //账号托管
-	 *  account：,//通话账号 accountMmanaged:true时 不传
-	 *  key：,//通话秘钥  accountMmanaged:true时 不传
-	 *  success:function,
-	 *  error:function
-	 * }
-	 */
-	function multiPartyCall(arg){
-		
-		if(arg.accountMmanaged === true){
-			/**
-			 * 账号托管模式
-			 */
-			var data = {
-					etpId: YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY,
-					appId: YYIMChat.getConfig().MULTI_TENANCY.APP_KEY,
-					caller: arg.caller, //主叫号码
-					phones: arg.phones, //被叫号码
-					username: YYIMManager.getInstance().getUserNode() //发起会议的id
+	var message = {
+		from: _manager.YYIMChat.getJIDUtil().getID(packet.sender),
+		to: _manager.YYIMChat.getJIDUtil().getID(packet.receiver || _manager.YYIMChat.getUserID()),
+		id: packet.packetId,
+		dateline: packet.dateline || packet.ts,
+		type: type,
+		sessionVersion: packet.sessionVersion
+	};
+
+	if (type) {
+		if (type == _manager.YYIMChat.getConstants().CHAT_TYPE.GROUP_CHAT) {
+			message.from = {
+				room: _manager.YYIMChat.getJIDUtil().getID(packet.mucid),
+				roster: _manager.YYIMChat.getJIDUtil().getID(packet.sender)
 			};
-			
-			jQuery.ajax({
-				url: YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + 'voip/make?token=' + YYIMManager.getInstance().getToken(),
-				type: 'post',
-				data: JSON.stringify(data),
-				dataType: 'json',
-				cache: false,
-				processData:false,
-				contentType: "application/json", //必须有
-				headers:{
-//					"Content-Type":"application/json"
-				},
-				success: arg.success,
-				error: function(xhr){
-					try{
-						arg.error && arg.error(JSON.parse(xhr.responseText));
-						arg = null;
-					}catch(e){
-						arg.error && arg.error();
-						arg = null;
-					}
-				}
-			});
-			
-		}else{
-			/**
-			 * 直接调用 嘟嘟接口 需要上传 账户和密码
-			 */
-			var timestamp = new Date().getTime();
-			var data = {
-					caller: arg.caller, //主叫号码
-					phones: arg.phones, //被叫号码
-					account_identify: arg.account, //账号id
-					userId: YYIMManager.getInstance().getUserBareJID(), //发起会议的id
-					timestamp: timestamp,
-					sign: hex_sha1(arg.account + arg.key + timestamp)
+		} else if (type == _manager.YYIMChat.getConstants().CHAT_TYPE.PUB_ACCOUNT) {
+			message.from = {
+				room: _manager.YYIMChat.getJIDUtil().getID(packet.sender),
+				roster: _manager.YYIMChat.getJIDUtil().getID(_manager.YYIMChat.getJIDUtil().getResource(packet.sender))
 			};
-			
-			jQuery.ajax({
-				url: YYIMChat.getConfig().MULTIPARTYCALL.ADDRESS,
-				type: 'get',
-				data: data,
-				dataType: 'jsonp',
-				cache: false,
-				jsonp:'callback',
-				success: arg.success,
-				error: function(xhr){
-					try{
-						arg.error && arg.error(JSON.parse(xhr.responseText));
-						arg = null;
-					}catch(e){
-						arg.error && arg.error();
-						arg = null;
-					}
-				}
-			});
 		}
 	}
-	
-	function getServerCorrection(arg){
-		var start,end = 0;
-		jQuery.ajax({
-			url: YYIMChat.getConfig().SERVLET.REST_SYSTEM_SERVLET + 'time',
-			type: 'get',
-			cache: false,
-			beforeSend: function(){
-				start = new Date().getTime();
-			},
-			success: function(serverTime){
-				end = new Date().getTime();
-				arg && arg.success && arg.success(serverTime - (start + end)/2,end - start);
-				arg = null;
-			},
-			error: function(xhr){
-				try{
-					arg.error && arg.error(JSON.parse(xhr.responseText));
-					arg = null;
-				}catch(e){
-					arg.error && arg.error();
-					arg = null;
-				}
+
+	if (packet.content) {
+		message.data = message.data || {};
+		try {
+			var content = parseContent(packet.content, packet.contentType);
+			if (!!content && (!!content.content || content.content === '')) {
+				message.data = content;
+			} else {
+				message.data.content = content;
 			}
+		} catch (e) {}
+
+		message.data.contentType = packet.contentType;
+		message.data.dateline = packet.dateline || packet.ts;
+
+		if (message.data.content && message.data.contentType && (message.data.contentType == _manager.YYIMChat.getConstants().MESSAGE_CONTENT_TYPE.IMAGE || message.data.contentType == _manager.YYIMChat.getConstants().MESSAGE_CONTENT_TYPE.FILE)) {
+
+			message.data.content.attachId = message.data.content.path;
+			message.data.content.path = _manager.YYIMChat.getFileUrl(message.data.content.path);
+		}
+
+		if (_manager.YYIMChat.getJIDUtil().getID(packet.sender) != _manager.YYIMChat.getUserID()) {
+			var receipt = {
+				to: _manager.YYIMChat.getJIDUtil().getID(packet.mucid || packet.sender),
+				id: message.id,
+				type: message.type,
+				sessionVersion: message.sessionVersion
+			};
+			message.data.receipt = receipt;
+		}
+	}
+	return message;
+}
+
+function removeRecentDigest(arg) {
+	var config = _manager.YYIMChat.getConfig();
+	var typeRelation = {
+		'chat': 'user',
+		'groupchat': 'room',
+		'pubaccount': 'pub'
+	};
+
+	jQuery.ajax({
+		url: config.SERVLET.REST_USER_SERVLET + config.MULTI_TENANCY.ETP_KEY + '/' + config.MULTI_TENANCY.APP_KEY + '/' + _manager.YYIMChat.getUserID() + '/contacts/' + (typeRelation[arg.type] || typeRelation['chat']) + '/' + arg.id + '?token=' + _manager.YYIMChat.getToken(),
+		type: 'DELETE',
+		dataType: 'json',
+		cache: false,
+		success: function success(data) {
+			arg.success && arg.success(data);
+			arg = null;
+		},
+		error: function error(xhr) {
+			try {
+				arg.error && arg.error(JSON.parse(xhr.responseText));
+				arg = null;
+			} catch (e) {
+				arg.error && arg.error();
+				arg = null;
+			}
+		}
+	});
+}
+
+exports.getRecentDigset = getRecentDigset;
+exports.removeRecentDigest = removeRecentDigest;
+
+/***/ }),
+/* 39 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+var _manager = __webpack_require__(0);
+
+var _Manager = __webpack_require__(40);
+
+_manager.YYIMManager.prototype.getTransformFileList = function (arg) {
+  if (arg && arg.attachId) {
+    (0, _Manager.getTransformFileList)(arg);
+  } else {
+    arg && arg.error && arg.error();
+  }
+};
+
+_manager.YYIMManager.prototype.getFileUrl = function (attachId, mediaType) {
+  if (attachId) {
+    return (0, _Manager.getFileUrl)(attachId, mediaType);
+  }
+};
+
+/***/ }),
+/* 40 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+	value: true
+});
+exports.getFileUrl = exports.getTransformFileList = undefined;
+
+var _manager = __webpack_require__(0);
+
+function getTransformFileList(arg) {
+	jQuery.ajax({
+		url: _manager.YYIMChat.getConfig().SERVLET.REST_TRANSFORM_SERVLET + 'docInfo',
+		type: 'get',
+		data: {
+			attachId: arg.attachId,
+			token: _manager.YYIMChat.getToken(),
+			downloader: _manager.YYIMChat.getUserNode()
+		},
+		dataType: 'json',
+		cache: false,
+		success: function success(data) {
+			arg.success && arg.success(data);
+			arg = null;
+		},
+		error: function error(xhr) {
+			try {
+				arg.error && arg.error(JSON.parse(xhr.responseText));
+				arg = null;
+			} catch (e) {
+				arg.error && arg.error();
+				arg = null;
+			}
+		}
+	});
+}
+
+function getFileUrl(attachId, mediaType) {
+	var config = _manager.YYIMChat.getConfig();
+	if (attachId) {
+		if (/^https?:\/\/|^data:image\/jpeg;/.test(attachId)) {
+			return attachId;
+		}
+		var url = config.SERVLET.REST_RESOURCE_SERVLET + config.MULTI_TENANCY.ETP_KEY + '/' + config.MULTI_TENANCY.APP_KEY + '/download';
+		return url + '?' + jQuery.param({
+			attachId: attachId,
+			downloader: _manager.YYIMChat.getUserNode(),
+			token: _manager.YYIMChat.getToken(),
+			mediaType: mediaType === 1 ? mediaType : 2
 		});
 	}
-	 
-	var corrections = [];
-	function getTimeCorrection(callback){
-		if(YYIMChat.getConfig().TIMECORRECTION.LOAD){
-			callback && callback(YYIMChat.getConfig().TIMECORRECTION.RESULT);
-		}else{
-			getServerCorrection({
-				success: function(correct,intervcal){
-					if(intervcal < YYIMChat.getConfig().TIMECORRECTION.RESIDUAL){
-						YYIMChat.getConfig().TIMECORRECTION.LOAD = true;
-						YYIMChat.getConfig().TIMECORRECTION.RESULT = Math.round(correct);
-						return callback && callback(YYIMChat.getConfig().TIMECORRECTION.RESULT);;
-					}else{
-						corrections.push(correct);
-						
-						if(corrections.length < YYIMChat.getConfig().TIMECORRECTION.TIMES){
-							getTimeCorrection(callback);
-						}else{
-							var sum = 0;
-							for(var x in corrections){
-								if(YYIMUtil['isWhateType'](corrections[x],'Number')){
-									sum += corrections[x];
-								}
-							}
-							corrections.length = 0;
-							YYIMChat.getConfig().TIMECORRECTION.LOAD = true;
-							YYIMChat.getConfig().TIMECORRECTION.RESULT = Math.round(sum/YYIMChat.getConfig().TIMECORRECTION.TIMES);
-							callback && callback(YYIMChat.getConfig().TIMECORRECTION.RESULT);
-						}
-					}
-				}
-			});
-		}
-	}
-	
-	return {
-		multiPartyCall: multiPartyCall,
-		getTimeCorrection: getTimeCorrection
-	};
-})();
-/**
- * 多方通话 rongqb 20160104
- * @param arg {
- * 	caller: //主叫号码
- *  phones：//被叫号码
- *  accountMmanaged:true, //账号托管为true时，不需要输入账号密码，去im多租户后台管理账号
- *  account：//通话账号  accountMmanaged:true时 不传
- *  key：//通话秘钥  accountMmanaged:true时 不传
- *  success:function,
- *  error:function
- * }
- */
-YYIMManager.prototype.multiPartyCall = function(arg){
-	if(typeof arg === 'undefined' || typeof arg.caller === 'undefined' || !YYIMArrayUtil.isArray(arg.phones) || !arg.phones.length){
+}
+
+exports.getTransformFileList = getTransformFileList;
+exports.getFileUrl = getFileUrl;
+
+/***/ }),
+/* 41 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+var _manager = __webpack_require__(0);
+
+var _Manager = __webpack_require__(42);
+
+_manager.YYIMManager.prototype.multiPartyCall = function (arg) {
+	if (typeof arg === 'undefined' || typeof arg.caller === 'undefined' || !YYIMArrayUtil.isArray(arg.phones) || !arg.phones.length) {
 		arg.error && arg.error();
 		return;
 	}
-	
-	if(!YYIMRegExp.phone.test(arg.caller)){
+
+	if (!YYIMRegExp.phone.test(arg.caller)) {
 		arg.error && arg.error();
 		return;
 	}
-	
+
 	var phones = [];
-	for(var x in arg.phones){
+	for (var x in arg.phones) {
 		var phone = arg.phones[x].toString();
-		if(YYIMRegExp.phone.test(phone)){
-			if(phones.indexOf(phone) === -1){
+		if (YYIMRegExp.phone.test(phone)) {
+			if (phones.indexOf(phone) === -1) {
 				phones.push(phone);
 				var tempCondition = phones.join(",");
-				if(phones.length > YYIMChat.getConfig().MULTIPARTYCALL.PARTYMAXLENGTH || tempCondition.length > YYIMChat.getConfig().MULTIPARTYCALL.PHONESMAXLENGTH){
+				if (phones.length > _manager.YYIMChat.getConfig().MULTIPARTYCALL.PARTYMAXLENGTH || tempCondition.length > _manager.YYIMChat.getConfig().MULTIPARTYCALL.PHONESMAXLENGTH) {
 					phones.pop();
 					break;
 				}
 			}
 		}
 	}
-	
-	if(!phones.length){
+
+	if (!phones.length) {
 		arg.error && arg.error();
 		return;
 	}
-	
+
 	arg.caller = arg.caller.toString();
 	arg.phones = phones;
-	
-	if(arg.accountMmanaged !== true){
+
+	if (arg.accountMmanaged !== true) {
 		arg.phones = phones.join(',');
-		arg.account = arg.account? arg.account:YYIMChat.getConfig().MULTIPARTYCALL.ACCOUNT;
-		arg.key = arg.key? arg.key:YYIMChat.getConfig().MULTIPARTYCALL.KEY;
-		
-		if(typeof arg.account === 'undefined' || typeof arg.key === 'undefined'){
+		arg.account = arg.account ? arg.account : _manager.YYIMChat.getConfig().MULTIPARTYCALL.ACCOUNT;
+		arg.key = arg.key ? arg.key : _manager.YYIMChat.getConfig().MULTIPARTYCALL.KEY;
+
+		if (typeof arg.account === 'undefined' || typeof arg.key === 'undefined') {
 			arg.error && arg.error();
 			return;
 		}
 	}
-	
-	Manager.multiPartyCall(arg);
-}; 
 
-YYIMManager.prototype.getTimeCorrection = function(callback) {
-	Manager.getTimeCorrection(callback);
+	(0, _Manager.multiPartyCall)(arg);
 };
 
+_manager.YYIMManager.prototype.getTimeCorrection = function (callback) {
+	(0, _Manager.getTimeCorrection)(callback);
+};
 
- 	return YYIMManager.getInstance();
-})(YYIMChat);
+/***/ }),
+/* 42 */
+/***/ (function(module, exports, __webpack_require__) {
 
-YYIMChat = (function(YYIMChat){
-	var YYIMManager = YYIMChat.constructor;
-	
-var Manager = (function() {
-
-	function getChatGroups(arg) {
-		jQuery.ajax({
-//			url: YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + YYIMChat.getUserID() + '/room/increment?timestamp=' + arg.startDate + '&token=' + YYIMChat.getToken() + '&membersLimit=' + arg.membersLimit,
-			url: YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + YYIMChat.getUserID() + '/room/contacts/increment?timestamp=' + arg.startDate + '&token=' + YYIMChat.getToken() + '&membersLimit=' + arg.membersLimit,
-			type: 'get',
-			dataType: 'json',
-			cache: false,
-			success: function(chatGroupList) {
-				if(!!chatGroupList){
-					chatGroupList.roomItems = chatGroupList.roomItems || [];
-					chatGroupList.roomNames = chatGroupList.roomNames || [];
-					chatGroupList.leftRooms = chatGroupList.leftRooms || [];
-					
-					var i = chatGroupList.roomItems.length || 0;
-					while(i--) {
-						chatGroupList.roomItems[i] = handleChatGroup(chatGroupList.roomItems[i]);
-					}
-					
-					var j = chatGroupList.roomNames.length || 0;
-					while(j--){
-						chatGroupList.roomNames[j] = YYIMChat.getJIDUtil().getID(chatGroupList.roomNames[j]);
-					}
-					
-					var z = chatGroupList.leftRooms.length || 0;
-					while(z--){
-						chatGroupList.leftRooms[z] = YYIMChat.getJIDUtil().getID(chatGroupList.leftRooms[z]);
-					}
-				}
-				arg.success && arg.success(chatGroupList || {});
-				arg = null;
-			},
-			error: function(xhr) {
-				try {
-					arg.error && arg.error(JSON.parse(xhr.responseText));
-					arg = null;
-				} catch(e) {
-					arg.error && arg.error();
-					arg = null;
-				}
-			}
-		});
-	}
-	/**
-	 * 查找群
-	 * @param arg {keyword, start, size, success: function, error: function,complete: function}
-	 */
-	function queryChatGroup(arg) {
-		var iqBody = {
-			start: YYIMCommonUtil.isNumber(arg.start) ? arg.start : 0,
-			size: YYIMCommonUtil.isNumber(arg.size) ? arg.size : 20,
-			search: arg.keyword
-		};
-		YYIMChat.getConnection().send(new JumpPacket(iqBody, OPCODE.QUERY_CHATGROUP.SEND), function(queryResult, _arg) {
-			var items = queryResult.items || [],
-				i = items.length;
-			while(i--) {
-				var item = items[i];
-				items[i].id = YYIMChat.getJIDUtil().getID(item.jid);
-				items[i].name = items[i].name || items[i].id;
-			}
-			_arg.complete && _arg.complete();
-			_arg.success && _arg.success({
-				start: queryResult.start,
-				total: queryResult.total,
-				items: items
-			});
-		}, arg);
-	}
+"use strict";
 
 
-	/**
-	 * 获取群组信息
-	 * @param arg {jid : 群组的jid, success : function, error : function}
-	 */
-//	function getChatGroupInfo(arg) {
-//		var iqBody = {
-//			to: arg.jid,
-//			type: YYIMChat.getConstants().TYPE.GET,
-//			ns: NS_DISCO_INFO
-//		};
-//		YYIMChat.getConnection().send(new JumpPacket(iqBody, OPCODE.CHATGROUP_INFO.SEND), function(infoResult, _arg) {
-//			_arg.complete && _arg.complete();
-//			var group = handleChatGroup(infoResult);
-//			_arg.success && _arg.success(group);
-//		}, arg);
-//	}
-	function getChatGroupInfo(arg){
-		jQuery.ajax({
-			url: YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + YYIMChat.getUserID() + '/room/info?membersLimit=' + arg.membersLimit + '&mucId=' + arg.jid + '&token=' + YYIMChat.getToken(),
-			type: 'get',
-			dataType: 'json',
-			cache: false,
-			success: function(result) {
-				var group = handleChatGroup(result);
-				arg.success && arg.success(group);
-				arg = null;
-			},
-			error: function(xhr) {
-				try {
-					arg.error && arg.error(JSON.parse(xhr.responseText));
-					arg = null;
-				} catch(e) {
-					arg.error && arg.error();
-					arg = null;
-				}
-			}
-		});
-	}
-
-	/**
-	 * 创建群组 rongqb 20151117
-	 *  @param arg {id: string,members:[],name:string, success: function,complete: function}
-	 *  resource:2.1 
-	 */
-	function createChatGroup(arg) {
-		var iqBody = {
-			id:  Math.uuid(),
-			to: arg.to,
-			naturalLanguageName: arg.name,
-			from: YYIMChat.getUserBareJID(),
-			invitees: arg.members
-		};
-
-		YYIMChat.getConnection().send(new JumpPacket(iqBody, OPCODE.CREATE_GROUP.SEND), function(result, _arg) {
-			_arg.complete && _arg.complete();
-			_arg.success && _arg.success(handleChatGroup(result));
-		}, arg);
-	}
-
-	/**
-	 *  群主转让群组 rongqb 20160104
-	 *  @param arg {id: string,to:群组,newOwner:string,success:function,error:function,complete:function}
-	 *  resource:2.3 
-	 */
-	function transferChatGroup(arg) {
-		var iqBody = {
-			id:  Math.uuid(),
-			to: arg.to,
-			from: YYIMChat.getUserBareJID(),
-			newOwner: arg.newOwner
-		};
-
-		YYIMChat.getConnection().send(new JumpPacket(iqBody, OPCODE.TRANSFER_GROUP.SEND), function(result, _arg) {
-			_arg.complete && _arg.complete();
-			_arg.success && _arg.success(transferChatGroupOwner(result));
-		}, arg);
-	}
-
-	/**
-	 *  群主解散群组 rongqb 20160106
-	 *  @param arg {id: string,to:群组}
-	 *  resource:2.3 
-	 */
-	function dismissChatGroup(arg) {
-		var iqBody = {
-			id:  Math.uuid(),
-			to: arg.to,
-			from: YYIMChat.getUserBareJID()
-		};
-
-		YYIMChat.getConnection().send(new JumpPacket(iqBody, OPCODE.DISMISS_GROUP.SEND), function(result, _arg) {
-			_arg.complete && _arg.complete();
-			_arg.success && _arg.success({
-				id: result.id,
-				from: YYIMChat.getJIDUtil().getID(result.from),
-				to: YYIMChat.getJIDUtil().getID(result.to)
-			});
-		}, arg);
-	}
-
-	/**
-	 * 房间成员邀请人入群 rongqb 20151118
-	 *  @param arg {id: string,to:群组,members:[],name:string, success: function,complete: function}
-	 *  resource:2.1 
-	 */
-	function inviteGroupMember(arg) {
-		var iqBody = {
-			id:  Math.uuid(),
-			to: arg.to,
-			from: YYIMChat.getUserBareJID(),
-			invitees: arg.members
-		};
-
-		YYIMChat.getConnection().send(new JumpPacket(iqBody, OPCODE.INVITE_GROUP_MEMBER.SEND), function(result, _arg) {
-			_arg.complete && _arg.complete();
-			_arg.success && _arg.success(handleChatGroup(result));
-		}, arg);
-	}
-
-	/**
-	 * 群成员更改配置信息 rongqb 20151119
-	 *  @param arg {id: string,to:群组,name:string, success: function,complete: function}
-	 *  resource:2.1 
-	 */
-	function modifyChatGroupInfo(arg) {
-		var iqBody = {
-			id:  Math.uuid(),
-			naturalLanguageName: arg.name,
-			from: YYIMChat.getUserBareJID(),
-			to: arg.to
-		};
-
-		YYIMChat.getConnection().send(new JumpPacket(iqBody, OPCODE.MODIFY_GROUP_INFO.SEND), function(result, _arg) {
-			_arg.complete && _arg.complete();
-			_arg.success && _arg.success(handleChatGroup(result));
-		}, arg);
-	}
-
-	/**
-	 *  群主踢人 rongqb 20151119
-	 *  @param arg {id: string,to:群组,member:string, success: function,complete: function}
-	 *  resource:2.1 
-	 */
-	function kickGroupMember(arg) {
-		var iqBody = {
-			id:  Math.uuid(),
-			member: arg.member,
-			from: YYIMChat.getUserBareJID(),
-			to: arg.to
-		};
-
-		YYIMChat.getConnection().send(new JumpPacket(iqBody, OPCODE.KICK_GROUP_MEMBER.SEND), function(result, _arg) {
-			_arg.complete && _arg.complete();
-			_arg.success && _arg.success(handleChatGroup(result));
-		}, arg);
-	}
-
-	/**
-	 * 群成员退出群 rongqb 20151119
-	 *  @param arg {id: string,to:群组,success: function,complete: function}
-	 *  resource:2.1 
-	 */
-	function exitChatGroup(arg) {
-		var iqBody = {
-			id:  Math.uuid(),
-			from: YYIMChat.getUserBareJID(),
-			to: arg.to
-		};
-
-		YYIMChat.getConnection().send(new JumpPacket(iqBody, OPCODE.EXIT_GROUP.SEND), function(result, _arg) {
-			_arg.complete && _arg.complete();
-			_arg.success && _arg.success({
-				from: YYIMChat.getJIDUtil().getID(result.from),
-				id: result.id,
-				to: YYIMChat.getJIDUtil().getID(result.to)
-			});
-		}, arg);
-	}
-
-	/**
-	 * 群组信息返回处理函数
-	 */
-	function handleChatGroup(result) {
-		if(!result) {
-			return;
-		}
-
-		var j = result.members.length;
-		var members = [];
-		while(j--) {
-			var member = result.members[j];
-			member.id = YYIMChat.getJIDUtil().getID(member.jid);
-			members.push(member);
-		}
-		var chatGroup = {
-			id: YYIMChat.getJIDUtil().getID(result.from || result.jid),
-			name: result.naturalLanguageName || result.roomname || result.name,
-			photo: result.photo,
-			numberOfMembers: result.numberOfMembers,
-			superLarge: result.superLarge,
-			collected: result.collected,
-			type: result.type,
-			safeModel: result.safeModel,
-			creationdate: result.creationdate,
-			creater: YYIMChat.getJIDUtil().getID(result.operator),
-			members: members,
-			owners: result.owners,
-			tag: result.tag
-		};
-		return chatGroup;
-	}
-
-	/**
-	 * 群组转让返回处理函数 rongqb 20160106
-	 */
-	function transferChatGroupOwner(result) {
-		if(!result) {
-			return;
-		}
-
-		var j = result.memberItems.length;
-		var members = [];
-		while(j--) {
-			var member = result.memberItems[j];
-			member.id = YYIMChat.getJIDUtil().getID(member.jid);
-			members.push(member);
-		}
-		var chatGroup = {
-			id: YYIMChat.getJIDUtil().getID(result.from),
-			members: members
-		};
-		return chatGroup;
-	}
-
-	/**
-	 *  收藏群组(收藏/取消收藏) rongqb 20151201
-	 *  @param arg {id: string,to:群组,type:'add/remove', success: function,complete: function}
-	 *  resource:2.1 
-	 */
-	function collectChatGroup(arg) {
-		var iqBody = {
-			id:  Math.uuid(),
-			from: YYIMChat.getUserBareJID(),
-			to: arg.to,
-			type: arg.type
-		};
-
-		YYIMChat.getConnection().send(new JumpPacket(iqBody, OPCODE.COLLECT_GROUP.SEND), function(result, _arg) {
-			_arg.complete && _arg.complete();
-			_arg.success && _arg.success({
-				from: YYIMChat.getJIDUtil().getID(_arg.to),
-				id: result.id,
-				to: YYIMChat.getUserID(),
-				type: _arg.type,
-				code: result.code,
-				message: result.message
-			});
-		}, arg);
-	}
-
-	/**
-	 * 获取群组共享文件 rongqb 20160714 
-	 * arg {
-	 *  id:String,
-	 *  fileType: String, //'file','image','microvideo'
-	 *  type: String,//'chat','groupchat'
-	 *  start:number,
-	 *  size:number
-	 * }
-	 */
-	function getSharedFiles(arg) {
-		var type = ([YYIMChat.getConstants().CHAT_TYPE.CHAT, YYIMChat.getConstants().CHAT_TYPE.GROUP_CHAT, YYIMChat.getConstants().CHAT_TYPE.PUB_ACCOUNT].indexOf(arg.type) > -1) ? arg.type : YYIMChat.getConstants().CHAT_TYPE.CHAT;
-
-		var url = YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/shareattachment/persional/attachment/' + YYIMChat.getUserID() + '/' + arg.id;
-		if(type == YYIMChat.getConstants().CHAT_TYPE.GROUP_CHAT) {
-			url = YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/shareattachment/room/attachment/' + arg.id + '/' + YYIMChat.getUserID();
-		}
-
-		jQuery.ajax({
-			url: url,
-			data: {
-				token: YYIMChat.getToken(),
-				fileType: (['file', 'image', 'microvideo'].indexOf(arg.fileType) > -1) ? arg.fileType : 'file',
-				start: parseInt(arg.start) || 0,
-				size: parseInt(arg.size) || 20
-			},
-			type: 'get',
-			dataType: 'json',
-			cache: false,
-			success: function(data) {
-				var items = data.list || [];
-				i = items.length;
-				while(i--) {
-					var item = items[i];
-					item.id = item.packetId;
-					item.creator = YYIMChat.getJIDUtil().getID(item.creator);
-					item.owner = [];
-					if(type == YYIMChat.getConstants().CHAT_TYPE.GROUP_CHAT) {
-						item.owner.push({
-							id: YYIMChat.getJIDUtil().getID(item.ownerId),
-							type: type
-						});
-					} else {
-						var temp = item.ownerId.split('::');
-						temp[0] = YYIMChat.getJIDUtil().getID(temp[0]);
-						temp[1] = YYIMChat.getJIDUtil().getID(temp[1]);
-						item.owner.push({
-							id: temp[0],
-							type: type
-						},{
-							id: temp[1],
-							type: type
-						});
-					}
-					delete item.ownerId;
-				}
-				arg.success && arg.success(data);
-				arg = null;
-			},
-			error: function(xhr) {
-				try {
-					arg.error && arg.error(JSON.parse(xhr.responseText));
-					arg = null;
-				} catch(e) {
-					arg.error && arg.error();
-					arg = null;
-				}
-			}
-		});
-	}
-	/**
-	 * 获取指定群的群成员[chatroom]
-	 * @param arg {id: string, success: function, error: function,complete: function}
-	 */
-	function getGroupMembers(arg) {
-		jQuery.ajax({
-			url: YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + YYIMChat.getUserID() + '/room/members?mucId=' + arg.id + '&token=' + YYIMChat.getToken(),
-			type: 'get',
-			dataType: 'json',
-			cache: false,
-			success: function(result){
-				if(result && result.length){
-					var index = result.length;
-					while(index--){
-						result[index].id = YYIMChat.getJIDUtil().getID(result[index].jid);
-					}
-				}
-				arg.success && arg.success(result || []);
-				arg = null;
-			},
-			error: function(){
-				try {
-					arg.error && arg.error(JSON.parse(xhr.responseText));
-					arg = null;
-				} catch(e) {
-					arg.error && arg.error();
-					arg = null;
-				}
-			}
-		});
-	}
-	
-		/**
-	 * 加入群组, 需要合法的jid
-	 * @param arg {jid: roomJid, success:function, error:function}
-	 * @returns
-	 */
-	function joinChatGroup(arg) {
-		var presenceBody = {
-			to : arg.jid + "/" + YYIMChat.getUserNode()
-		};
-		
-		YYIMChat.getConnection().send(new JumpPacket(presenceBody, OPCODE.CHATGROUP.SEND), function(joinResult, _arg) {
-			if(joinResult && joinResult.code == '40301'){
-				_arg.error && _arg.error({
-					code : joinResult.code,
-					message : joinResult.message
-				});
-			}else if(joinResult){
-				joinResult.id = YYIMChat.getJIDUtil().getID(joinResult.from);
-				_arg.success && _arg.success(joinResult);
-			}
-		}, arg);
-	}
-	
-	function monitor(){
-		/**
-		 * 群信息更新 rongqb 20151119
-		 * resource:2.1
-		 */
-		YYIMChat.getConnection().registerHandler(OPCODE.ON_GROUP_UPDATE.KEY, function(packet) {
-			var chatgroup = handleChatGroup(packet);
-			if(chatgroup){
-				YYIMChat.onGroupUpdate(chatgroup);			
-			}
-		});
-		
-		/**
-		 * 群组转让 rongqb 20160106
-		 * resource:2.3
-		 */
-		YYIMChat.getConnection().registerHandler(OPCODE.ON_GROUP_TRANSFER.KEY, function(packet) {
-			var chatgroup = transferChatGroupOwner(packet);
-			if(chatgroup){
-				YYIMChat.onTransferGroupOwner(chatgroup);			
-			}
-		});
-		
-		/**
-		 * 被群组踢了 rongqb 20151119
-		 * resource:2.1
-		 */
-		YYIMChat.getConnection().registerHandler(OPCODE.KICKED_GROUP.KEY, function(packet) {
-			var result = {
-				id : packet.id,
-				from : YYIMChat.getJIDUtil().getID(packet.from),
-				to : YYIMChat.getJIDUtil().getID(packet.to)
-			};
-			if(result){
-				YYIMChat.onKickedOutGroup(result);			
-			}
-		});
-	}
-	
-
-	return {
-		monitor: monitor,
-		queryChatGroup: queryChatGroup,
-		getGroupMembers : getGroupMembers,
-		joinChatGroup: joinChatGroup,
-		getChatGroupInfo: getChatGroupInfo,
-		getChatGroups: getChatGroups,
-		createChatGroup: createChatGroup,
-		transferChatGroup: transferChatGroup,
-		dismissChatGroup: dismissChatGroup,
-		getSharedFiles: getSharedFiles,
-		inviteGroupMember: inviteGroupMember,
-		modifyChatGroupInfo: modifyChatGroupInfo,
-		kickGroupMember: kickGroupMember,
-		exitChatGroup: exitChatGroup,
-		collectChatGroup: collectChatGroup
-	};
-})();
-YYIMChat.setBackhander({
-	'monitor': {
-		'groupMonitor': Manager.monitor
-	},
-	'initCallback': {
-		'group':  function(options){
-			YYIMChat.onGroupUpdate = options.onGroupUpdate || function(){};  //群信息更新
-			YYIMChat.onTransferGroupOwner = options.onTransferGroupOwner || function(){}; // 群主转让
-			YYIMChat.onKickedOutGroup = options.onKickedOutGroup || function(){};   //被群踢出 
-		}
-	}
+Object.defineProperty(exports, "__esModule", {
+	value: true
 });
+exports.getTimeCorrection = exports.multiPartyCall = undefined;
 
-/**
- * 查找群
- * @param arg {keyword, start, size, success: function, error: function,complete: function}
- */
-YYIMManager.prototype.queryChatGroup = function(arg) {
-	if(YYIMCommonUtil.isStringAndNotEmpty(arg.keyword)) {
-		Manager.queryChatGroup(arg);
-	} else {
-		arg && arg.error && arg.error();
-	}
-};
+var _stringify = __webpack_require__(1);
 
-/**
- * 加入群
- * @param arg {id: roomJid, success:function, error:function}
- */
-YYIMManager.prototype.joinChatGroup = function(arg) {
-	if(YYIMCommonUtil.isStringAndNotEmpty(arg.id)) {
-		Manager.joinChatGroup({
-			jid: YYIMChat.getJIDUtil().buildChatGroupJID(YYIMChat.getJIDUtil().getNode(arg.id)),
+var _stringify2 = _interopRequireDefault(_stringify);
+
+var _manager = __webpack_require__(0);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function multiPartyCall(arg) {
+
+	if (arg.accountMmanaged === true) {
+		var data = {
+			etpId: _manager.YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY,
+			appId: _manager.YYIMChat.getConfig().MULTI_TENANCY.APP_KEY,
+			caller: arg.caller,
+			phones: arg.phones,
+			username: _manager.YYIMManager.getInstance().getUserNode() };
+
+		jQuery.ajax({
+			url: _manager.YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + 'voip/make?token=' + _manager.YYIMManager.getInstance().getToken(),
+			type: 'post',
+			data: (0, _stringify2.default)(data),
+			dataType: 'json',
+			cache: false,
+			processData: false,
+			contentType: "application/json",
+			headers: {},
 			success: arg.success,
-			error: arg.error
+			error: function error(xhr) {
+				try {
+					arg.error && arg.error(JSON.parse(xhr.responseText));
+					arg = null;
+				} catch (e) {
+					arg.error && arg.error();
+					arg = null;
+				}
+			}
 		});
 	} else {
-		arg && arg.error && arg.error();
-	}
-};
+		var timestamp = new Date().getTime();
+		var data = {
+			caller: arg.caller,
+			phones: arg.phones,
+			account_identify: arg.account,
+			userId: _manager.YYIMManager.getInstance().getUserBareJID(),
+			timestamp: timestamp,
+			sign: hex_sha1(arg.account + arg.key + timestamp)
+		};
 
-/**
- * 获取群组信息
- * @param arg {id : chatGroupId, success : function, error : function}
- */
-YYIMManager.prototype.getChatGroupInfo = function(arg) {
-	if(YYIMCommonUtil.isStringAndNotEmpty(arg.id)) {
-		Manager.getChatGroupInfo({
-			jid: YYIMChat.getJIDUtil().buildChatGroupJID(YYIMChat.getJIDUtil().getNode(arg.id)),
-			membersLimit: (YYIMCommonUtil.isNumber(arg.membersLimit) && arg.membersLimit > 0) ? arg.membersLimit : YYIMChat.getConfig().GROUP.MEMBERSLIMIT,
+		jQuery.ajax({
+			url: _manager.YYIMChat.getConfig().MULTIPARTYCALL.ADDRESS,
+			type: 'get',
+			data: data,
+			dataType: 'jsonp',
+			cache: false,
+			jsonp: 'callback',
 			success: arg.success,
-			error: arg.error
-		});
-	} else {
-		arg && arg.error && arg.error();
-	}
-};
-
-/**
- * 获取群组列表
- * @param arg {
- * startDate: timestamp,
- * membersLimit: Number, //拉取成员数量，默认10
- * success: function,    //成功回调函数
- * error: function,  	 //失败回调函数
- * complete:function     //无论成功失败都回调的函数
- * }
- */
-YYIMManager.prototype.getChatGroups = function(arg) {
-	arg  = arg || {};
-	arg.startDate = (YYIMUtil['isWhateType'](arg.startDate,'Number') &&  arg.startDate > 0) ? arg.startDate: 0;
-	arg.membersLimit = (YYIMCommonUtil.isNumber(arg.membersLimit) && arg.membersLimit > 0) ? arg.membersLimit : YYIMChat.getConfig().GROUP.MEMBERSLIMIT;
-	Manager.getChatGroups(arg);
-};
-
-/**
- * 创建群组 rongqb 20151117
- * @param arg {
- * 	name: String,
- * 	members:[], 
- *  success: function, 
- *  error: function, 
- *  complete:function
- * }
- */
-YYIMManager.prototype.createChatGroup = function(arg) {
-	if(!(YYIMArrayUtil.isArray(arg.members))) {
-		delete arg.members;
-	}
-	if(arg.members) {
-		Manager.createChatGroup(arg);
-	} else {
-		arg && arg.error && arg.error();
-	}
-};
-
-/**
- *  群主转让群组 rongqb 20160104
- *  @param arg {
- *  to:String,
- *  newOwner:string,
- *  success:function,
- *  error:function,
- *  complete:function
- *  }
- */
-YYIMManager.prototype.transferChatGroup = function(arg) {
-	if(arg && typeof(arg.newOwner) == 'string' && arg.to) {
-		arg.to = YYIMChat.getJIDUtil().buildChatGroupJID(YYIMChat.getJIDUtil().getNode(arg.to));
-		Manager.transferChatGroup(arg);
-	} else {
-		arg && arg.error && arg.error();
-	}
-};
-
-/**
- *  群主解散群组 rongqb 20160106
- *  @param arg {
- *  to:String,
- *  success:function,
- *  error:function,
- *  complete:function
- *  }
- */
-YYIMManager.prototype.dismissChatGroup = function(arg) {
-	if(arg && arg.to) {
-		arg.to = YYIMChat.getJIDUtil().buildChatGroupJID(YYIMChat.getJIDUtil().getNode(arg.to));
-		Manager.dismissChatGroup(arg);
-	} else {
-		arg && arg.error && arg.error();
-	}
-};
-
-/**
- * 获取群组共享文件 rongqb 20160715 
- * arg {
- *  id:String,
- *  fileType: String, //'file','image','microvideo'
- *  type: String,//'chat','groupchat'
- *  start:number,
- *  size:number
- * }
- */
-YYIMManager.prototype.getSharedFiles = function(arg) {
-	if(arg && arg.id) {
-		Manager.getSharedFiles(arg);
-	} else {
-		arg && arg.error && arg.error();
-	}
-};
-
-/**
- * 房间成员邀请人入群  rongqb 20151118
- * @param arg {
- * 	to:String,
- * 	members: Array,
- *  success:function,
- *  error:function,
- *  complete:function
- * }
- */
-YYIMManager.prototype.inviteGroupMember = function(arg) {
-	if(arg.members && YYIMArrayUtil.isArray(arg.members) && arg.members.length && arg.to) {
-		arg.to = YYIMChat.getJIDUtil().buildChatGroupJID(YYIMChat.getJIDUtil().getNode(arg.to));
-		Manager.inviteGroupMember(arg);
-	} else {
-		arg && arg.error && arg.error();
-	}
-};
-
-/**
- * 群成员更改配置信息 rongqb 20151119
- *  @param arg {
- * 	to:String,群组id
- * 	name:string, 
- * 	success: function,
- * 	error:function,
- * 	complete: function
- * }
- */
-YYIMManager.prototype.modifyChatGroupInfo = function(arg) {
-	if(arg.name && arg.to) {
-		arg.to = YYIMChat.getJIDUtil().buildChatGroupJID(YYIMChat.getJIDUtil().getNode(arg.to));
-		Manager.modifyChatGroupInfo(arg);
-	} else {
-		arg && arg.error && arg.error();
-	}
-};
-
-/**
- * 群组踢人 
- *  @param arg {
- *  to:String, //群组id
- *  member:string, //被踢人id，一次只能踢一个人
- *  success: function,
- *  error:function,
- *  complete: function
- *  }
- */
-YYIMManager.prototype.kickGroupMember = function(arg) {
-	if(arg.member && typeof(arg.member) == 'string' && arg.to) {
-		arg.to = YYIMChat.getJIDUtil().buildChatGroupJID(YYIMChat.getJIDUtil().getNode(arg.to));
-		Manager.kickGroupMember(arg);
-	} else {
-		arg && arg.error && arg.error();
-	}
-};
-
-/**
- * 群成员退出群 rongqb 20151119
- *  @param arg {
- * 	to:String,
- * 	success: function,
- *  error:function,
- *  complete: function
- * }
- */
-YYIMManager.prototype.exitChatGroup = function(arg) {
-	if(arg.to) {
-		arg.to = YYIMChat.getJIDUtil().buildChatGroupJID(YYIMChat.getJIDUtil().getNode(arg.to));
-		Manager.exitChatGroup(arg);
-	} else {
-		arg && arg.error && arg.error();
-	}
-};
-
-/**
- *  收藏群组(收藏) rongqb 20151201
- *  @param arg {
- * 	to: String,
- * 	success: function, 
- *  error: function,
- *  complete: functionf
- * }
- */
-YYIMManager.prototype.collectGroup = function(arg) {
-	if(arg.to) {
-		arg.to = YYIMChat.getJIDUtil().buildChatGroupJID(YYIMChat.getJIDUtil().getNode(arg.to));
-		arg.type = this.getConstants().COLLECT_TYPE.ADD;
-		Manager.collectChatGroup(arg);
-	} else {
-		arg && arg.error && arg.error();
-	}
-};
-
-/**
- *  取消收藏群组 rongqb 20151201
- *  @param arg {
- * 	to: String,
- *  type: String, //add remove
- * 	success: function, 
- *  error: function,
- *  complete: function
- * }
- */
-YYIMManager.prototype.removeCollectGroup = function(arg) {
-	if(arg.to) {
-		arg.to = YYIMChat.getJIDUtil().buildChatGroupJID(YYIMChat.getJIDUtil().getNode(arg.to));
-		arg.type = this.getConstants().COLLECT_TYPE.REMOVE;
-		Manager.collectChatGroup(arg);
-	} else {
-		arg && arg.error && arg.error();
-	}
-};
-
-/**
- * 获取群组成员 rongqb 20170314
- * @param {Object} arg
- */
-YYIMManager.prototype.getGroupMembers = function(arg) {
-	var id = arg.id || arg.to;
-	if(arg && id) {
-		if(YYIMCommonUtil.isStringAndNotEmpty(id)) {
-			Manager.getGroupMembers(arg);
-		}
-	} else {
-		arg && arg.error && arg.error();
-	}
-};
- 	return YYIMManager.getInstance();
-})(YYIMChat);
-
-YYIMChat = (function(YYIMChat){
-	var YYIMManager = YYIMChat.constructor;
-	
-var Manager = (function(){
-	var receivedMsgIds = new BaseList();
-	/**
-	 * 监控message包
-	 */
-	function monitor() {
-		YYIMChat.getConnection().registerHandler(OPCODE.USER_MESSAGE.KEY, function(packet) {
-			parseMessage(packet, YYIMChat.getConstants().CHAT_TYPE.CHAT);
-		});
-
-		YYIMChat.getConnection().registerHandler(OPCODE.CHATGROUP_MESSAGE.KEY, function(packet) {
-			parseMessage(packet, YYIMChat.getConstants().CHAT_TYPE.GROUP_CHAT);
-		});
-
-		YYIMChat.getConnection().registerHandler(OPCODE.PUBACCOUNT_MESSAGE.KEY, function(packet) {
-			parseMessage(packet, YYIMChat.getConstants().CHAT_TYPE.PUB_ACCOUNT);
-		});
-		/**
-		 * 监听发送消息的已读回执 rongqb 20151120
-		 */
-		YYIMChat.getConnection().registerHandler(OPCODE.RECEIPTS.KEY, function(receipts) {
-			receipts.type = YYIMChat.getJIDUtil().getChatTypeByJid(receipts.to);
-			receipts.from = YYIMChat.getJIDUtil().getID(receipts.from);
-			receipts.to = YYIMChat.getJIDUtil().getID(receipts.to);
-
-			YYIMChat.onReceipts(receipts);
-		});
-
-		/**
-		 * 监听各端同步消息  rongqb 20151123
-		 */
-		YYIMChat.getConnection().registerHandler(OPCODE.SYNC_MESSAGE.KEY, function(packet) {
-			parseMessage(packet, packet.type);
-		});
-
-		/**
-		 * 监听透传消息  rongqb 20150603
-		 */
-		YYIMChat.getConnection().registerHandler(OPCODE.USERONLINEDELIVERPACKET.KEY, function(packet) {
-			parseTransparentMessage(packet,YYIMChat.getConstants().CHAT_TYPE.CHAT);
-		});
-
-		/**
-		 * 监听透传消息  rongqb 20150712
-		 */
-		YYIMChat.getConnection().registerHandler(OPCODE.MUCONLINEDELIVERPACKET.KEY, function(packet) {
-			parseTransparentMessage(packet,YYIMChat.getConstants().CHAT_TYPE.GROUP_CHAT);
-		});
-
-		/**
-		 * 监听透传消息  rongqb 20150712
-		 */
-		YYIMChat.getConnection().registerHandler(OPCODE.PUBONLINEDELIVERPACKET.KEY, function(packet) {
-			parseTransparentMessage(packet,YYIMChat.getConstants().CHAT_TYPE.PUB_ACCOUNT);
-		});
-
-		/**
-		 * 监听透传消息  rongqb 20150719
-		 */
-		YYIMChat.getConnection().registerHandler(OPCODE.REMINDSETTINGONLINEDELIVERPACKET.KEY, function(packet) {
-			parseTransparentMessage(packet);
-		});
-
-
-	};
-
-	function parseTransparentMessage(packet,type){
-		// 是否重复消息包
-		if(receivedMsgIds.get(packet.id)){
-			return;
-		}
-		receivedMsgIds.set(packet.id, packet);
-
-		packet.type = type || YYIMChat.getJIDUtil().getChatTypeByJid(packet.from);
-
-		packet.to = YYIMChat.getJIDUtil().getID(packet.to) || YYIMChat.getUserID();
-
-		packet.from = (packet.type != YYIMChat.getConstants().CHAT_TYPE.GROUP_CHAT) ? YYIMChat.getJIDUtil().getID(packet.from):{
-			room: YYIMChat.getJIDUtil().getID(packet.from),
-			roster: YYIMChat.getJIDUtil().getID(YYIMChat.getJIDUtil().getResource(packet.from))
-		};
-
-		if(packet.attributes){
-			if(packet.attributes.receiver){
-				packet.attributes.receiver = YYIMChat.getJIDUtil().getID(packet.attributes.receiver);
-			}
-
-			if(packet.attributes.bareJID){
-				packet.attributes.bareJID = {
-					id: YYIMChat.getJIDUtil().getID(packet.attributes.bareJID),
-					type: YYIMChat.getJIDUtil().getChatTypeByJid(packet.attributes.bareJID)
-				};
-			}
-
-			if(packet.attributes.userJids
-			&& YYIMChat.getUtil()['isWhateType'](packet.attributes.userJids,'Array')){
-				for(var x in packet.attributes.userJids){
-					if(packet.attributes.userJids.hasOwnProperty(x)){
-						packet.attributes.userJids[x] = YYIMChat.getJIDUtil().getID(packet.attributes.userJids[x]);
-					}
+			error: function error(xhr) {
+				try {
+					arg.error && arg.error(JSON.parse(xhr.responseText));
+					arg = null;
+				} catch (e) {
+					arg.error && arg.error();
+					arg = null;
 				}
 			}
-		}
-		try{
-			YYIMChat.onTransparentMessage(packet);
-		}catch(e){
-			YYIMChat.log("TransparentMessHandleError:",0,packet);
-		}
+		});
 	}
+}
 
-	/**
-	 * 解析消息体 rongqb 20170911
-	 * @param {Object} packet
-	 */
-	function parseMessageBody(packet, type){
-
-		var packetContent;
-		try{
-			// 除最简单文本消息，例如图片消息、文件、分享类消息，需要解析
-			packetContent = JSON.parse(packet.content);
-
-			if(packetContent
-			&& packetContent.content){
-				try{
-					if(isNaN(Number(packetContent.content))
-					&& packet.contentType != YYIMChat.getConstants().MESSAGE_CONTENT_TYPE.TEXT){
-						packetContent.content = JSON.parse(packetContent.content);
-					}
-				}catch(e){
-				}
-			}
-		}catch(e){
-			packetContent = packet.content;
-		}
-
-		var content = packetContent;
-
-		if(typeof packetContent.content != 'undefined'){
-			content = packetContent.content;
-		}
-
-		var body = {
-			content: content,
-			contentType: packet.contentType,
-			dateline: packet.dateline || packet.ts,
-			atuser: packetContent.atuser,
-			extend: packetContent.extend 	//扩展
-		};
-
-		if(packet.contentType == YYIMChat.getConstants().MESSAGE_CONTENT_TYPE.MERGEFORWARD){
-			body.title = packetContent.title;
-			body.containfileNum = packetContent.containfileNum;
-			body.safeMode = packetContent.safeMode;
-
-			if(packetContent.messages){
-				body.messages = [];
-				for(var x in packetContent.messages){
-					if(packetContent.messages.hasOwnProperty(x)){
-						var item = arguments.callee(packetContent.messages[x],type);
-						if(item){
-							body.messages.push(item);
-						}
-					}
-				}
-			}
-		}
-
-		var from = (type == YYIMChat.getConstants().CHAT_TYPE.CHAT) ? YYIMChat.getJIDUtil().getID(packet.sender || packet.from):{
-			room: YYIMChat.getJIDUtil().getID(packet.mucid || packet.sender || packet.from),
-			roster: YYIMChat.getJIDUtil().getID(YYIMChat.getJIDUtil().getResource(packet.sender || packet.from) || packet.sender)
-		};
-
-		var result = {
-			id: packet.id || packet.packetId,
-			type: type,
-			from: from,
-			dateline: body.dateline,
-			sessionVersion: packet.sessionVersion,
-			data: body
-		};
-
-		if(type == YYIMChat.getConstants().CHAT_TYPE.CHAT) {
-			result.resource = YYIMChat.getJIDUtil().getResource(packet.sender || packet.from);
-			result.to = YYIMChat.getJIDUtil().getID(packet.receiver || packet.to);
-		}else{
-			result.to = YYIMChat.getUserID();
-		}
-
-		if(body.contentType){
-			if(result.data.content
-			&& result.data.content.path){
-				result.data.content.attachId = result.data.content.path;
-				result.data.content.path = YYIMChat.getFileUrl(result.data.content.path);
-
-				if(body.contentType == YYIMChat.getConstants().MESSAGE_CONTENT_TYPE.FILE
-				|| body.contentType == YYIMChat.getConstants().MESSAGE_CONTENT_TYPE.IMAGE){
-					result.data.content.size = result.data.content.size || 0;
-				}
-			}
-
-			/**
-			 * 发送接收回执
-			 */
-			if(result.data
-			&& (packet.receipts === true
-				|| (YYIMChat.getJIDUtil().getID(packet.sender || packet.from) != YYIMChat.getUserID()))){
-
-				result.data.receipt = {
-					to: packet.mucid || packet.sender || packet.from,
-					id: packet.id || packet.packetId,
-					type: type,
-					sessionVersion: packet.sessionVersion
-				};
-
-				if(packet.receipts === true){
-					sendReceiptsPacket(result.data.receipt);
-				}
-			}
-			return result;
-		}
-	}
-
-	// 长连接接收到的消息
-	function parseMessage(packet, type) {
-		// 是否重复消息包
-		if(receivedMsgIds.get(packet.id)){
-			return;
-		}
-		receivedMsgIds.set(packet.id, packet);
-
-		var message = parseMessageBody(packet, type);
-
-		if(message){
-			try{
-				/**
-				 * 处理消息报文
-				 */
-				YYIMChat.onMessage(message);
-			}catch(e){
-				YYIMChat.log("ParseMessageError:",0,message,e);
-			}
-		}
-	}
-
-	/**
-	 * 发送回执
-	 *  @param arg {
-	 *   to: String,	//回执的对象
-	 * 	 type: String, 	//type
-	 * 	 id: String, 	//报文id
-	 *   sessionVersion: String,
-	 *   state: 1/2
-	 * }
-	 */
-	function sendReceiptsPacket(arg){
-		arg = arg || {};
-		var Jid = YYIMChat.getJIDUtil().buildUserJID(YYIMChat.getJIDUtil().getNode(arg.to));
-		if(arg.type == YYIMChat.getConstants().CHAT_TYPE.GROUP_CHAT){
-			Jid = YYIMChat.getJIDUtil().buildChatGroupJID(YYIMChat.getJIDUtil().getNode(arg.to));
-		}else if(arg.type == YYIMChat.getConstants().CHAT_TYPE.PUB_ACCOUNT){
-			Jid = YYIMChat.getJIDUtil().buildPubAccountJID(YYIMChat.getJIDUtil().getNode(arg.to));
-		}
-		var receiptsPacket = new JumpPacket({
-			to: Jid,
-			dateline: new Date().getTime(),
-			sessionVersion: arg.sessionVersion,
-			id: arg.id,
-			state: arg.state
-		}, OPCODE.RECEIPTS.SEND);
-		YYIMChat.getConnection().send(receiptsPacket);
-	}
-
-	/**
-	 * 发送消息
-	 * @param arg {id, to: jid, type: "groupchat"|"chat"|"pubaccount",body:object, success:function, error:function}
-	 */
-	 function sendMessage(arg) {
-	 	var body = arg.body || {};
-
-		// 发送请求参数处理 yaoleib20171220
-		body.extend = handleRequestParams(body);
-
-		if(body.extend && (typeof body.extend != 'string')){
-			try{
-				body.extend = JSON.stringify(body.extend);
-			}catch(e){
-				delete body.extend;
-				YYIMChat.log('ExtendIllegal',0,e.message);
-			}
-		}
-
-		var to,
-			msgBody = {
-    			id 			: arg.id,
-				spaceId		: arg.spaceId,
-    			type 		: arg.type || YYIMChat.getConstants().CHAT_TYPE.CHAT,
-    			contentType	: body.contentType || YYIMChat.getConstants().MESSAGE_CONTENT_TYPE.TEXT,
-    			dateline	: body.dateline || (YYIMChat.getConfig().TIMECORRECTION.AUTOCORRECTION? new Date().getTime() + YYIMChat.getConfig().TIMECORRECTION.RESULT: new Date().getTime()),
-    			content 	: JSON.stringify({
-    				atuser  : body.atuser,
-    				extend  : body.extend,
-    				content : body.content
-    			})
-			},
-			opcode = OPCODE.USER_MESSAGE.SEND;
-		/**
-		 * rongqb 20170628
-		 */
-	  	if((!body.contentType
-	    	|| body.contentType == YYIMChat.getConstants().MESSAGE_CONTENT_TYPE.TEXT)
-	    	&& arg.type == YYIMChat.getConstants().CHAT_TYPE.GROUP_CHAT){
-	    		if(YYIMUtil['isWhateType'](body.atuser,'Array')
-	    		&& body.atuser.length){
-	    			if(body.atuser.indexOf('im_atall') != -1){
-	    				msgBody.statRead = 1;
-	    			}else{
-	    				msgBody.statRead = 2;
-	    				msgBody.statMem = body.atuser;
-	    			}
-	    		}
-	    	}
-
-		if(arg.type == YYIMChat.getConstants().CHAT_TYPE.GROUP_CHAT){
-			to = YYIMChat.getJIDUtil().buildChatGroupJID(YYIMChat.getJIDUtil().getNode(arg.to));
-			opcode = OPCODE.CHATGROUP_MESSAGE.SEND;
-
-		}else if(arg.type == YYIMChat.getConstants().CHAT_TYPE.PUB_ACCOUNT){
-			to = YYIMChat.getJIDUtil().buildPubAccountJID(YYIMChat.getJIDUtil().getNode(arg.to));
-			opcode = OPCODE.PUBACCOUNT_MESSAGE.SEND;
-		}else{
-			msgBody.receipts = '1';
-			if(arg.resource){
-				// 给自己的其他端发
-				if(arg.to == YYIMChat.getUserID()) {
-					to = YYIMChat.getJIDUtil().buildUserJID(YYIMChat.getJIDUtil().getNode(arg.to), arg.resource);
-				}else{
-					to = YYIMChat.getJIDUtil().buildUserJID(YYIMChat.getJIDUtil().getNode(arg.to));
-				}
-			}else{
-				to = YYIMChat.getJIDUtil().buildUserJID(YYIMChat.getJIDUtil().getNode(arg.to));
-			}
-		}
-
-		msgBody.to = to;
-
-		YYIMChat.getConnection().send(new JumpPacket(msgBody, opcode), function(receipts) {
-			if(receipts.code == 40302){
+function getServerCorrection(arg) {
+	var start,
+	    end = 0;
+	jQuery.ajax({
+		url: _manager.YYIMChat.getConfig().SERVLET.REST_SYSTEM_SERVLET + 'time',
+		type: 'get',
+		cache: false,
+		beforeSend: function beforeSend() {
+			start = new Date().getTime();
+		},
+		success: function success(serverTime) {
+			end = new Date().getTime();
+			arg && arg.success && arg.success(serverTime - (start + end) / 2, end - start);
+			arg = null;
+		},
+		error: function error(xhr) {
+			try {
+				arg.error && arg.error(JSON.parse(xhr.responseText));
+				arg = null;
+			} catch (e) {
 				arg.error && arg.error();
 				arg = null;
-			}else{
-				if(!!YYIMChat.getConfig().TIMECORRECTION.AUTOCORRECTION){
-					if(receipts && receipts.state == 1){
-						YYIMChat.onReceipts(receipts);
+			}
+		}
+	});
+}
+
+var corrections = [];
+function getTimeCorrection(callback) {
+	if (_manager.YYIMChat.getConfig().TIMECORRECTION.LOAD) {
+		callback && callback(_manager.YYIMChat.getConfig().TIMECORRECTION.RESULT);
+	} else {
+		getServerCorrection({
+			success: function success(correct, intervcal) {
+				if (intervcal < _manager.YYIMChat.getConfig().TIMECORRECTION.RESIDUAL) {
+					_manager.YYIMChat.getConfig().TIMECORRECTION.LOAD = true;
+					_manager.YYIMChat.getConfig().TIMECORRECTION.RESULT = Math.round(correct);
+					return callback && callback(_manager.YYIMChat.getConfig().TIMECORRECTION.RESULT);;
+				} else {
+					corrections.push(correct);
+
+					if (corrections.length < _manager.YYIMChat.getConfig().TIMECORRECTION.TIMES) {
+						getTimeCorrection(callback);
+					} else {
+						var sum = 0;
+						for (var x in corrections) {
+							if (YYIMUtil['isWhateType'](corrections[x], 'Number')) {
+								sum += corrections[x];
+							}
+						}
+						corrections.length = 0;
+						_manager.YYIMChat.getConfig().TIMECORRECTION.LOAD = true;
+						_manager.YYIMChat.getConfig().TIMECORRECTION.RESULT = Math.round(sum / _manager.YYIMChat.getConfig().TIMECORRECTION.TIMES);
+						callback && callback(_manager.YYIMChat.getConfig().TIMECORRECTION.RESULT);
 					}
-				}else{
-					arg.success && arg.success(handleSendMessage(arg,body,receipts));
-					arg = null;
 				}
 			}
 		});
-
-		if(!!YYIMChat.getConfig().TIMECORRECTION.AUTOCORRECTION){
-			arg.success && arg.success(handleSendMessage(arg,body,{
-				dateline: msgBody.dateline
-			}));
-		}
 	}
+}
 
-	/**
-	 * 发送请求参数处理 yaoleib20171220
-	 */
-	function handleRequestParams(body) {
-		var messageExtend = {
-			intelligentAnalysis: {}
-		};
+exports.multiPartyCall = multiPartyCall;
+exports.getTimeCorrection = getTimeCorrection;
 
-		// 消息开关，目前只有文本消息进行AI分析
-		if(body.contentType && body.contentType == YYIMChat.getConstants().MESSAGE_CONTENT_TYPE.TEXT){
-			//YYAIAbility.setDictionaries(["投票", "视频会议", "吃鸡", "电话", "拍照", "照片"]);
+/***/ }),
+/* 43 */
+/***/ (function(module, exports, __webpack_require__) {
 
-			// 兼容写法，可能不会走进这个判断
-			if(body.extend && (typeof body.extend != 'string')){
-				messageExtend = body.extend;
-			}
-			if(YYAIAbility.intelligentAnalysis(body.content)){
-				messageExtend.intelligentAnalysis.intelligentable = true;
-				if(body.sceneParams){
-					messageExtend.intelligentAnalysis.params = body.sceneParams
-					delete body.sceneParams
+"use strict";
+
+
+var _manager = __webpack_require__(0);
+
+var _Manager = __webpack_require__(44);
+
+_manager.YYIMChat.setBackhander({
+  'monitor': {
+    'groupMonitor': _Manager.monitor
+  },
+  'initCallback': {
+    'group': function group(options) {
+      _manager.YYIMChat.onGroupUpdate = options.onGroupUpdate || function () {};
+      _manager.YYIMChat.onTransferGroupOwner = options.onTransferGroupOwner || function () {};
+      _manager.YYIMChat.onKickedOutGroup = options.onKickedOutGroup || function () {};
+    }
+  }
+});
+
+_manager.YYIMManager.prototype.getChatGroups = function (arg) {
+  arg = arg || {};
+  arg.startDate = YYIMUtil['isWhateType'](arg.startDate, 'Number') && arg.startDate > 0 ? arg.startDate : 0;
+  arg.membersLimit = YYIMCommonUtil.isNumber(arg.membersLimit) && arg.membersLimit > 0 ? arg.membersLimit : _manager.YYIMChat.getConfig().GROUP.MEMBERSLIMIT;
+  (0, _Manager.getChatGroups)(arg);
+};
+
+_manager.YYIMManager.prototype.queryChatGroup = function (arg) {
+  if (YYIMCommonUtil.isStringAndNotEmpty(arg.keyword)) {
+    (0, _Manager.queryChatGroup)(arg);
+  } else {
+    arg && arg.error && arg.error();
+  }
+};
+
+_manager.YYIMManager.prototype.joinChatGroup = function (arg) {
+  if (YYIMCommonUtil.isStringAndNotEmpty(arg.id)) {
+    (0, _Manager.joinChatGroup)({
+      jid: _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.id)),
+      success: arg.success,
+      error: arg.error
+    });
+  } else {
+    arg && arg.error && arg.error();
+  }
+};
+
+_manager.YYIMManager.prototype.getChatGroupInfo = function (arg) {
+  if (YYIMCommonUtil.isStringAndNotEmpty(arg.id)) {
+    (0, _Manager.getChatGroupInfo)({
+      jid: _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.id)),
+      membersLimit: YYIMCommonUtil.isNumber(arg.membersLimit) && arg.membersLimit > 0 ? arg.membersLimit : _manager.YYIMChat.getConfig().GROUP.MEMBERSLIMIT,
+      success: arg.success,
+      error: arg.error
+    });
+  } else {
+    arg && arg.error && arg.error();
+  }
+};
+
+_manager.YYIMManager.prototype.createChatGroup = function (arg) {
+  if (!YYIMArrayUtil.isArray(arg.members)) {
+    delete arg.members;
+  }
+  if (arg.members) {
+    (0, _Manager.createChatGroup)(arg);
+  } else {
+    arg && arg.error && arg.error();
+  }
+};
+
+_manager.YYIMManager.prototype.transferChatGroup = function (arg) {
+  if (arg && typeof arg.newOwner == 'string' && arg.to) {
+    arg.to = _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));
+    (0, _Manager.transferChatGroup)(arg);
+  } else {
+    arg && arg.error && arg.error();
+  }
+};
+
+_manager.YYIMManager.prototype.dismissChatGroup = function (arg) {
+  if (arg && arg.to) {
+    arg.to = _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));
+    (0, _Manager.dismissChatGroup)(arg);
+  } else {
+    arg && arg.error && arg.error();
+  }
+};
+
+_manager.YYIMManager.prototype.inviteGroupMember = function (arg) {
+  if (arg.members && YYIMArrayUtil.isArray(arg.members) && arg.members.length && arg.to) {
+    arg.to = _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));
+    (0, _Manager.inviteGroupMember)(arg);
+  } else {
+    arg && arg.error && arg.error();
+  }
+};
+
+_manager.YYIMManager.prototype.modifyChatGroupInfo = function (arg) {
+  if (arg.name && arg.to) {
+    arg.to = _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));
+    (0, _Manager.modifyChatGroupInfo)(arg);
+  } else {
+    arg && arg.error && arg.error();
+  }
+};
+
+_manager.YYIMManager.prototype.kickGroupMember = function (arg) {
+  if (arg.member && typeof arg.member == 'string' && arg.to) {
+    arg.to = _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));
+    (0, _Manager.kickGroupMember)(arg);
+  } else {
+    arg && arg.error && arg.error();
+  }
+};
+
+_manager.YYIMManager.prototype.exitChatGroup = function (arg) {
+  if (arg.to) {
+    arg.to = _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));
+    (0, _Manager.exitChatGroup)(arg);
+  } else {
+    arg && arg.error && arg.error();
+  }
+};
+
+_manager.YYIMManager.prototype.collectGroup = function (arg) {
+  if (arg.to) {
+    arg.to = _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));
+    arg.type = this.getConstants().COLLECT_TYPE.ADD;
+    (0, _Manager.collectChatGroup)(arg);
+  } else {
+    arg && arg.error && arg.error();
+  }
+};
+
+_manager.YYIMManager.prototype.removeCollectGroup = function (arg) {
+  if (arg.to) {
+    arg.to = _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));
+    arg.type = this.getConstants().COLLECT_TYPE.REMOVE;
+    (0, _Manager.collectChatGroup)(arg);
+  } else {
+    arg && arg.error && arg.error();
+  }
+};
+
+_manager.YYIMManager.prototype.getSharedFiles = function (arg) {
+  if (arg && arg.id) {
+    (0, _Manager.getSharedFiles)(arg);
+  } else {
+    arg && arg.error && arg.error();
+  }
+};
+
+_manager.YYIMManager.prototype.getGroupMembers = function (arg) {
+  if (arg && arg.id) {
+    if (YYIMCommonUtil.isStringAndNotEmpty(arg.id)) {
+      (0, _Manager.getGroupMembers)(arg);
+    }
+  } else {
+    arg && arg.error && arg.error();
+  }
+};
+
+/***/ }),
+/* 44 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+	value: true
+});
+exports.collectChatGroup = exports.exitChatGroup = exports.kickGroupMember = exports.modifyChatGroupInfo = exports.inviteGroupMember = exports.getSharedFiles = exports.dismissChatGroup = exports.transferChatGroup = exports.createChatGroup = exports.getChatGroups = exports.getChatGroupInfo = exports.joinChatGroup = exports.getGroupMembers = exports.queryChatGroup = exports.monitor = undefined;
+
+var _manager = __webpack_require__(0);
+
+function getChatGroups(arg) {
+	var config = _manager.YYIMChat.getConfig();
+	jQuery.ajax({
+		url: config.SERVLET.REST_USER_SERVLET + config.MULTI_TENANCY.ETP_KEY + '/' + config.MULTI_TENANCY.APP_KEY + '/' + _manager.YYIMChat.getUserID() + '/room/contacts/increment?timestamp=' + arg.startDate + '&token=' + _manager.YYIMChat.getToken() + '&membersLimit=' + arg.membersLimit,
+		type: 'get',
+		dataType: 'json',
+		cache: false,
+		success: function success(chatGroupList) {
+			if (!!chatGroupList) {
+				chatGroupList.roomItems = chatGroupList.roomItems || [];
+				chatGroupList.roomNames = chatGroupList.roomNames || [];
+				chatGroupList.leftRooms = chatGroupList.leftRooms || [];
+
+				var i = chatGroupList.roomItems.length || 0;
+				while (i--) {
+					chatGroupList.roomItems[i] = handleChatGroup(chatGroupList.roomItems[i]);
+				}
+
+				var j = chatGroupList.roomNames.length || 0;
+				while (j--) {
+					chatGroupList.roomNames[j] = _manager.YYIMChat.getJIDUtil().getID(chatGroupList.roomNames[j]);
+				}
+
+				var z = chatGroupList.leftRooms.length || 0;
+				while (z--) {
+					chatGroupList.leftRooms[z] = _manager.YYIMChat.getJIDUtil().getID(chatGroupList.leftRooms[z]);
 				}
 			}
+			arg.success && arg.success(chatGroupList || {});
+			arg = null;
+		},
+		error: function error(xhr) {
+			try {
+				arg.error && arg.error(JSON.parse(xhr.responseText));
+				arg = null;
+			} catch (e) {
+				arg.error && arg.error();
+				arg = null;
+			}
 		}
-		return messageExtend;
+	});
+}
+
+function queryChatGroup(arg) {
+	var iqBody = {
+		start: YYIMCommonUtil.isNumber(arg.start) ? arg.start : 0,
+		size: YYIMCommonUtil.isNumber(arg.size) ? arg.size : 20,
+		search: arg.keyword
+	};
+	_manager.YYIMChat.getConnection().send(new JumpPacket(iqBody, OPCODE.QUERY_CHATGROUP.SEND), function (queryResult, _arg) {
+		var items = queryResult.items || [],
+		    i = items.length;
+		while (i--) {
+			var item = items[i];
+			items[i].id = _manager.YYIMChat.getJIDUtil().getID(item.jid);
+			items[i].name = items[i].name || items[i].id;
+		}
+		_arg.complete && _arg.complete();
+		_arg.success && _arg.success({
+			start: queryResult.start,
+			total: queryResult.total,
+			items: items
+		});
+	}, arg);
+}
+
+function joinChatGroup(arg) {
+	var presenceBody = {
+		to: arg.jid + "/" + _manager.YYIMChat.getUserNode()
+	};
+
+	_manager.YYIMChat.getConnection().send(new JumpPacket(presenceBody, OPCODE.CHATGROUP.SEND), function (joinResult, _arg) {
+		if (joinResult && joinResult.code == '40301') {
+			_arg.error && _arg.error({
+				code: joinResult.code,
+				message: joinResult.message
+			});
+		} else if (joinResult) {
+			joinResult.id = _manager.YYIMChat.getJIDUtil().getID(joinResult.from);
+			_arg.success && _arg.success(joinResult);
+		}
+	}, arg);
+}
+
+function getChatGroupInfo(arg) {
+	var config = _manager.YYIMChat.getConfig();
+	jQuery.ajax({
+		url: config.SERVLET.REST_USER_SERVLET + config.MULTI_TENANCY.ETP_KEY + '/' + config.MULTI_TENANCY.APP_KEY + '/' + _manager.YYIMChat.getUserID() + '/room/info?membersLimit=' + arg.membersLimit + '&mucId=' + arg.jid + '&token=' + _manager.YYIMChat.getToken(),
+		type: 'get',
+		dataType: 'json',
+		cache: false,
+		success: function success(result) {
+			var group = handleChatGroup(result);
+			arg.success && arg.success(group);
+			arg = null;
+		},
+		error: function error(xhr) {
+			try {
+				arg.error && arg.error(JSON.parse(xhr.responseText));
+				arg = null;
+			} catch (e) {
+				arg.error && arg.error();
+				arg = null;
+			}
+		}
+	});
+}
+
+function createChatGroup(arg) {
+	var iqBody = {
+		id: Math.uuid(),
+		to: arg.to,
+		naturalLanguageName: arg.name,
+		from: _manager.YYIMChat.getUserBareJID(),
+		invitees: arg.members
+	};
+
+	_manager.YYIMChat.getConnection().send(new JumpPacket(iqBody, OPCODE.CREATE_GROUP.SEND), function (result, _arg) {
+		_arg.complete && _arg.complete();
+		_arg.success && _arg.success(handleChatGroup(result));
+	}, arg);
+}
+
+function transferChatGroup(arg) {
+	var iqBody = {
+		id: Math.uuid(),
+		to: arg.to,
+		from: _manager.YYIMChat.getUserBareJID(),
+		newOwner: arg.newOwner
+	};
+
+	_manager.YYIMChat.getConnection().send(new JumpPacket(iqBody, OPCODE.TRANSFER_GROUP.SEND), function (result, _arg) {
+		_arg.complete && _arg.complete();
+		_arg.success && _arg.success(transferChatGroupOwner(result));
+	}, arg);
+}
+
+function dismissChatGroup(arg) {
+	var iqBody = {
+		id: Math.uuid(),
+		to: arg.to,
+		from: _manager.YYIMChat.getUserBareJID()
+	};
+
+	_manager.YYIMChat.getConnection().send(new JumpPacket(iqBody, OPCODE.DISMISS_GROUP.SEND), function (result, _arg) {
+		_arg.complete && _arg.complete();
+		_arg.success && _arg.success({
+			id: result.id,
+			from: _manager.YYIMChat.getJIDUtil().getID(result.from),
+			to: _manager.YYIMChat.getJIDUtil().getID(result.to)
+		});
+	}, arg);
+}
+
+function inviteGroupMember(arg) {
+	var iqBody = {
+		id: Math.uuid(),
+		to: arg.to,
+		from: _manager.YYIMChat.getUserBareJID(),
+		invitees: arg.members
+	};
+
+	_manager.YYIMChat.getConnection().send(new JumpPacket(iqBody, OPCODE.INVITE_GROUP_MEMBER.SEND), function (result, _arg) {
+		_arg.complete && _arg.complete();
+		_arg.success && _arg.success(handleChatGroup(result));
+	}, arg);
+}
+
+function modifyChatGroupInfo(arg) {
+	var iqBody = {
+		id: Math.uuid(),
+		naturalLanguageName: arg.name,
+		from: _manager.YYIMChat.getUserBareJID(),
+		to: arg.to
+	};
+
+	_manager.YYIMChat.getConnection().send(new JumpPacket(iqBody, OPCODE.MODIFY_GROUP_INFO.SEND), function (result, _arg) {
+		_arg.complete && _arg.complete();
+		_arg.success && _arg.success(handleChatGroup(result));
+	}, arg);
+}
+
+function kickGroupMember(arg) {
+	var iqBody = {
+		id: Math.uuid(),
+		member: arg.member,
+		from: _manager.YYIMChat.getUserBareJID(),
+		to: arg.to
+	};
+
+	_manager.YYIMChat.getConnection().send(new JumpPacket(iqBody, OPCODE.KICK_GROUP_MEMBER.SEND), function (result, _arg) {
+		_arg.complete && _arg.complete();
+		_arg.success && _arg.success(handleChatGroup(result));
+	}, arg);
+}
+
+function exitChatGroup(arg) {
+	var iqBody = {
+		id: Math.uuid(),
+		from: _manager.YYIMChat.getUserBareJID(),
+		to: arg.to
+	};
+
+	_manager.YYIMChat.getConnection().send(new JumpPacket(iqBody, OPCODE.EXIT_GROUP.SEND), function (result, _arg) {
+		_arg.complete && _arg.complete();
+		_arg.success && _arg.success({
+			from: _manager.YYIMChat.getJIDUtil().getID(result.from),
+			id: result.id,
+			to: _manager.YYIMChat.getJIDUtil().getID(result.to)
+		});
+	}, arg);
+}
+
+function handleChatGroup(result) {
+	if (!result) {
+		return;
 	}
 
-	/**
-	 * 发送出的消息处理函数
-	 */
-	function handleSendMessage(arg, body, receipts) {
+	var j = result.members.length;
+	var members = [];
+	while (j--) {
+		var member = result.members[j];
+		member.id = _manager.YYIMChat.getJIDUtil().getID(member.jid);
+		members.push(member);
+	}
+	var chatGroup = {
+		id: _manager.YYIMChat.getJIDUtil().getID(result.from || result.jid),
+		name: result.naturalLanguageName || result.roomname || result.name,
+		photo: result.photo,
+		numberOfMembers: result.numberOfMembers,
+		superLarge: result.superLarge,
+		collected: result.collected,
+		type: result.type,
+		safeModel: result.safeModel,
+		creationdate: result.creationdate,
+		creater: _manager.YYIMChat.getJIDUtil().getID(result.operator),
+		members: members,
+		owners: result.owners,
+		tag: result.tag
+	};
+	return chatGroup;
+}
+
+function transferChatGroupOwner(result) {
+	if (!result) {
+		return;
+	}
+
+	var j = result.memberItems.length;
+	var members = [];
+	while (j--) {
+		var member = result.memberItems[j];
+		member.id = _manager.YYIMChat.getJIDUtil().getID(member.jid);
+		members.push(member);
+	}
+	var chatGroup = {
+		id: _manager.YYIMChat.getJIDUtil().getID(result.from),
+		members: members
+	};
+	return chatGroup;
+}
+
+function collectChatGroup(arg) {
+	var iqBody = {
+		id: Math.uuid(),
+		from: _manager.YYIMChat.getUserBareJID(),
+		to: arg.to,
+		type: arg.type
+	};
+
+	_manager.YYIMChat.getConnection().send(new JumpPacket(iqBody, OPCODE.COLLECT_GROUP.SEND), function (result, _arg) {
+		_arg.complete && _arg.complete();
+		_arg.success && _arg.success({
+			from: _manager.YYIMChat.getJIDUtil().getID(_arg.to),
+			id: result.id,
+			to: _manager.YYIMChat.getUserID(),
+			type: _arg.type,
+			code: result.code,
+			message: result.message
+		});
+	}, arg);
+}
+
+function getSharedFiles(arg) {
+	var contacts = _manager.YYIMChat.getConstants();
+	var config = _manager.YYIMChat.getConfig();
+	var type = [contacts.CHAT_TYPE.CHAT, contacts.CHAT_TYPE.GROUP_CHAT, contacts.CHAT_TYPE.PUB_ACCOUNT].indexOf(arg.type) > -1 ? arg.type : contacts.CHAT_TYPE.CHAT;
+
+	var url = config.SERVLET.REST_USER_SERVLET + config.MULTI_TENANCY.ETP_KEY + '/' + config.MULTI_TENANCY.APP_KEY + '/shareattachment/persional/attachment/' + _manager.YYIMChat.getUserID() + '/' + arg.id;
+	if (type == contacts.CHAT_TYPE.GROUP_CHAT) {
+		url = config.SERVLET.REST_USER_SERVLET + config.MULTI_TENANCY.ETP_KEY + '/' + config.MULTI_TENANCY.APP_KEY + '/shareattachment/room/attachment/' + arg.id + '/' + _manager.YYIMChat.getUserID();
+	}
+
+	jQuery.ajax({
+		url: url,
+		data: {
+			token: _manager.YYIMChat.getToken(),
+			fileType: ['file', 'image', 'microvideo'].indexOf(arg.fileType) > -1 ? arg.fileType : 'file',
+			start: parseInt(arg.start) || 0,
+			size: parseInt(arg.size) || 20
+		},
+		type: 'get',
+		dataType: 'json',
+		cache: false,
+		success: function success(data) {
+			var items = data.list || [];
+			i = items.length;
+			while (i--) {
+				var item = items[i];
+				item.id = item.packetId;
+				item.creator = _manager.YYIMChat.getJIDUtil().getID(item.creator);
+				item.owner = [];
+				if (type == _manager.YYIMChat.getConstants().CHAT_TYPE.GROUP_CHAT) {
+					item.owner.push({
+						id: _manager.YYIMChat.getJIDUtil().getID(item.ownerId),
+						type: type
+					});
+				} else {
+					var temp = item.ownerId.split('::');
+					temp[0] = _manager.YYIMChat.getJIDUtil().getID(temp[0]);
+					temp[1] = _manager.YYIMChat.getJIDUtil().getID(temp[1]);
+					item.owner.push({
+						id: temp[0],
+						type: type
+					}, {
+						id: temp[1],
+						type: type
+					});
+				}
+				delete item.ownerId;
+			}
+			arg.success && arg.success(data);
+			arg = null;
+		},
+		error: function error(xhr) {
+			try {
+				arg.error && arg.error(JSON.parse(xhr.responseText));
+				arg = null;
+			} catch (e) {
+				arg.error && arg.error();
+				arg = null;
+			}
+		}
+	});
+}
+
+function getGroupMembers(arg) {
+	var config = _manager.YYIMChat.getConfig();
+	jQuery.ajax({
+		url: config.SERVLET.REST_USER_SERVLET + config.MULTI_TENANCY.ETP_KEY + '/' + config.MULTI_TENANCY.APP_KEY + '/' + _manager.YYIMChat.getUserID() + '/room/members?mucId=' + arg.id + '&token=' + _manager.YYIMChat.getToken(),
+		type: 'get',
+		dataType: 'json',
+		cache: false,
+		success: function success(result) {
+			if (result && result.length) {
+				var index = result.length;
+				while (index--) {
+					result[index].id = _manager.YYIMChat.getJIDUtil().getID(result[index].jid);
+				}
+			}
+			arg.success && arg.success(result || []);
+			arg = null;
+		},
+		error: function error() {
+			try {
+				arg.error && arg.error(JSON.parse(xhr.responseText));
+				arg = null;
+			} catch (e) {
+				arg.error && arg.error();
+				arg = null;
+			}
+		}
+	});
+}
+
+function monitor() {
+	_manager.YYIMChat.getConnection().registerHandler(OPCODE.ON_GROUP_UPDATE.KEY, function (packet) {
+		var chatgroup = handleChatGroup(packet);
+		if (chatgroup) {
+			_manager.YYIMChat.onGroupUpdate(chatgroup);
+		}
+	});
+
+	_manager.YYIMChat.getConnection().registerHandler(OPCODE.ON_GROUP_TRANSFER.KEY, function (packet) {
+		var chatgroup = transferChatGroupOwner(packet);
+		if (chatgroup) {
+			_manager.YYIMChat.onTransferGroupOwner(chatgroup);
+		}
+	});
+
+	_manager.YYIMChat.getConnection().registerHandler(OPCODE.KICKED_GROUP.KEY, function (packet) {
 		var result = {
-			id : arg.id,
-			type : arg.type,
-			sessionVersion: receipts.sessionVersion || 0,
-			data : {
-				content : body.content,
-				contentType : body.contentType,
-				dateline : receipts.dateline,
-				extend : body.extend
-			}
+			id: packet.id,
+			from: _manager.YYIMChat.getJIDUtil().getID(packet.from),
+			to: _manager.YYIMChat.getJIDUtil().getID(packet.to)
 		};
-
-		if (result.type != YYIMChat.getConstants().CHAT_TYPE.CHAT) {
-			result.to = YYIMChat.getUserID();
-			result.from = {
-				room : YYIMChat.getJIDUtil().getID(arg.to),
-				roster : YYIMChat.getUserID()
-			};
-		} else {
-			result.to = YYIMChat.getJIDUtil().getID(arg.to);
-			result.from = YYIMChat.getUserID();
-			result.resource = YYIMChat.getResource();
+		if (result) {
+			_manager.YYIMChat.onKickedOutGroup(result);
 		}
+	});
+}
 
-		if (result.data.content.path) {
-			result.data.content.attachId = result.data.content.path;
-			result.data.content.path = YYIMChat.getFileUrl(result.data.content.path);
-		}
-		return result;
-	}
+exports.monitor = monitor;
+exports.queryChatGroup = queryChatGroup;
+exports.getGroupMembers = getGroupMembers;
+exports.joinChatGroup = joinChatGroup;
+exports.getChatGroupInfo = getChatGroupInfo;
+exports.getChatGroups = getChatGroups;
+exports.createChatGroup = createChatGroup;
+exports.transferChatGroup = transferChatGroup;
+exports.dismissChatGroup = dismissChatGroup;
+exports.getSharedFiles = getSharedFiles;
+exports.inviteGroupMember = inviteGroupMember;
+exports.modifyChatGroupInfo = modifyChatGroupInfo;
+exports.kickGroupMember = kickGroupMember;
+exports.exitChatGroup = exitChatGroup;
+exports.collectChatGroup = collectChatGroup;
 
-	/**
-	 * 获取历史记录
-	 * @param
-	 * arg {
-	 * 	id: String,
-	 *  type: 'chat/groupchat/pubaccount',
-	 *  start: number,
-	 *  size: number,
-	 *  startVersion: number, //默认为0
-	 *  endVersion: number
-	 * }
-	 */
-	function getHistoryMessage(arg) {
-		var requestUrl,route,params = {
-				token: YYIMChat.getToken(),
-				start: arg.start || 0,
-				size: arg.size || 100
-			};
+/***/ }),
+/* 45 */
+/***/ (function(module, exports, __webpack_require__) {
 
-		if(arg.type == YYIMChat.getConstants().CHAT_TYPE.GROUP_CHAT){
-			route = 'groupchat';
-		}else if(arg.type == YYIMChat.getConstants().CHAT_TYPE.PUB_ACCOUNT){
-			route = 'pubaccount';
-		}else{
-			route = 'user';
-			if(arg.contentType){
-				var typelist = YYIMChat.getConstants().MESSAGE_CONTENT_TYPE;
-				for(var x in typelist){
-					if(arg.contentType == typelist[x]){
-						params.contentType = arg.contentType;
-						break;
-					}
-				}
-			}
-		}
+"use strict";
 
-		requestUrl = YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + YYIMChat.getUserID() + '/msghistory/' + route + '/' + arg.id + '/version/' + (arg.startVersion || 0) + '/' + arg.endVersion;
-		requestUrl += '?' + jQuery.param(params);
 
-		YYIMChat.log("历史记录：request URL",	2,requestUrl);
-		jQuery.ajax({
-			url: requestUrl,
-			dataType: "json",
-			cache:false,
-			success: function(data) {
-				_historyMessageProcessor(data, arg);
-				arg = null;
-			},
-			error:function(xhr){
-				YYIMChat.log("getHistoryMessage_error:", 0, xhr.statusText);
-				try{
-					arg.error && arg.error(JSON.parse(xhr.responseText));
-					arg = null;
-				}catch(e){
-					arg.error && arg.error();
-					arg = null;
-				}
-			}
-		});
-	};
+var _manager = __webpack_require__(0);
 
-	/**
-	 * 解析历史消息
-	 *
-	 * @param data ajax返回的数据
-	 * @param arg {id: 对方ID, resource: 对方资源 为anonymous时表示匿名用户, type: 'chat' | 'groupchat', start: number, num: number, success: function, error: function}
-	 */
-	function _historyMessageProcessor(data, arg){
-		YYIMChat.log("历史记录：data", 2, data);
-		var hisMsgArr = [];
-		for(var i in data.list){
-			if(data.list.hasOwnProperty(i)){
-				var item = data.list[i];
-				var message = parseMessageBody(item, arg.type);
-				hisMsgArr.push(message);
-			}
-		}
+var _Manager = __webpack_require__(46);
 
-		arg.success && arg.success({
-			contactReadVersion: data.contactReadVersion,
-			total: data.total,
-			result: hisMsgArr
-		});
-	};
-
-	/**
-	 * 撤销消息 rongqb 20160707
-	 * arg {
-	 * 	id: String, //消息id
-	 *  to: String, //消息的另一方,待定
-	 *  type: 'chat/groupchat/pubaccount',
-	 *  success: function,
-	 *  error: function,
-	 *  complete: function
-	 * }
-	 */
-	function revokeMessage(arg){
-		var url,param;
-		if(arg.type == YYIMChat.getConstants().CHAT_TYPE.GROUP_CHAT){
-			url = YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/revokeservice/groupmessage/'+ arg.id;
-			param = {
-				token:  YYIMChat.getToken(),
-				userid: YYIMChat.getUserNode(),
-				mucid: YYIMChat.getJIDUtil().getNode(arg.to)
-			};
-		}else{
-			url = YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/revokeservice/personalmessage/'+ arg.id;
-			param = {
-				token:  YYIMChat.getToken(),
-				fromuserid: YYIMChat.getUserNode(),
-				touserid: YYIMChat.getJIDUtil().getNode(arg.to)
-			};
-		}
-
-		url += '?' + jQuery.param(param);
-
-		jQuery.ajax({
-			url: url,
-			type: 'post',
-			cache: false,
-			success: function(data){
-				arg.success && arg.success({
-					id:arg.id
-				});
-				arg = null;
-			},
-			error: function(xhr){
-				try{
-					arg.error && arg.error(JSON.parse(xhr.responseText));
-					arg = null;
-				}catch(e){
-					arg.error && arg.error();
-					arg = null;
-				}
-			}
-		});
-	}
-
-	return {
-		monitor : monitor,
-		sendMessage : sendMessage,
-		getHistoryMessage : getHistoryMessage,
-		revokeMessage : revokeMessage,
-		sendReceiptsPacket: sendReceiptsPacket
-	};
-})();
-
-YYIMChat.setBackhander({
+_manager.YYIMChat.setBackhander({
 	'monitor': {
-		'messageMonitor': Manager.monitor
+		'inputStateMonitor': _Manager.monitor
+	}
+});
+
+_manager.YYIMManager.prototype.inputStateChange = function (arg) {
+	if (arg && arg.to) {
+		arg.contentType = arg.contentType || _manager.YYIMChat.getConstants().MESSAGE_CONTENT_TYPE.TEXT;
+		(0, _Manager.inputStateChange)(arg);
+	} else {
+		arg && arg.error && arg.error();
+	}
+};
+
+/***/ }),
+/* 46 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+	value: true
+});
+exports.inputStateChange = exports.monitor = undefined;
+
+var _manager = __webpack_require__(0);
+
+function monitor() {
+	_manager.YYIMChat.getConnection().registerHandler(OPCODE.INPUT_STATE.KEY, function (state) {
+		if (state && state.from) {
+			state.from = _manager.YYIMChat.getJIDUtil().getID(state.from);
+		}
+		if (state && state.to) {
+			state.to = _manager.YYIMChat.getJIDUtil().getID(state.to);
+		}
+		onInputStateChanged(state);
+	});
+}
+
+var onInputState = {};
+function onInputStateChanged(arg) {
+	onInputState[arg.from] = onInputState[arg.from] || {
+		timer: 0,
+		param: arg
+	};
+
+	onInputState[arg.from].param = arg;
+
+	if (onInputState[arg.from].timer) {
+		clearTimeout(onInputState[arg.from].timer);
+		onInputState[arg.from].timer = 0;
+	}
+
+	if (arg.typing == 0) {
+		var param = onInputState[arg.from].param;
+		onInputState[arg.from] = null;
+		_manager.YYIMChat.onInputStateChanged(param);
+	} else {
+		_manager.YYIMChat.onInputStateChanged(onInputState[arg.from].param);
+		onInputState[arg.from].timer = setTimeout(function () {
+			var param = onInputState[arg.from].param;
+			param.typing = 0;
+			onInputState[arg.from] = null;
+			_manager.YYIMChat.onInputStateChanged(param);
+		}, onInputState[arg.from].param.timeout || _manager.YYIMChat.getConfig().INPUT_STATE.INTERVAL);
+	}
+}
+
+function sendInputState(arg) {
+	var msgBody = {
+		"id": Math.uuid(),
+		"to": _manager.YYIMChat.getJIDUtil().buildUserJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to)),
+		"contentType": arg.contentType,
+		"typing": arg.typing
+	};
+
+	_manager.YYIMChat.getConnection().send(new JumpPacket(msgBody, OPCODE.INPUT_STATE.SEND));
+}
+
+var inputState = {};
+function inputStateChange(arg) {
+	inputState[arg.to] = inputState[arg.to] || {
+		timer: 0,
+		param: arg,
+		lastUpdateTime: 0,
+		lastSendTime: 0
+	};
+
+	if (inputState[arg.to].timer) {
+		clearTimeout(inputState[arg.to].timer);
+		inputState[arg.to].timer = 0;
+	}
+
+	inputState[arg.to].lastUpdateTime = new Date().getTime();
+
+	if (inputState[arg.to].lastUpdateTime - inputState[arg.to].lastSendTime > _manager.YYIMChat.getConfig().INPUT_STATE.INTERVAL || arg.contentType != inputState[arg.to].param.contentType) {
+
+		inputState[arg.to].param = arg;
+		inputState[arg.to].param.typing = 1;
+		inputState[arg.to].lastSendTime = inputState[arg.to].lastUpdateTime;
+		sendInputState(inputState[arg.to].param);
+	}
+
+	inputState[arg.to].timer = setTimeout(function () {
+		var param = inputState[arg.to].param;
+		param.typing = 0;
+		inputState[arg.to] = null;
+
+		sendInputState(param);
+	}, _manager.YYIMChat.getConfig().INPUT_STATE.INTERVAL);
+}
+
+exports.monitor = monitor;
+exports.inputStateChange = inputStateChange;
+
+/***/ }),
+/* 47 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+var _manager = __webpack_require__(0);
+
+var _Manager = __webpack_require__(48);
+
+_manager.YYIMChat.setBackhander({
+	'monitor': {
+		'messageMonitor': _Manager.monitor
 	},
 	'initCallback': {
-		'message':  function(options){
-			YYIMChat.onReceipts = options.onReceipts || function(){}; //回执
-			YYIMChat.onMessage = options.onMessage || function(){}; //消息回调
-			YYIMChat.onTransparentMessage = options.onTransparentMessage || function(){}; //透传消息
+		'message': function message(options) {
+			_manager.YYIMChat.onReceipts = options.onReceipts || function () {};
+			_manager.YYIMChat.onMessage = options.onMessage || function () {};
+			_manager.YYIMChat.onTransparentMessage = options.onTransparentMessage || function () {};
 		}
 	}
 });
 
-
-/**
- * 获取历史记录 rongqb 20160815
- * @param
- * arg {
- * 	id: String,
- *  type: 'chat/groupchat/pubaccount',
- *  start: number,
- *  size: number,
- *  startVersion: number, //默认为0
- *  endVersion: number
- * }
- */
-YYIMManager.prototype.getHistoryMessage = function(arg){
+_manager.YYIMManager.prototype.getHistoryMessage = function (arg) {
 	arg = arg || {};
 
-	if(!YYIMUtil['isWhateType'](arg.start,'Number')){
+	if (!YYIMUtil['isWhateType'](arg.start, 'Number')) {
 		arg.start = 0;
 	}
 
-	if(!YYIMUtil['isWhateType'](arg.size,'Number')){
+	if (!YYIMUtil['isWhateType'](arg.size, 'Number')) {
 		arg.size = 100;
 	}
 
-	Manager.getHistoryMessage(arg);
+	(0, _Manager.getHistoryMessage)(arg);
 };
 
-/**
- * 发送已读回执报文
- *  @param arg {
- *   to: String,	//回执的对象
- *   type: String, 	//type
- * 	 id: String, 	//报文id
- *   sessionVersion: String
- * }
- */
-YYIMManager.prototype.sendReadedReceiptsPacket = function(arg){
-	if(arg && arg.id){
+_manager.YYIMManager.prototype.sendReadedReceiptsPacket = function (arg) {
+	if (arg && arg.id) {
 		arg.state = 2;
-		Manager.sendReceiptsPacket(arg);
+		(0, _Manager.sendReceiptsPacket)(arg);
 	}
 };
 
-/**
- * 异步发送form表单
- * arg {
- * 	  to:,
- *    file:{
- *       name:,
- *       size:
- *    },
- *    data: FormData,
- *    mediaType:, //1:图片，2：附件
- *    type: "groupchat/chat/pubaccount",  //chat:单聊，groupcgat:群聊,pubaccount:公众号
- *    progress: function,
- *    success:function,
- *    error:function,
- *    complete:function
- * }
- */
-YYIMManager.prototype.sendFormMessage = function(arg) {
+_manager.YYIMManager.prototype.sendTextMessage = function (arg) {
+	arg.content = arg.msg || arg.content;
+	arg.contentType = _manager.YYIMChat.getConstants().MESSAGE_CONTENT_TYPE.TEXT;
+	this.sendMessage(arg);
+};
+
+_manager.YYIMManager.prototype.sendPic = function (arg) {
+	arg = arg || {};
+	if (YYIMUtil['isWhateType'](arg.chatInfo, 'Function')) {
+		this.uploader(jQuery('#' + arg.fileInputId)[0] || arg.fileInputId, {
+			drop_element: arg.drop_element,
+			chatInfo: arg.chatInfo,
+			fileFiltered: arg.fileFiltered,
+			beforeUpload: arg.beforeUpload,
+			mediaType: 1,
+			success: function success(result) {
+				(0, _Manager.sendMessage)({
+					id: result.chatInfo.messageId || Math.uuid(),
+					spaceId: result.chatInfo.spaceId,
+					body: {
+						extend: result.chatInfo.extend,
+						content: new IMFile({
+							id: result.file.id,
+							name: result.file.name,
+							path: result.data && result.data.attachId,
+							size: result.file.size,
+							original: 1
+						}),
+						contentType: _manager.YYIMChat.getConstants().MESSAGE_CONTENT_TYPE.IMAGE
+					},
+					to: result.chatInfo.to,
+					type: result.chatInfo.type,
+					success: function success(data) {
+						arg.success && arg.success(data);
+					}
+				});
+				arg.fileUploaded && arg.fileUploaded(result);
+			},
+			error: arg.error,
+			progress: arg.progress
+		});
+	} else {
+		arg && arg.error && arg.error();
+	}
+};
+
+_manager.YYIMManager.prototype.sendFile = function (arg) {
 	var that = this;
-	var file = arg.file
+	arg = arg || {};
+	if (YYIMUtil['isWhateType'](arg.chatInfo, 'Function')) {
+		this.uploader(jQuery('#' + arg.fileInputId)[0] || arg.fileInputId, {
+			drop_element: arg.drop_element,
+			chatInfo: arg.chatInfo,
+			fileFiltered: arg.fileFiltered,
+			beforeUpload: arg.beforeUpload,
+			mediaType: 3,
+			success: function success(result) {
+				var mediaType = 3;
+
+				if (_manager.YYIMChat.getConfig().UPLOAD.IMAGE_TYPES.test(result.file.name)) {
+					mediaType = 1;
+				}
+
+				var file = new IMFile({
+					id: result.file.id,
+					name: result.file.name,
+					path: result.data && result.data.attachId,
+					size: result.file.size
+				});
+
+				if (mediaType === 1) {
+					file.build({
+						original: 1
+					});
+				}
+
+				if (result && result['data'] && result['data']['data'] && result['data']['data']['fileUrl']) {
+					file.build({
+						path: result['data']['data']['fileUrl'],
+						fid: result['data']['data']['fid']
+					});
+				}
+
+				if (YYIMUtil['isWhateType'](result['data'], 'Array')) {
+					file = new IMFile({
+						id: result.file.id,
+						name: result.file.name,
+						path: result['data'][4],
+						size: result.file.size,
+						fid: result['data'][0]
+					});
+				}
+
+				(0, _Manager.sendMessage)({
+					id: result.chatInfo.messageId || Math.uuid(),
+					spaceId: result.chatInfo.spaceId,
+					body: {
+						extend: result.chatInfo.extend,
+						content: file,
+						contentType: mediaType === 1 ? that.getConstants().MESSAGE_CONTENT_TYPE.IMAGE : that.getConstants().MESSAGE_CONTENT_TYPE.FILE
+					},
+					to: result.chatInfo.to,
+					type: result.chatInfo.type,
+					success: function success(data) {
+						arg.success && arg.success(data);
+					}
+				});
+
+				arg.fileUploaded && arg.fileUploaded(result);
+			},
+			error: arg.error,
+			progress: arg.progress
+		});
+	} else {
+		arg && arg.error && arg.error();
+	}
+};
+
+_manager.YYIMManager.prototype.sendShareMessage = function (arg) {
+	arg.contentType = _manager.YYIMChat.getConstants().MESSAGE_CONTENT_TYPE.SHARE;
+	this.sendMessage(arg);
+};
+
+_manager.YYIMManager.prototype.sendFormMessage = function (arg) {
+	var that = this;
+	var file = arg.file;
 
 	var param = {
 		token: this.getToken(),
@@ -12321,15 +12198,15 @@ YYIMManager.prototype.sendFormMessage = function(arg) {
 		name: file.name,
 		size: file.size
 	};
-	var url = YYIMChat.getConfig().SERVLET.REST_RESOURCE_SERVLET + YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/upload';
+	var url = _manager.YYIMChat.getConfig().SERVLET.REST_RESOURCE_SERVLET + _manager.YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + _manager.YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/upload';
 	url += '?' + jQuery.param(param);
 
 	jQuery.ajax({
-		xhr: function() {
+		xhr: function xhr() {
 			var xhr = new window.XMLHttpRequest();
-			//Upload progress
-			xhr.upload.addEventListener("progress", function(evt) {
-				if(evt.lengthComputable) {
+
+			xhr.upload.addEventListener("progress", function (evt) {
+				if (evt.lengthComputable) {
 					var percentComplete = evt.loaded / evt.total;
 					arg.progress && arg.progress({
 						loaded: evt.loaded,
@@ -12338,9 +12215,9 @@ YYIMManager.prototype.sendFormMessage = function(arg) {
 					});
 				}
 			}, false);
-			//Download progress
-			xhr.addEventListener("progress", function(evt) {
-				if(evt.lengthComputable) {
+
+			xhr.addEventListener("progress", function (evt) {
+				if (evt.lengthComputable) {
 					var percentComplete = evt.loaded / evt.total;
 					arg.progress && arg.progress({
 						loaded: evt.loaded,
@@ -12357,22 +12234,22 @@ YYIMManager.prototype.sendFormMessage = function(arg) {
 		data: arg.data,
 		processData: false,
 		contentType: false,
-		success: function(result) {
-			if(result && result.attachId) {
-				var CONTENT_TYPE = YYIMChat.getConstants().MESSAGE_CONTENT_TYPE;
+		success: function success(result) {
+			if (result && result.attachId) {
+				var CONTENT_TYPE = _manager.YYIMChat.getConstants().MESSAGE_CONTENT_TYPE;
 				arg.fileUploaded && arg.fileUploaded(result);
 				that.sendMessage({
 					id: arg.id,
 					to: arg.to,
 					spaceId: arg.spaceId,
-					type: arg.type, //chat:单聊，groupcgat:群聊,pubaccount:公众号
+					type: arg.type,
 					content: new IMFile({
 						name: file.name,
 						path: result.attachId,
 						size: file.size,
-						original: (param.mediaType === 1)? 1:null
+						original: param.mediaType === 1 ? 1 : null
 					}),
-					contentType: (param.mediaType === 1) ? CONTENT_TYPE.IMAGE : CONTENT_TYPE.FILE,
+					contentType: param.mediaType === 1 ? CONTENT_TYPE.IMAGE : CONTENT_TYPE.FILE,
 					success: arg.success,
 					error: arg.error
 				});
@@ -12385,57 +12262,9 @@ YYIMManager.prototype.sendFormMessage = function(arg) {
 	});
 };
 
-/**
- * 发送分享消息[分享消息]
- * @param arg {
- * to: id, //对话人id
- * type: "groupchat/chat/pubaccount",  //chat:单聊，groupcgat:群聊,pubaccount:公众号
- * extend: string,  //扩展字段
- * content:{
- * 		shareImageUrl:string, //分享中图片的url
- * 		shareUrl:string, //分享的url
- * 		shareDesc:string, //分享的内容描述
- * 		shareTitle:string //分享的标题
- * 	},
- * success:function //成功回调函数
- * }
- */
-YYIMManager.prototype.sendShareMessage = function(arg){
-	arg.contentType = YYIMChat.getConstants().MESSAGE_CONTENT_TYPE.SHARE;
-	this.sendMessage(arg);
-};
-
-/**
- * 发送文本消息[文本,表情]
- * @param arg {
- * to: id,  //对话人id
- * type: "groupchat/chat/pubaccount",  //chat:单聊，groupcgat:群聊,pubaccount:公众号
- * content:text, //消息文本
- * extend: string,  //扩展字段
- * success:function //成功回调函数
- * }
- */
-YYIMManager.prototype.sendTextMessage = function(arg){
-	arg.content = arg.msg  || arg.content;
-	arg.contentType = YYIMChat.getConstants().MESSAGE_CONTENT_TYPE.TEXT;
-	this.sendMessage(arg);
-};
-
-/**
- * 发送消息接口整合
- * @param arg {
- * to: id,  //对话人id
- * type: "groupchat/chat/pubaccount",  //chat:单聊，groupcgat:群聊,pubaccount:公众号
- * extend: string,  //扩展字段
- * atuser: array,  //at 成员
- * data:
- * success:function //成功回调函数
- * },
- * contentType
- */
-YYIMManager.prototype.sendMessage = function(arg){
+_manager.YYIMManager.prototype.sendMessage = function (arg) {
 	arg.id = arg.id || Math.uuid();
-	arg.type = arg.type || YYIMChat.getConstants().CHAT_TYPE.CHAT;
+	arg.type = arg.type || _manager.YYIMChat.getConstants().CHAT_TYPE.CHAT;
 	arg.body = {
 		dateline: arg.dateline,
 		extend: arg.extend,
@@ -12444,1964 +12273,1433 @@ YYIMManager.prototype.sendMessage = function(arg){
 		sceneParams: arg.sceneParams
 	};
 
-	if(arg.type === YYIMChat.getConstants().CHAT_TYPE.GROUP_CHAT
-	&& YYIMArrayUtil.isArray(arg.atuser)){
+	if (arg.type === _manager.YYIMChat.getConstants().CHAT_TYPE.GROUP_CHAT && YYIMArrayUtil.isArray(arg.atuser)) {
 		arg.body.atuser = arg.atuser;
 	}
 
-	Manager.sendMessage(arg);
+	(0, _Manager.sendMessage)(arg);
 };
 
-/**
- * 撤销消息 rongqb 20160707
- * arg {
- * 	id: String, //消息id
- *  to: String, //消息的另一方,待定
- *  type: 'chat/groupchat/pubaccount',
- *  success: function,
- *  error: function,
- *  complete: function
- * }
- */
-YYIMManager.prototype.revokeMessage = function(arg){
-	if(arg && arg.id){
-		Manager.revokeMessage(arg);
-	}else{
+_manager.YYIMManager.prototype.revokeMessage = function (arg) {
+	if (arg && arg.id) {
+		(0, _Manager.revokeMessage)(arg);
+	} else {
 		arg && arg.error && arg.error();
 	}
 };
 
-/**
- * 发送图片消息
- * @param arg{
- * fileInputId：DomID, //文件域id
- * drop_element: [dropID], //拖拽上传元素id，或者数组
- * chatInfo: function(){ //用户发送消息时获取对话人信息
- * 	  return {
- * 		to: String //对话人id
- *      type: 'chat/groupchat/pubaccount',
- *      extend: 扩展字段
- * 	  };
- * },
- * fileFiltered: function, //文件被添加到上传队列
- * fileUploaded: function, //上传队列某一个文件上传完毕
- * beforeUpload: function, //文件上传之前触发
- * success:function,  //成功回调函数
- * error: function,
- * progress: function
- * }
- */
-YYIMManager.prototype.sendPic = function(arg){
-	arg = arg || {};
-	if(YYIMUtil['isWhateType'](arg.chatInfo,'Function')){
-		this.uploader(jQuery('#' + arg.fileInputId)[0] || arg.fileInputId,{
-			drop_element: arg.drop_element,
-			chatInfo: arg.chatInfo,
-			fileFiltered: arg.fileFiltered,
-			beforeUpload: arg.beforeUpload,
-			mediaType: 1, //1:image ,2: file,3:doc
-			success: function(result){
-				Manager.sendMessage({
-					id : result.chatInfo.messageId || Math.uuid(),
-					spaceId: result.chatInfo.spaceId,
-					body : {
-						extend: result.chatInfo.extend,
-						content : new IMFile({
-							id: result.file.id,
-							name: result.file.name,
-							path: result.data && result.data.attachId,
-							size: result.file.size,
-							original: 1
-						}),
-						contentType : YYIMChat.getConstants().MESSAGE_CONTENT_TYPE.IMAGE
-					},
-					to : result.chatInfo.to,
-					type :result.chatInfo.type,
-					success : function(data) {
-						arg.success && arg.success(data);
-					}
-				});
-				arg.fileUploaded && arg.fileUploaded(result);
-			},
-			error: arg.error,
-			progress: arg.progress
-		});
-	}else{
-		arg && arg.error && arg.error();
-	}
+/***/ }),
+/* 48 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+	value: true
+});
+exports.sendReceiptsPacket = exports.revokeMessage = exports.getHistoryMessage = exports.sendMessage = exports.monitor = undefined;
+
+var _stringify = __webpack_require__(1);
+
+var _stringify2 = _interopRequireDefault(_stringify);
+
+var _YYAIAbility = __webpack_require__(14);
+
+var _YYAIAbility2 = _interopRequireDefault(_YYAIAbility);
+
+var _manager = __webpack_require__(0);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+var receivedMsgIds = new BaseList();
+
+function monitor() {
+	_manager.YYIMChat.getConnection().registerHandler(OPCODE.USER_MESSAGE.KEY, function (packet) {
+		parseMessage(packet, _manager.YYIMChat.getConstants().CHAT_TYPE.CHAT);
+	});
+
+	_manager.YYIMChat.getConnection().registerHandler(OPCODE.CHATGROUP_MESSAGE.KEY, function (packet) {
+		parseMessage(packet, _manager.YYIMChat.getConstants().CHAT_TYPE.GROUP_CHAT);
+	});
+
+	_manager.YYIMChat.getConnection().registerHandler(OPCODE.PUBACCOUNT_MESSAGE.KEY, function (packet) {
+		parseMessage(packet, _manager.YYIMChat.getConstants().CHAT_TYPE.PUB_ACCOUNT);
+	});
+
+	_manager.YYIMChat.getConnection().registerHandler(OPCODE.RECEIPTS.KEY, function (receipts) {
+		receipts.type = _manager.YYIMChat.getJIDUtil().getChatTypeByJid(receipts.to);
+		receipts.from = _manager.YYIMChat.getJIDUtil().getID(receipts.from);
+		receipts.to = _manager.YYIMChat.getJIDUtil().getID(receipts.to);
+
+		_manager.YYIMChat.onReceipts(receipts);
+	});
+
+	_manager.YYIMChat.getConnection().registerHandler(OPCODE.SYNC_MESSAGE.KEY, function (packet) {
+		parseMessage(packet, packet.type);
+	});
+
+	_manager.YYIMChat.getConnection().registerHandler(OPCODE.USERONLINEDELIVERPACKET.KEY, function (packet) {
+		parseTransparentMessage(packet, _manager.YYIMChat.getConstants().CHAT_TYPE.CHAT);
+	});
+
+	_manager.YYIMChat.getConnection().registerHandler(OPCODE.MUCONLINEDELIVERPACKET.KEY, function (packet) {
+		parseTransparentMessage(packet, _manager.YYIMChat.getConstants().CHAT_TYPE.GROUP_CHAT);
+	});
+
+	_manager.YYIMChat.getConnection().registerHandler(OPCODE.PUBONLINEDELIVERPACKET.KEY, function (packet) {
+		parseTransparentMessage(packet, _manager.YYIMChat.getConstants().CHAT_TYPE.PUB_ACCOUNT);
+	});
+
+	_manager.YYIMChat.getConnection().registerHandler(OPCODE.REMINDSETTINGONLINEDELIVERPACKET.KEY, function (packet) {
+		parseTransparentMessage(packet);
+	});
 };
 
-/**
- * 发送文件消息
- * @param arg{
- * fileInputId：DomID, //文件域id
- * drop_element: [dropID], //拖拽上传元素id，或者数组
- * chatInfo: function(){ //用户发送消息时获取对话人信息
- * 	  return {
- * 		to: String //对话人id
- *      type: 'chat/groupchat/pubaccount',
- *      extend: 扩展字段
- * 	  };
- * },
- * fileFiltered: function, //文件被添加到上传队列
- * fileUploaded: function, //上传队列某一个文件上传完毕
- * beforeUpload: function, //文件上传之前触发
- * success:function, //成功回调函数
- * error: function,
- * progress: function
- * }
- */
-YYIMManager.prototype.sendFile = function(arg){
-	var that = this;
-	arg = arg || {};
-	if(YYIMUtil['isWhateType'](arg.chatInfo,'Function')){
-		this.uploader(jQuery('#' + arg.fileInputId)[0] || arg.fileInputId,{
-			drop_element: arg.drop_element,
-			chatInfo: arg.chatInfo,
-			fileFiltered: arg.fileFiltered,
-			beforeUpload: arg.beforeUpload,
-			mediaType: 3, //1:image ,2: file,3:doc
-			success: function(result){
-				var mediaType = 3;
-
-				if(YYIMChat.getConfig().UPLOAD.IMAGE_TYPES.test(result.file.name)){
-					mediaType = 1;
-				}
-
-				var file = new IMFile({
-					id: result.file.id,
-					name: result.file.name,
-					path: result.data && result.data.attachId,
-					size: result.file.size
-				});
-
-				if(mediaType === 1){
-					file.build({
-						original: 1
-					});
-				}
-
-				if(result
-				&& result['data']
-				&& result['data']['data']
-				&& result['data']['data']['fileUrl']){
-					//esn pc 上传
-					file.build({
-						path: result['data']['data']['fileUrl'],
-						fid: result['data']['data']['fid']
-					});
-				}
-
-				if(YYIMUtil['isWhateType'](result['data'],'Array')){
-					//esn web 上传
-					file = new IMFile({
-						id: result.file.id,
-						name: result.file.name,
-						path: result['data'][4],
-						size: result.file.size,
-						fid: result['data'][0]
-					});
-				}
-
-				Manager.sendMessage({
-					id : result.chatInfo.messageId || Math.uuid(),
-					spaceId: result.chatInfo.spaceId,
-					body : {
-						extend: result.chatInfo.extend,
-						content : file,
-						contentType : (mediaType === 1)? that.getConstants().MESSAGE_CONTENT_TYPE.IMAGE :that.getConstants().MESSAGE_CONTENT_TYPE.FILE
-					},
-					to : result.chatInfo.to,
-					type :result.chatInfo.type,
-					success : function(data) {
-						arg.success && arg.success(data);
-					}
-				});
-
-				arg.fileUploaded && arg.fileUploaded(result);
-			},
-			error: arg.error,
-			progress: arg.progress
-		});
-	}else{
-		arg && arg.error && arg.error();
+function parseTransparentMessage(packet, type) {
+	if (receivedMsgIds.get(packet.id)) {
+		return;
 	}
-};
+	receivedMsgIds.set(packet.id, packet);
 
- 	return YYIMManager.getInstance();
-})(YYIMChat);
+	packet.type = type || _manager.YYIMChat.getJIDUtil().getChatTypeByJid(packet.from);
 
-YYIMChat = (function(YYIMChat){
-	var YYIMManager = YYIMChat.constructor;
-	
-var Manager = (function(){
-	/**
-	 * 获取用户Profile信息包括静音和置顶信息 rongqb 20160719
-	 * arg {
-	 * success:function,
-	 * error:function,
-	 * complete:function
-	 * }
-	 */
-	function getProfile(arg){
-	    // 传入AI Key yaoleib20171212
-	    var apiKeyParam = YYIMManager.getInstance().getApiKey();
-		if(apiKeyParam){
-            apiKeyParam = '&apiKey=' + apiKeyParam;
-        }
-		jQuery.ajax({
-			url: YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + YYIMManager.getInstance().getUserID() + '/profile?token=' + YYIMManager.getInstance().getToken() + apiKeyParam,
-			type: 'get',
-			cache: false,
-			datatype: 'json',
-			success: function(data){
-				if(data.muteItems){
-					var temp = {};
-					for(var x in data.muteItems){
-						var id = YYIMChat.getJIDUtil().getID(data.muteItems[x]);
-						var type = YYIMChat.getJIDUtil().getChatTypeByJid(data.muteItems[x]);
-						temp[id] = {
-							id: id,
-							type: type
-						};
-					}
-					data.muteItems = temp;
-				}
+	packet.to = _manager.YYIMChat.getJIDUtil().getID(packet.to) || _manager.YYIMChat.getUserID();
 
-				if(data.stickItems){
-					var temp = {};
-					for(var x in data.stickItems){
-						var id = YYIMChat.getJIDUtil().getID(data.stickItems[x]);
-						var type = YYIMChat.getJIDUtil().getChatTypeByJid(data.stickItems[x]);
-						temp[id] = {
-							id: id,
-							type: type
-						};
-					}
-					data.stickItems = temp;
-				}
-				if(data.userId ){
-					data.userId = YYIMChat.getJIDUtil().getID(data.userId);
-				}
-				arg.success && arg.success(data);
-				arg = null;
-			},
-			error: function(xhr){
-				try{
-					arg.error && arg.error(JSON.parse(xhr.responseText));
-					arg = null;
-				}catch(e){
-					arg.error && arg.error();
-					arg = null;
-				}
-			}
-		});
-	}
-
-	/**
-	 * 静音（免打扰）、置顶  rongqb 20160719
-	 * arg {
-	 * to: String,
-	 * type: String, //chat/groupchat/pubaccount
-	 * success: function,
-	 * error: function,
-	 * complete: function,
-	 * handle: 'mute/stick',
-	 * }
-	 */
-	function muteStick(arg){
-		var to;
-		if(arg.type == YYIMChat.getConstants().CHAT_TYPE.GROUP_CHAT){
-			to = YYIMChat.getJIDUtil().buildChatGroupJID(YYIMChat.getJIDUtil().getNode(arg.to));
-		}else if(arg.type == YYIMChat.getConstants().CHAT_TYPE.PUB_ACCOUNT){
-			to = YYIMChat.getJIDUtil().buildPubAccountJID(YYIMChat.getJIDUtil().getNode(arg.to));
-		}else{
-			to = YYIMChat.getJIDUtil().buildUserJID(YYIMChat.getJIDUtil().getNode(arg.to));
-		}
-		arg.handle = (arg.handle === 'mute')? arg.handle: 'stick';
-		jQuery.ajax({
-			url: YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + YYIMManager.getInstance().getUserID() + '/profile/' + arg.handle + '?token=' + YYIMManager.getInstance().getToken(),
-			type: 'post',
-			data: JSON.stringify({bareJID: to}),
-			dataType: 'json',
-			cache: false,
-			processData:false,
-			contentType: "application/json", //必须有
-			success: function(data){
-				arg.success && arg.success({
-					id: arg.to,
-					type: arg.type
-				});
-				arg = null;
-			},
-			error: function(xhr){
-				try{
-					arg.error && arg.error(JSON.parse(xhr.responseText));
-					arg = null;
-				}catch(e){
-					arg.error && arg.error();
-					arg = null;
-				}
-			}
-		});
-	}
-
-	/**
-	 * 取消静音（免打扰），置顶  rongqb 20160719
-	 * arg {
-	 * to: String,
-	 * type: String, //chat/groupchat/pubaccount
-	 * success: function,
-	 * error: function,
-	 * complete: function,
-	 * handle: 'mute/stick',
-	 * }
-	 */
-	function cancelMuteStick(arg){
-		var to;
-		if(arg.type == YYIMChat.getConstants().CHAT_TYPE.GROUP_CHAT){
-			to = YYIMChat.getJIDUtil().buildChatGroupJID(YYIMChat.getJIDUtil().getNode(arg.to));
-		}else if(arg.type == YYIMChat.getConstants().CHAT_TYPE.PUB_ACCOUNT){
-			to = YYIMChat.getJIDUtil().buildPubAccountJID(YYIMChat.getJIDUtil().getNode(arg.to));
-		}else{
-			to = YYIMChat.getJIDUtil().buildUserJID(YYIMChat.getJIDUtil().getNode(arg.to));
-		}
-		jQuery.ajax({
-			url: YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + YYIMManager.getInstance().getUserID() + '/profile/' + ((arg.handle === 'mute')? 'mute': 'stick') + '?token=' + YYIMManager.getInstance().getToken() + '&bareJID=' + to,
-			type: 'DELETE',
-			dataType: 'json',
-			success: function(data){
-				arg.success && arg.success({
-					id: arg.to,
-					type: arg.type
-				});
-				arg = null;
-			},
-			error: function(xhr){
-				try{
-					arg.error && arg.error(JSON.parse(xhr.responseText));
-					arg = null;
-				}catch(e){
-					arg.error && arg.error();
-					arg = null;
-				}
-			}
-		});
-	}
-
-	/**
-	 *  添加Profile项  rongqb 20160719
-	 * arg {
-	 *  profile: {key:value},
-	 *  success: function,
-	 *  error: function,
-	 *  complete: function
-	 * }
-	 */
-	function createProfile(arg){
-		jQuery.ajax({
-			url: YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + YYIMManager.getInstance().getUserID() + '/profile?token=' + YYIMManager.getInstance().getToken(),
-			type: 'post',
-			data: JSON.stringify(arg.profile),
-			dataType: 'json',
-			cache: false,
-			processData:false,
-			contentType: "application/json", //必须有
-			success: function(data){
-				arg.success && arg.success(arg.profile);
-				arg = null;
-			},
-			error: function(xhr){
-				try{
-					arg.error && arg.error(JSON.parse(xhr.responseText));
-					arg = null;
-				}catch(e){
-					arg.error && arg.error();
-					arg = null;
-				}
-			}
-		});
-	}
-
-	/**
-	 *  批量删除Profile中的项  rongqb 20160719
-	 * arg {
-	 *  profiles: Array,
-	 *  success: function,
-	 *  error: function,
-	 *  complete: function
-	 * }
-	 */
-	function removeProfile(arg){
-		jQuery.ajax({
-			url: YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + YYIMManager.getInstance().getUserID() + '/profile?token=' + YYIMManager.getInstance().getToken(),
-			type: 'PUT',
-			data: JSON.stringify(arg.profiles),
-			dataType: 'json',
-			cache: false,
-			processData:false,
-			contentType: "application/json", //必须有
-			success: function(data){
-				arg.success && arg.success(arg.profiles);
-				arg = null;
-			},
-			error: function(xhr){
-				try{
-					arg.error && arg.error(JSON.parse(xhr.responseText));
-					arg = null;
-				}catch(e){
-					arg.error && arg.error();
-					arg = null;
-				}
-			}
-		});
-	}
-
-	/**
-	 * 清理用户的Profile（彻底删除所有Profile信息）  rongqb 20160719
-	 * arg {
-	 *  success: function,
-	 *  error: function,
-	 *  complete: function
-	 * }
-	 */
-	function clearProfile(arg){
-		jQuery.ajax({
-			url: YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + YYIMManager.getInstance().getUserID() + '/profile?token=' + YYIMManager.getInstance().getToken(),
-			type: 'DELETE',
-			dataType: 'json',
-			cache: false,
-			success: function(data){
-				arg.success && arg.success();
-				arg = null;
-			},
-			error: function(xhr){
-				try{
-					arg.error && arg.error(JSON.parse(xhr.responseText));
-					arg = null;
-				}catch(e){
-					arg.error && arg.error();
-					arg = null;
-				}
-			}
-		});
-	}
-
-	/**
-	 * 移除群助手 rongqb 20170510
-	 * @param {Object} arg {
-	 * 	id: String,
-	 *  success: function,
-	 *  error: fucntion
-	 * }
-	 */
-	function removeGroupAssistant(arg){
-		jQuery.ajax({
-			url: YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + YYIMManager.getInstance().getUserID() + '/profile/groupassistant?token=' + YYIMManager.getInstance().getToken() + '&bareJID=' + YYIMChat.getJIDUtil().buildChatGroupJID(YYIMChat.getJIDUtil().getNode(arg.id)),
-			type: 'DELETE',
-			dataType: 'json',
-			cache: false,
-			success: function(data){
-				arg.success && arg.success();
-				arg = null;
-			},
-			error: function(xhr){
-				try{
-					arg.error && arg.error(JSON.parse(xhr.responseText));
-					arg = null;
-				}catch(e){
-					arg.error && arg.error();
-					arg = null;
-				}
-			}
-		});
-	}
-
-	return {
-		getProfile: getProfile,
-		muteStick: muteStick,
-		cancelMuteStick: cancelMuteStick,
-		createProfile: createProfile,
-		removeProfile: removeProfile,
-		clearProfile: clearProfile,
-		removeGroupAssistant: removeGroupAssistant
+	packet.from = packet.type != _manager.YYIMChat.getConstants().CHAT_TYPE.GROUP_CHAT ? _manager.YYIMChat.getJIDUtil().getID(packet.from) : {
+		room: _manager.YYIMChat.getJIDUtil().getID(packet.from),
+		roster: _manager.YYIMChat.getJIDUtil().getID(_manager.YYIMChat.getJIDUtil().getResource(packet.from))
 	};
-})();
 
-/**
- * 获取用户Profile信息包括静音和置顶信息 rongqb 20160719
- * arg {
- * success:function,
- * error:function,
- * complete:function
- * }
- */
-YYIMManager.prototype.getProfile = function(arg){
-	// 获取存储热词时间戳 yaoleib20171212
-	Manager.getProfile({
-		success: function(data){
-			var intelligentable = data.intelligentable;
-			var intelligentWordsTime = data.intelligentWordsTime;
-			if(intelligentable != 'undefined'){
-				//YYIMChat.openAIAbility(intelligentable);
-			}
-			if(intelligentWordsTime){
-				YYIMChat.setDictionaries(intelligentWordsTime);
-			}
-
-			arg.success && arg.success(data);
-		},
-		error: function(error){
-			arg.error && arg.error(errot);
+	if (packet.attributes) {
+		if (packet.attributes.receiver) {
+			packet.attributes.receiver = _manager.YYIMChat.getJIDUtil().getID(packet.attributes.receiver);
 		}
-	})
-};
 
-/**
- * 静音（免打扰）  rongqb 20160719
- * arg {
- * to: String,
- * type: String, //chat/groupchat/pubaccount
- * success: function,
- * error: function,
- * complete: function,
- * }
- */
-YYIMManager.prototype.mute = function(arg){
-	arg = arg || {};
-	if(!!arg.to){
-		arg.handle = 'mute';
-		Manager.muteStick(arg);
-	}else{
-		arg.error && arg.error();
+		if (packet.attributes.bareJID) {
+			packet.attributes.bareJID = {
+				id: _manager.YYIMChat.getJIDUtil().getID(packet.attributes.bareJID),
+				type: _manager.YYIMChat.getJIDUtil().getChatTypeByJid(packet.attributes.bareJID)
+			};
+		}
+
+		if (packet.attributes.userJids && _manager.YYIMChat.getUtil()['isWhateType'](packet.attributes.userJids, 'Array')) {
+			for (var x in packet.attributes.userJids) {
+				if (packet.attributes.userJids.hasOwnProperty(x)) {
+					packet.attributes.userJids[x] = _manager.YYIMChat.getJIDUtil().getID(packet.attributes.userJids[x]);
+				}
+			}
+		}
 	}
+	try {
+		_manager.YYIMChat.onTransparentMessage(packet);
+	} catch (e) {
+		_manager.YYIMChat.log("TransparentMessHandleError:", 0, packet);
+	}
+}
+
+function parseMessageBody(packet, type) {
+
+	var packetContent;
+	try {
+		packetContent = JSON.parse(packet.content);
+
+		if (packetContent && packetContent.content) {
+			try {
+				if (isNaN(Number(packetContent.content)) && packet.contentType != _manager.YYIMChat.getConstants().MESSAGE_CONTENT_TYPE.TEXT) {
+					packetContent.content = JSON.parse(packetContent.content);
+				}
+			} catch (e) {}
+		}
+	} catch (e) {
+		packetContent = packet.content;
+	}
+
+	var content = packetContent;
+
+	if (typeof packetContent.content != 'undefined') {
+		content = packetContent.content;
+	}
+
+	var body = {
+		content: content,
+		contentType: packet.contentType,
+		dateline: packet.dateline || packet.ts,
+		atuser: packetContent.atuser,
+		extend: packetContent.extend };
+
+	if (packet.contentType == _manager.YYIMChat.getConstants().MESSAGE_CONTENT_TYPE.MERGEFORWARD) {
+		body.title = packetContent.title;
+		body.containfileNum = packetContent.containfileNum;
+		body.safeMode = packetContent.safeMode;
+
+		if (packetContent.messages) {
+			body.messages = [];
+			for (var x in packetContent.messages) {
+				if (packetContent.messages.hasOwnProperty(x)) {
+					var item = arguments.callee(packetContent.messages[x], type);
+					if (item) {
+						body.messages.push(item);
+					}
+				}
+			}
+		}
+	}
+
+	var from = type == _manager.YYIMChat.getConstants().CHAT_TYPE.CHAT ? _manager.YYIMChat.getJIDUtil().getID(packet.sender || packet.from) : {
+		room: _manager.YYIMChat.getJIDUtil().getID(packet.mucid || packet.sender || packet.from),
+		roster: _manager.YYIMChat.getJIDUtil().getID(_manager.YYIMChat.getJIDUtil().getResource(packet.sender || packet.from) || packet.sender)
+	};
+
+	var result = {
+		id: packet.id || packet.packetId,
+		type: type,
+		from: from,
+		dateline: body.dateline,
+		sessionVersion: packet.sessionVersion,
+		data: body
+	};
+
+	if (type == _manager.YYIMChat.getConstants().CHAT_TYPE.CHAT) {
+		result.resource = _manager.YYIMChat.getJIDUtil().getResource(packet.sender || packet.from);
+		result.to = _manager.YYIMChat.getJIDUtil().getID(packet.receiver || packet.to);
+	} else {
+		result.to = _manager.YYIMChat.getUserID();
+	}
+
+	if (body.contentType) {
+		if (result.data.content && result.data.content.path) {
+			result.data.content.attachId = result.data.content.path;
+			result.data.content.path = _manager.YYIMChat.getFileUrl(result.data.content.path);
+
+			if (body.contentType == _manager.YYIMChat.getConstants().MESSAGE_CONTENT_TYPE.FILE || body.contentType == _manager.YYIMChat.getConstants().MESSAGE_CONTENT_TYPE.IMAGE) {
+				result.data.content.size = result.data.content.size || 0;
+			}
+		}
+
+		if (result.data && (packet.receipts === true || _manager.YYIMChat.getJIDUtil().getID(packet.sender || packet.from) != _manager.YYIMChat.getUserID())) {
+
+			result.data.receipt = {
+				to: packet.mucid || packet.sender || packet.from,
+				id: packet.id || packet.packetId,
+				type: type,
+				sessionVersion: packet.sessionVersion
+			};
+
+			if (packet.receipts === true) {
+				sendReceiptsPacket(result.data.receipt);
+			}
+		}
+		return result;
+	}
+}
+
+function parseMessage(packet, type) {
+	if (receivedMsgIds.get(packet.id)) {
+		return;
+	}
+	receivedMsgIds.set(packet.id, packet);
+
+	var message = parseMessageBody(packet, type);
+
+	if (message) {
+		try {
+			_manager.YYIMChat.onMessage(message);
+		} catch (e) {
+			_manager.YYIMChat.log("ParseMessageError:", 0, message, e);
+		}
+	}
+}
+
+function handleRequestParams(body) {
+	var messageExtend = {
+		intelligentAnalysis: {}
+	};
+
+	if (body.contentType && body.contentType == _manager.YYIMChat.getConstants().MESSAGE_CONTENT_TYPE.TEXT) {
+		if (body.extend && typeof body.extend != 'string') {
+			messageExtend = body.extend;
+		}
+		if (_YYAIAbility2.default.intelligentAnalysis(body.content)) {
+			messageExtend.intelligentAnalysis.intelligentable = true;
+			if (body.sceneParams) {
+				messageExtend.intelligentAnalysis.params = body.sceneParams;
+				delete body.sceneParams;
+			}
+		}
+	}
+	return messageExtend;
+}
+
+function handleSendMessage(arg, body, receipts) {
+	var result = {
+		id: arg.id,
+		type: arg.type,
+		sessionVersion: receipts.sessionVersion || 0,
+		data: {
+			content: body.content,
+			contentType: body.contentType,
+			dateline: receipts.dateline,
+			extend: body.extend
+		}
+	};
+
+	if (result.type != _manager.YYIMChat.getConstants().CHAT_TYPE.CHAT) {
+		result.to = _manager.YYIMChat.getUserID();
+		result.from = {
+			room: _manager.YYIMChat.getJIDUtil().getID(arg.to),
+			roster: _manager.YYIMChat.getUserID()
+		};
+	} else {
+		result.to = _manager.YYIMChat.getJIDUtil().getID(arg.to);
+		result.from = _manager.YYIMChat.getUserID();
+		result.resource = _manager.YYIMChat.getResource();
+	}
+
+	if (result.data.content.path) {
+		result.data.content.attachId = result.data.content.path;
+		result.data.content.path = _manager.YYIMChat.getFileUrl(result.data.content.path);
+	}
+	return result;
+}
+
+function sendMessage(arg) {
+	var body = arg.body || {};
+
+	body.extend = handleRequestParams(body);
+
+	if (body.extend && typeof body.extend != 'string') {
+		try {
+			body.extend = (0, _stringify2.default)(body.extend);
+		} catch (e) {
+			delete body.extend;
+			_manager.YYIMChat.log('ExtendIllegal', 0, e.message);
+		}
+	}
+
+	var to,
+	    msgBody = {
+		id: arg.id,
+		spaceId: arg.spaceId,
+		type: arg.type || _manager.YYIMChat.getConstants().CHAT_TYPE.CHAT,
+		contentType: body.contentType || _manager.YYIMChat.getConstants().MESSAGE_CONTENT_TYPE.TEXT,
+		dateline: body.dateline || (_manager.YYIMChat.getConfig().TIMECORRECTION.AUTOCORRECTION ? new Date().getTime() + _manager.YYIMChat.getConfig().TIMECORRECTION.RESULT : new Date().getTime()),
+		content: (0, _stringify2.default)({
+			atuser: body.atuser,
+			extend: body.extend,
+			content: body.content
+		})
+	},
+	    opcode = OPCODE.USER_MESSAGE.SEND;
+
+	if ((!body.contentType || body.contentType == _manager.YYIMChat.getConstants().MESSAGE_CONTENT_TYPE.TEXT) && arg.type == _manager.YYIMChat.getConstants().CHAT_TYPE.GROUP_CHAT) {
+		if (YYIMUtil['isWhateType'](body.atuser, 'Array') && body.atuser.length) {
+			if (body.atuser.indexOf('im_atall') != -1) {
+				msgBody.statRead = 1;
+			} else {
+				msgBody.statRead = 2;
+				msgBody.statMem = body.atuser;
+			}
+		}
+	}
+
+	if (arg.type == _manager.YYIMChat.getConstants().CHAT_TYPE.GROUP_CHAT) {
+		to = _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));
+		opcode = OPCODE.CHATGROUP_MESSAGE.SEND;
+	} else if (arg.type == _manager.YYIMChat.getConstants().CHAT_TYPE.PUB_ACCOUNT) {
+		to = _manager.YYIMChat.getJIDUtil().buildPubAccountJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));
+		opcode = OPCODE.PUBACCOUNT_MESSAGE.SEND;
+	} else {
+		msgBody.receipts = '1';
+		if (arg.resource) {
+			if (arg.to == _manager.YYIMChat.getUserID()) {
+				to = _manager.YYIMChat.getJIDUtil().buildUserJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to), arg.resource);
+			} else {
+				to = _manager.YYIMChat.getJIDUtil().buildUserJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));
+			}
+		} else {
+			to = _manager.YYIMChat.getJIDUtil().buildUserJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));
+		}
+	}
+
+	msgBody.to = to;
+
+	_manager.YYIMChat.getConnection().send(new JumpPacket(msgBody, opcode), function (receipts) {
+		if (receipts.code == 40302) {
+			arg.error && arg.error();
+			arg = null;
+		} else {
+			if (!!_manager.YYIMChat.getConfig().TIMECORRECTION.AUTOCORRECTION) {
+				if (receipts && receipts.state == 1) {
+					_manager.YYIMChat.onReceipts(receipts);
+				}
+			} else {
+				arg.success && arg.success(handleSendMessage(arg, body, receipts));
+				arg = null;
+			}
+		}
+	});
+
+	if (!!_manager.YYIMChat.getConfig().TIMECORRECTION.AUTOCORRECTION) {
+		arg.success && arg.success(handleSendMessage(arg, body, {
+			dateline: msgBody.dateline
+		}));
+	}
+}
+
+function sendReceiptsPacket(arg) {
+	arg = arg || {};
+	var Jid = _manager.YYIMChat.getJIDUtil().buildUserJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));
+	if (arg.type == _manager.YYIMChat.getConstants().CHAT_TYPE.GROUP_CHAT) {
+		Jid = _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));
+	} else if (arg.type == _manager.YYIMChat.getConstants().CHAT_TYPE.PUB_ACCOUNT) {
+		Jid = _manager.YYIMChat.getJIDUtil().buildPubAccountJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));
+	}
+	var receiptsPacket = new JumpPacket({
+		to: Jid,
+		dateline: new Date().getTime(),
+		sessionVersion: arg.sessionVersion,
+		id: arg.id,
+		state: arg.state
+	}, OPCODE.RECEIPTS.SEND);
+	_manager.YYIMChat.getConnection().send(receiptsPacket);
+}
+
+function getHistoryMessage(arg) {
+	var requestUrl,
+	    route,
+	    params = {
+		token: _manager.YYIMChat.getToken(),
+		start: arg.start || 0,
+		size: arg.size || 100
+	};
+
+	if (arg.type == _manager.YYIMChat.getConstants().CHAT_TYPE.GROUP_CHAT) {
+		route = 'groupchat';
+	} else if (arg.type == _manager.YYIMChat.getConstants().CHAT_TYPE.PUB_ACCOUNT) {
+		route = 'pubaccount';
+	} else {
+		route = 'user';
+		if (arg.contentType) {
+			var typelist = _manager.YYIMChat.getConstants().MESSAGE_CONTENT_TYPE;
+			for (var x in typelist) {
+				if (arg.contentType == typelist[x]) {
+					params.contentType = arg.contentType;
+					break;
+				}
+			}
+		}
+	}
+
+	requestUrl = _manager.YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + _manager.YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + _manager.YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + _manager.YYIMChat.getUserID() + '/msghistory/' + route + '/' + arg.id + '/version/' + (arg.startVersion || 0) + '/' + arg.endVersion;
+	requestUrl += '?' + jQuery.param(params);
+
+	_manager.YYIMChat.log("历史记录：request URL", 2, requestUrl);
+	jQuery.ajax({
+		url: requestUrl,
+		dataType: "json",
+		cache: false,
+		success: function success(data) {
+			_historyMessageProcessor(data, arg);
+			arg = null;
+		},
+		error: function error(xhr) {
+			_manager.YYIMChat.log("getHistoryMessage_error:", 0, xhr.statusText);
+			try {
+				arg.error && arg.error(JSON.parse(xhr.responseText));
+				arg = null;
+			} catch (e) {
+				arg.error && arg.error();
+				arg = null;
+			}
+		}
+	});
 };
 
-/**
- * 置顶  rongqb 20160719
- * arg {
- * to: String,
- * type: String, //chat/groupchat/pubaccount
- * success: function,
- * error: function,
- * complete: function
- * }
- */
-YYIMManager.prototype.stick = function(arg){
+function _historyMessageProcessor(data, arg) {
+	_manager.YYIMChat.log("历史记录：data", 2, data);
+	var hisMsgArr = [];
+	for (var i in data.list) {
+		if (data.list.hasOwnProperty(i)) {
+			var item = data.list[i];
+			var message = parseMessageBody(item, arg.type);
+			hisMsgArr.push(message);
+		}
+	}
+
+	arg.success && arg.success({
+		contactReadVersion: data.contactReadVersion,
+		total: data.total,
+		result: hisMsgArr
+	});
+};
+
+function revokeMessage(arg) {
+	var url, param;
+	if (arg.type == _manager.YYIMChat.getConstants().CHAT_TYPE.GROUP_CHAT) {
+		url = _manager.YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + _manager.YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + _manager.YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/revokeservice/groupmessage/' + arg.id;
+		param = {
+			token: _manager.YYIMChat.getToken(),
+			userid: _manager.YYIMChat.getUserNode(),
+			mucid: _manager.YYIMChat.getJIDUtil().getNode(arg.to)
+		};
+	} else {
+		url = _manager.YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + _manager.YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + _manager.YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/revokeservice/personalmessage/' + arg.id;
+		param = {
+			token: _manager.YYIMChat.getToken(),
+			fromuserid: _manager.YYIMChat.getUserNode(),
+			touserid: _manager.YYIMChat.getJIDUtil().getNode(arg.to)
+		};
+	}
+
+	url += '?' + jQuery.param(param);
+
+	jQuery.ajax({
+		url: url,
+		type: 'post',
+		cache: false,
+		success: function success(data) {
+			arg.success && arg.success({
+				id: arg.id
+			});
+			arg = null;
+		},
+		error: function error(xhr) {
+			try {
+				arg.error && arg.error(JSON.parse(xhr.responseText));
+				arg = null;
+			} catch (e) {
+				arg.error && arg.error();
+				arg = null;
+			}
+		}
+	});
+}
+
+exports.monitor = monitor;
+exports.sendMessage = sendMessage;
+exports.getHistoryMessage = getHistoryMessage;
+exports.revokeMessage = revokeMessage;
+exports.sendReceiptsPacket = sendReceiptsPacket;
+
+/***/ }),
+/* 49 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+var _manager = __webpack_require__(0);
+
+var _Manager = __webpack_require__(50);
+
+_manager.YYIMManager.prototype.stick = function (arg) {
 	arg = arg || {};
-	if(!!arg.to){
+	if (!!arg.to) {
 		arg.handle = 'stick';
-		Manager.muteStick(arg);
-	}else{
+		(0, _Manager.muteStick)(arg);
+	} else {
 		arg.error && arg.error();
 	}
 };
 
-/**
-* 取消静音（免打扰）  rongqb 20160719
-* arg {
-* to: String,
-* type: String, //chat/groupchat/pubaccount
-* success: function,
-* error: function,
-* complete: function
-* }
-*/
-YYIMManager.prototype.cancelMute = function(arg){
+_manager.YYIMManager.prototype.cancelStick = function (arg) {
+	if (arg && arg.to) {
+		arg.handle = 'stick';
+		(0, _Manager.cancelMuteStick)(arg);
+	} else {
+		arg && arg.error && arg.error();
+	}
+};
+
+_manager.YYIMManager.prototype.mute = function (arg) {
+	arg = arg || {};
+	if (!!arg.to) {
+		arg.handle = 'mute';
+		(0, _Manager.muteStick)(arg);
+	} else {
+		arg.error && arg.error();
+	}
+};
+
+_manager.YYIMManager.prototype.cancelMute = function (arg) {
 	var that = this;
-	if(arg && arg.to){
-		Manager.cancelMuteStick({
+	if (arg && arg.to) {
+		(0, _Manager.cancelMuteStick)({
 			to: arg.to,
 			type: arg.type,
 			handle: 'mute',
-			success: function(data){
-				if(arg.type == that.getConstants().CHAT_TYPE.GROUP_CHAT){
+			success: function success(data) {
+				if (arg.type == that.getConstants().CHAT_TYPE.GROUP_CHAT) {
 					that.removeGroupAssistant({
 						id: arg.to,
-						success: function(){
+						success: function success() {
 							arg.success && arg.success(data);
 						},
 						error: arg.error
 					});
-				}else{
+				} else {
 					arg.success && arg.success(data);
 				}
 			},
 			error: arg.error
 		});
-	}else{
+	} else {
 		arg && arg.error && arg.error();
 	}
 };
 
-/**
-* 取消置顶  rongqb 20160719
-* arg {
-* to: String,
-* type: String, //chat/groupchat/pubaccount
-* success: function,
-* error: function,
-* complete: function
-* }
-*/
-YYIMManager.prototype.cancelStick = function(arg){
-	if(arg && arg.to){
-		arg.handle = 'stick';
-		Manager.cancelMuteStick(arg);
-	}else{
-		arg && arg.error && arg.error();
-	}
-};
-
-/**
- *  添加Profile项  rongqb 20160719
- * arg {
- *  profile: {key:value},
- *  success: function,
- *  error: function,
- *  complete: function
- * }
- */
-YYIMManager.prototype.createProfile = function(arg){
-	arg = arg || {};
-	if(!!arg.profile){
-		Manager.createProfile(arg);
-	}else{
-		arg.error && arg.error();
-	}
-};
-
-/**
- *  批量删除Profile中的项  rongqb 20160719
- * arg {
- *  profiles: Array,
- *  success: function,
- *  error: function,
- *  complete: function
- * }
- */
-YYIMManager.prototype.removeProfile = function(arg){
-	arg = arg || {};
-	if(YYIMArrayUtil.isArray(arg.profiles)){
-		Manager.removeProfile(arg);
-	}else{
-		arg.error && arg.error();
-	}
-};
-
-/**
- * 清理用户的Profile（彻底删除所有Profile信息）  rongqb 20160719
- * arg {
- *  success: function,
- *  error: function,
- *  complete: function
- * }
- */
-YYIMManager.prototype.clearProfile = function(arg){
-	Manager.clearProfile(arg || {});
-};
-
-/**
- * 移除群助手 rongqb 20170510
- * @param {Object} arg {
- * 	id: String,
- *  success: function,
- *  error: fucntion
- * }
- */
-YYIMManager.prototype.removeGroupAssistant = function(arg){
-	if(arg && arg.id){
-		Manager.removeGroupAssistant(arg);
-	}else{
-		arg && arg.error && arg.error();
-	}
-};
-
- 	return YYIMManager.getInstance();
-})(YYIMChat);
-
-YYIMChat = (function(YYIMChat){
-	var YYIMManager = YYIMChat.constructor;
-	
-var Manager = (function() {
-	/**
-	 * 查询自己所关注的公共号
-	 * @param arg {success: function, error: function, complete:function}
-	 */
-	function getPubAccountItems(arg) {
-		var jumpPacket = new JumpPacket({
-			type: YYIMChat.getConstants().TYPE.GET,
-			ns: NS_PUBACCOUNT,
-			to: YYIMChat.getConfig().DOMAIN.PUBACCOUNT
-		}, OPCODE.PUBACCOUNT_LIST.SEND);
-
-		YYIMChat.getConnection().send(jumpPacket, function(pubaccountListResult, _arg) {
-			if(!_arg) return;
-
-			_arg.complete && _arg.complete();
-			var items = pubaccountListResult.items || [];
-			var i = items.length || 0;
-			while(i--) {
-				items[i].id = YYIMChat.getJIDUtil().getID(items[i].jid);
-			}
-			_arg.success && _arg.success(JSON.stringify(items));
-		}, arg);
-	}
-	
-	/**
-	 * 获取公共号列表（按需拉取） rongqb 20160912
-	 */
-	function getPubAccounts(arg){
-		 jQuery.ajax({
-			url: YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/pubaccount/' + YYIMChat.getUserID() + '/items',
-			dataType: 'json',
-			data: {
-				token: YYIMChat.getToken(),
-				pubIds: JSON.stringify(arg.pubIds)
-			},
-			cache: false,
-			success: function(result) {
-				result = result || [];
-				var i = result.length || 0;
-				while(i--) {
-					result[i].id = YYIMChat.getJIDUtil().getID(result[i].jid);
-				}
-				arg.success && arg.success(result);
-				arg = null;
-			},
-			error: function(xhr) {
-				try {
-					arg.error && arg.error(JSON.parse(xhr.responseText));
-					arg = null;
-				} catch(e) {
-					arg.error && arg.error();
-					arg = null;
-				}
-			}
-		});
-	}
-
-	/**
-	 * 获取公众号详情 rongqb 20160811
-	 * arg {
-	 *   id: String,
-	 *   success: function,
-	 *   error: function,
-	 *   complete: function
-	 * }
-	 */
-	function getPubAccountInfo(arg) {
-		jQuery.ajax({
-			url: YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + arg.id + '/' + YYIMChat.getUserID() + '/pubaccount/info',
-			dataType: 'json',
-			data: {
-				token: YYIMChat.getToken()
-			},
-			cache: false,
-			success: function(result) {
-				if(result && result.data) {
-					result.data.id = YYIMChat.getJIDUtil().getID(result.data.jid);
-					arg.success && arg.success(result.data);
-					arg = null;
-				}
-			},
-			error: function(xhr) {
-				try {
-					arg.error && arg.error(JSON.parse(xhr.responseText));
-					arg = null;
-				} catch(e) {
-					arg.error && arg.error();
-					arg = null;
-				}
-			}
-		});
-	}
-
-	/**
-	 * 查找公共号
-	 * @param arg {keyword, start, size, success: function, error: function,complete: function}
-	 */
-	function queryPubaccount(arg) {
-		var iqBody = {
-			start: YYIMCommonUtil.isNumber(arg.start) ? arg.start : 0,
-			size: YYIMCommonUtil.isNumber(arg.size) ? arg.size : 20,
-			fields: ["Accountname", "Name"],
-			search: arg.keyword
-		};
-		YYIMChat.getConnection().send(new JumpPacket(iqBody, OPCODE.QUERY_PUBACCOUNT.SEND), function(queryResult, _arg) {
-			var items = queryResult.items || [],
-				result = [],
-				i = items.length;
-			while(i--) {
-				var item = items[i],
-					jid = item.jid;
-				result.push({
-					id: YYIMChat.getJIDUtil().getID(jid),
-					name: YYIMCommonUtil.isStringAndNotEmpty(item.name) ? item.name : YYIMChat.getJIDUtil().getID(jid),
-					type: item.type
-				});
-			}
-			_arg.complete && _arg.complete();
-			_arg.success && _arg.success({
-				start: queryResult.start,
-				total: queryResult.total,
-				items: result
-			});
-		}, arg);
-	}
-	
-		/**
-	 * 关注公共号，只能根据返回的subscribed来判断是否关注成功，返回的iq set both需忽略
-	 * @param arg{jid , success, error}
-	 */
-	function addPubAccount(arg) {
-		YYIMChat.getConnection().send(new JumpPacket({
-			type : YYIMChat.getConstants().PRESENCE_TYPE.SUBSCRIBE,
-			to : arg.jid
-		}, OPCODE.PRESENCE.SEND), function(addResult, _arg){
-			_arg.complete && _arg.complete();
-			addResult.from = YYIMChat.getJIDUtil().getID(addResult.from);
-			addResult.to = YYIMChat.getJIDUtil().getID(addResult.to);
-			_arg.success && _arg.success(addResult);
-		}, arg);
-	}
-	
-	/**
-	 * 消息关注公共号 rongqb 20151207
-	 * @param arg{to , success, error}
-	 */
-	function removePubAccount(arg) {
-		YYIMChat.getConnection().send(new JumpPacket({
-			id : arg.id,
-			type : YYIMChat.getConstants().PRESENCE_TYPE.UNSUBSCRIBE,
-			to : arg.to
-		}, OPCODE.PRESENCE.SEND), function(addResult, _arg){
-			_arg.complete && _arg.complete();
-			addResult.from = YYIMChat.getJIDUtil().getID(addResult.from);
-			addResult.to = YYIMChat.getJIDUtil().getID(addResult.to) || YYIMChat.getUserID();
-			_arg.success && _arg.success(addResult);
-		}, arg);
-	}
-	
-	function monitor() {
-		
-		/**
-		 * 监控新建公众号 rongqb 20151208
-		 */
-		YYIMChat.getConnection().registerHandler(OPCODE.PUBACCOUNT_LIST.KEY, function(packet){
-			var items = packet.items;
-			if((items && items.length || 0) === 0)
-				return;
-			var pubaccounts = [], i = items.length;
-			while(i--) {
-				var item = items[i];
-				item.id =  YYIMChat.getJIDUtil().getID(item.jid),
-				pubaccounts.push(item);
-			}
-			YYIMChat.onPubaccountUpdate(pubaccounts);		
-		});
-	}
-	
-	return {
-		monitor : monitor,
-		addPubAccount : addPubAccount,
-		getPubAccounts: getPubAccounts,
-		getPubAccountItems: getPubAccountItems,
-		getPubAccountInfo: getPubAccountInfo,
-		removePubAccount : removePubAccount,
-		queryPubaccount: queryPubaccount
-	};
-})();
-YYIMChat.setBackhander({
-	'monitor': {
-		'pubaccountMonitor': Manager.monitor
-	},
-	'initCallback': {
-		'pubaccount': function(options){
-			YYIMChat.onPubaccountUpdate = options.onPubaccountUpdate || function(){}; //公众号更新
-		}
-	}
-});
-
-/**
- * 获取广播号/订阅号列表[pubaccount]
- * @param arg {
- * success: function, //成功回调函数
- * error: function,  //失败回调函数
- * complete:function //无论成功失败都回调的函数
- * }
- */
-YYIMManager.prototype.getPubAccount = function(arg){
-	Manager.getPubAccountItems(arg);
-};
-
-/**
- * 获取公共号列表（按需拉取） rongqb 20160912
- * @param arg {
- *  pubIds: Array,
- * 	success: function, 
- *  error: function,
- *  complete: function
- * }
- */
-YYIMManager.prototype.getPubAccounts = function(arg){
-	if(YYIMUtil['isWhateType'](arg.pubIds,'Array')){
-		Manager.getPubAccounts(arg);
-	}else{
-		arg && arg.error && arg.error();
-	}
-};
-
-/**
- * 获取公众号详情 rongqb 20160811
- * arg {
- *   id: String,
- *   success: function,
- *   error: function,
- *   complete: function
- * }
- */
-YYIMManager.prototype.getPubAccountInfo = function(arg){
-	if(YYIMCommonUtil.isStringAndNotEmpty(arg.id)) {
-		Manager.getPubAccountInfo(arg);
-	}else{
-		arg && arg.error && arg.error();
-	}
-};
-
-/**
- * 关注公共账号 rongqb 20151207
- * @param arg {
- * 		id : 公共号id,
- * 		success : function,
- * 		error : function
- * }
- */
-YYIMManager.prototype.addPubaccount = function(arg){
-	if(YYIMCommonUtil.isStringAndNotEmpty(arg.id)) {
-		Manager.addPubAccount({
-			jid : YYIMChat.getJIDUtil().buildPubAccountJID(YYIMChat.getJIDUtil().getNode(arg.id)),
-			success : arg.success,
-			error : arg.error
-		});
-	}else{
-		arg && arg.error && arg.error();
-	}
-};
-
-/**
- * 取消关注公共账号  rongqb 20151207
- * @param arg {
- * 		id : 公共号id,
- * 		success : function,
- * 		error : function
- * }
- */
-YYIMManager.prototype.removePubaccount = function(arg){
-	if(YYIMCommonUtil.isStringAndNotEmpty(arg.id)) {
-		Manager.removePubAccount({
-			id : Math.uuid(),
-			to : YYIMChat.getJIDUtil().buildPubAccountJID(YYIMChat.getJIDUtil().getNode(arg.id)),
-			success : arg.success,
-			error : arg.error
-		});
-	}else{
-		arg && arg.error && arg.error();
-	}
-};
-
-/**
- * 查找公共号
- * @param arg {keyword,start, size, success: function, error: function,complete: function}
- */
-YYIMManager.prototype.queryPubaccount = function(arg){
-	if(YYIMCommonUtil.isStringAndNotEmpty(arg.keyword)) {
-		Manager.queryPubaccount(arg);
-	}else{
-		arg && arg.error && arg.error();
-	}
-};
- 	return YYIMManager.getInstance();
-})(YYIMChat);
-
-YYIMChat = (function(YYIMChat){
-	var YYIMManager = YYIMChat.constructor;
-	
-var Manager = (function() {
-
-	/**
-	 * 请求自己或好友的VCard
-	 * @param arg
-	 * 	{
-	 * 		id : 为空则请求自己的VCard,
-	 * 		success : function,
-	 * 		error : function,
-	 * 		complete : function
-	 *  }
-	 */
-	function getVCard(arg) {
-		var vcardBody = {
-			type: YYIMChat.getConstants().TYPE.GET
-		};
-
-		if(arg && arg.id) {
-			vcardBody.to = YYIMChat.getJIDUtil().buildUserJID(YYIMChat.getJIDUtil().getNode(arg.id));
-		}
-
-		YYIMChat.getConnection().send(new JumpPacket(vcardBody, OPCODE.VCARD.SEND), function(vcardResult, _arg) {
-			_arg.complete && _arg.complete();
-			var vcard = vcardResult.vcard || {};
-			vcard.id = vcard.userId = YYIMChat.getJIDUtil().getID(vcard.username);
-			if(!!vcardResult.enableFields) {
-				vcard.enableFields = !!vcardResult.enableFields;
-			}
-			_arg.success && _arg.success(vcard);
-		}, arg);
-	}
-	
-	function getBatchVCards(arg){
-		var url = YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + YYIMChat.getUserID() + '/vcard?token=' + YYIMChat.getToken() + '&userids=' + arg.ids;
-		jQuery.ajax({
-			url: url,
-			type: 'get',
-			dataType: 'json',
-			cache: false,
-			success: function(result) {
-				var map = {};
-				if(result && result.list){
-					for(var x in result.list){
-						if(result.list.hasOwnProperty(x)){
-							var vcard = result.list[x];
-							vcard.id = YYIMChat.getJIDUtil().getID(vcard.username);
-							map[vcard.id] = vcard;
-						}
-					}
-				}
-				arg.success && arg.success(map);
-				arg = null;
-			},
-			error: function(xhr) {
-				try {
-					arg.error && arg.error(JSON.parse(xhr.responseText));
-					arg = null;
-				} catch(e) {
-					arg.error && arg.error();
-					arg = null;
-				}
-			}
-		});
-	}
-
-	/**
-	 * 请求自己所有好友的VCard
-	 * 
-	 * @param arg
-	 * {
-	 * 		success : function,
-	 * 		error : function,
-	 * 		complete : function
-	 * }
-	 */
-	function getVCards(arg) {
-		var iqBody = {
-			type: 'roster'
-		};
-
-		YYIMChat.getConnection().send(new JumpPacket(iqBody, OPCODE.VCARDS.SEND), function(vcardsResult, _arg) {
-			var results = vcardsResult.vcards || [];
-			vcards = [],
-				i = results.length;
-			while(i--) {
-				var vcard = results[i];
-				vcard.id = vcard.userId = YYIMChat.getJIDUtil().getID(vcard.username);
-				vcards.push(vcard);
-			}
-			_arg.complete && _arg.complete();
-			_arg.success && _arg.success(vcards);
-		}, arg);
-
-	}
-
-	/**
-	 * 修改当前用户的VCard
-	 * @param arg {
-	 * 		vcard : {
-	 * 			nickname,
-	 * 			photo,
-	 * 			email,
-	 * 			mobile,
-	 * 			telephone
-	 * 		},
-	 * 		success : function,
-	 * 		error : fcuntion
-	 * }
-	 */
-	function setVCard(arg) {
-		YYIMChat.getConnection().send(new JumpPacket({
-			type: YYIMChat.getConstants().TYPE.SET,
-			vcard: arg.vcard
-		}, OPCODE.VCARD.SEND), function(vcardResult, _arg) {
-			_arg.complete && _arg.complete();
-			_arg.success && _arg.success();
-		}, arg);
-	}
-
-	/**
-	 * 新增当前用户或者好友的Tag
-	 * @param arg {
-	 * 		id: String, //targetID
-	 * 		tag : Array,
-	 * 		success : function,
-	 * 		error : fcuntion
-	 * }
-	 */
-	function setTag(arg) {
-		var url;
-		if(!arg.id || arg.id === YYIMChat.getUserID()) {
-			url = YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + YYIMChat.getUserID() + '/vcard/tag?token=' + YYIMChat.getToken();
-		} else {
-			url = YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + YYIMChat.getUserID() + '/' + arg.id + '/roster/tag?token=' + YYIMChat.getToken();
-		}
-
-		jQuery.ajax({
-			url: url,
-			type: 'post',
-			data: JSON.stringify({
-				tag: arg.tag
-			}),
-			dataType: 'json',
-			cache: false,
-			processData: false,
-			contentType: "application/json", //必须有
-			success: function(data) {
-				arg.success && arg.success(arg.id);
-				arg = null;
-			},
-			error: function(xhr) {
-				try {
-					arg.error && arg.error(JSON.parse(xhr.responseText));
-					arg = null;
-				} catch(e) {
-					arg.error && arg.error();
-					arg = null;
-				}
-			}
-		});
-	};
-
-	/**
-	 * 删除当前用户或者好友的Tag
-	 * @param arg {
-	 * 		id: String, //targetID
-	 * 		tag : Array,
-	 * 		success : function,
-	 * 		error : fcuntion
-	 * }
-	 */
-	function removeTag(arg) {
-		var url;
-		if(!arg.id || arg.id === YYIMChat.getUserID()) {
-			url = YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + YYIMChat.getUserID() + '/vcard/tag?token=' + YYIMChat.getToken() + '&tag=' + JSON.stringify(arg.tag);
-		} else {
-			url = YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + YYIMChat.getUserID() + '/' + arg.id + '/roster/tag?token=' + YYIMChat.getToken() + '&tag=' + JSON.stringify(arg.tag);
-		}
-		jQuery.ajax({
-			url: url,
-			type: 'delete',
-			dataType: 'json',
-			cache: false,
-			success: function(data) {
-				arg.success && arg.success(arg.id);
-				arg = null;
-			},
-			error: function(xhr) {
-				try {
-					arg.error && arg.error(JSON.parse(xhr.responseText));
-					arg = null;
-				} catch(e) {
-					arg.error && arg.error();
-					arg = null;
-				}
-			}
-		});
-	};
-
-	/**
-	 * 获取用户在线状态 rongqb 20151119
-	 * arg {
-	 * username: ['zhangsan','lisi'],
-	 * success:function,
-	 * error:function,
-	 * complete:function,
-	 * }
-	 * resource:2.1
-	 */
-	function getRostersPresence(arg) {
-		jQuery.ajax({
-			url: YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + YYIMChat.getUserID() + '/presence/detail?token=' + YYIMChat.getToken() + '&username=' + arg.username,
-			type: 'get',
-			dataType: 'json',
-			cache: false,
-			timeout: 5000,
-			success: function(data) {
-				arg.success && arg.success(data);
-				arg = null;
-			},
-			error: function(xhr) {
-				try {
-					arg.error && arg.error(JSON.parse(xhr.responseText));
-					arg = null;
-				} catch(e) {
-					arg.error && arg.error();
-					arg = null;
-				}
-			}
-		});
-	}
-
-	/**
-	 * 请求好友列表
-	 * @param arg {success: function, error: function, complete:function}
-	 */
-	function getRosterItems(arg) {
-		var jumpPacket = new JumpPacket({}, OPCODE.ROSTER_LIST.SEND);
-
-		YYIMChat.getConnection().send(jumpPacket, function(rosterListPacket, _arg) {
-			if(!_arg)
-				return;
-
-			_arg.complete && _arg.complete();
-
-			var items = rosterListPacket.items || [];
-
-			var rosters = [],
-				i = items.length || 0,
-				friquest = {};
-
-			while(i--) {
-				var item = items[i],
-					jid = item.jid,
-					roster = {
-						id: YYIMChat.getJIDUtil().getID(jid),
-						resource: YYIMChat.getJIDUtil().getResource(jid),
-						ask: item.ask,
-						recv: item.recv,
-						name: item.name,
-						photo: item.photo,
-						subscription: item.subscription,
-						group: item.groups,
-						tag: item.tag
-					};
-
-				if(YYIMChat.getJIDUtil().getDomain(jid) !== YYIMChat.getConfig().DOMAIN.PUBACCOUNT) {
-					rosters.push(roster);
-
-					if(!friquest[roster.id] && roster.subscription === 'none') {
-						if(roster.recv === 1) { //收到好友请求
-							friquest[roster.id] = roster;
-						} else if(roster.ask === 1) { //发送好友请求
-							//... 闲置
-						}
-					}
-				}
+_manager.YYIMManager.prototype.getProfile = function (arg) {
+	(0, _Manager.getProfile)({
+		success: function success(data) {
+			var intelligentable = data.intelligentable;
+			var intelligentWordsTime = data.intelligentWordsTime;
+			if (intelligentable != 'undefined') {}
+			if (intelligentWordsTime) {
+				_manager.YYIMChat.setDictionaries(intelligentWordsTime);
 			}
 
-			/**
-			 * 处理好友请求 20151204
-			 */
-			for(var x in friquest) {
-				if(friquest[x].id) {
-					YYIMChat.onSubscribe({
-						from: friquest[x].id,
-						type: YYIMChat.getConstants().PRESENCE_TYPE.SUBSCRIBE
-					});
-				}
-			}
-
-			_arg.success && _arg.success(JSON.stringify(rosters));
-		}, arg);
-	}
-
-	/**
-	 * 删除好友, 需要合法的jid
-	 * @param arg {jid: string, success: function, error: function,complete: function}
-	 */
-	function deleteRosterItem(arg) {
-		var iqBody = {
-			type: YYIMChat.getConstants().TYPE.SET,
-			ns: NS_ROSTER,
-			item: {
-				jid: arg.jid,
-				subscription: 'remove'
-			}
-		};
-
-		YYIMChat.getConnection().send(new JumpPacket(iqBody, OPCODE.UPDATE_ROSTER.SEND), function(deleteResult, _arg) {
-			_arg.complete && _arg.complete();
-			_arg.success && _arg.success(YYIMChat.getJIDUtil().getID(_arg.jid));
-		}, arg);
-	}
-
-	/**
-	 * 更新好友
-	 * @param arg {
-	 * 		roster : {
-	 * 			jid : 好友jid,
-	 * 			name : 好友昵称,
-	 * 			groups : ["group1","group2"] // 好友所在分组
-	 * 		},
-	 * 		success : function,
-	 * 		error : function
-	 * }
-	 */
-	function updateRosterItem(arg) {
-		var roster = arg.roster,
-			iqBody = {
-				item: {
-					jid: roster.jid,
-					name: roster.name,
-					groups: []
-				}
-			},
-			groups = roster.groups,
-			i = groups ? groups.length : 0;
-		while(i-- && YYIMCommonUtil.isStringAndNotEmpty(groups[i]))
-			iqBody.item.groups = iqBody.item.groups.concat(groups[i]);
-		YYIMChat.getConnection().send(new JumpPacket(iqBody, OPCODE.UPDATE_ROSTER.SEND), function(updateResult, _arg) {
-			_arg.complete && _arg.complete();
-
-			if(updateResult.code === 400) {
-				_arg.error && _arg.error(updateResult);
-			} else {
-				updateResult.to = YYIMChat.getJIDUtil().getID(updateResult.to);
-				_arg.success && _arg.success(updateResult);
-			}
-		}, arg);
-	}
-
-	/**
-	 * 查找好友[roster][包括好友和非好友]，查询字段：userName, name
-	 * @param arg {keyword, start, size, success: function, error: function,complete: function}
-	 */
-	function queryRosterItem(arg) {
-		console.log(arg)
-		var iqBody = {
-			start: YYIMCommonUtil.isNumber(arg.start) ? arg.start : 0,
-			size: YYIMCommonUtil.isNumber(arg.size) ? arg.size : 20,
-			fields: ["Username", "Name"],
-			search: arg.keyword
-		};
-		YYIMChat.getConnection().send(new JumpPacket(iqBody, OPCODE.QUERY_USER.SEND), function(queryResult, _arg) {
-			var items = queryResult.items || [],
-				result = [],
-				i = items.length;
-			while(i--) {
-				var item = items[i],
-					jid = item.jid;
-				if(jid === YYIMChat.getUserBareJID())
-					continue;
-				result.push({
-					id: YYIMChat.getJIDUtil().getID(jid),
-					name: YYIMCommonUtil.isStringAndNotEmpty(item.name) ? item.name : YYIMChat.getJIDUtil().getID(jid),
-					photo: item.photo,
-					email: item.email
-				});
-			}
-			_arg.complete && _arg.complete();
-			_arg.success && _arg.success({
-				start: queryResult.start,
-				total: queryResult.total,
-				items: result
-			});
-		}, arg);
-	}
-	
-	/**
-	 * 收藏联系人列表
-	 * @param {Object} arg
-	 */
-	function getFavoriteRosterList(arg) {
-		jQuery.ajax({
-			url: YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + YYIMChat.getUserID() + '/favoritedRosters',
-			type: 'get',
-			data: {
-				token: YYIMChat.getToken()
-			},
-			dataType: 'json',
-			cache: false,
-			success: function(data) {
-				if(data && data.items){
-					var i = data.items.length;
-					while(i--){
-						data.items[i].id = YYIMChat.getJIDUtil().getID(data.items[i].jid);
-					}
-				}
-				arg.success && arg.success(data.items);
-				arg = null;
-			},
-			error: function(xhr) {
-				try {
-					arg.error && arg.error(JSON.parse(xhr.responseText));
-					arg = null;
-				} catch(e) {
-					arg.error && arg.error();
-					arg = null;
-				}
-			}
-		});
-	}
-	
-	/**
-	 * 设置上线状态
-	 * @param arg{show, status, priority}
-	 */
-	function setPresence(arg) {
-		YYIMChat.getConnection().send(new JumpPacket(arg, OPCODE.PRESENCE.SEND));
-	}
-
-	/**
-	 * 收藏好友 rongqb 20161208
-	 * @param jid
-	 */
-	function favoriteRoster(jid) {
-		YYIMChat.getConnection().send(new JumpPacket({
-			type: YYIMChat.getConstants().PRESENCE_TYPE.COLLECT,
-			to: jid
-		}, OPCODE.PRESENCE.SEND));
-	}
-	
-	/**
-	 * 收藏联系人 rongqb 20161208
-	 * @param jid
-	 */
-	function cancelFavoriteRoster(jid) {
-		YYIMChat.getConnection().send(new JumpPacket({ 
-			favoritedRosterItem: { 
-				jid: jid,
-				subscription: YYIMChat.getConstants().FAVORITE_TYPE.REMOVE
-			},
-			from: YYIMChat.getUserFullJID()
-		},OPCODE.FAVORITED_ROSTERT.SEND));
-	}
-	
-	/**
-	 * 修改收藏联系人的信息 rongqb 20161209
-	 * @param {Object} jid
-	 * @param {Object} name
-	 */
-	function updateFavoriteRoster(jid,name) {
-		YYIMChat.getConnection().send(new JumpPacket({ 
-			favoritedRosterItem: { 
-				jid: jid,
-				name: name,
-				subscription: YYIMChat.getConstants().FAVORITE_TYPE.FAVORITE
-			},
-			from: YYIMChat.getUserFullJID()
-		},OPCODE.FAVORITED_ROSTERT.SEND));
-	}
-	
-	/**
-	 * 添加好友
-	 * @param jid
-	 */
-	function addRosterItem(jid) {
-		YYIMChat.getConnection().send(new JumpPacket({
-			type: YYIMChat.getConstants().PRESENCE_TYPE.SUBSCRIBE,
-			to: jid
-		}, OPCODE.PRESENCE.SEND));
-	}
-
-	/**
-	 * 同意联系人的订阅请求
-	 * @param jid
-	 */
-	function approveSubscribe(jid) {
-		YYIMChat.getConnection().send(new JumpPacket({
-			type: YYIMChat.getConstants().PRESENCE_TYPE.SUBSCRIBED,
-			to: jid
-		}, OPCODE.PRESENCE.SEND));
-	}
-	/**
-	 * 拒绝联系人的订阅请求
-	 * @param jid
-	 */
-	function rejectSubscribe(jid) {
-		YYIMChat.getConnection().send(new JumpPacket({
-			type: YYIMChat.getConstants().PRESENCE_TYPE.UNSUBSCRIBED,
-			to: jid
-		}, OPCODE.PRESENCE.SEND));
-	}
-
-	function monitor() {
-		
-		//联系人收藏，取消收藏 rongqb 20161208
-		YYIMChat.getConnection().registerHandler(OPCODE.FAVORITED_ROSTERT.KEY, function(packet){
-			if(packet && packet.favoritedRosterItem){
-				packet.favoritedRosterItem.id = YYIMChat.getJIDUtil().getID(packet.favoritedRosterItem.jid);
-			}
-			if(packet && packet.to){
-				packet.to = YYIMChat.getJIDUtil().getID(packet.to);
-			}
-			YYIMChat.onRosterFavorited(packet);
-		});
-		
-		// 好友删除, 修改, 增加
-		YYIMChat.getConnection().registerHandler(OPCODE.UPDATE_ROSTER.KEY, function(packet) {
-			var item = packet.item,
-				id = YYIMChat.getJIDUtil().getID(packet.item.jid);
-			// 好友添加成功或好友信息更新
-			if(item.subscription === 'both') {
-				YYIMChat.log('update or add: ' + JSON.stringify(item));
-				item.id = id;
-				YYIMChat.onRosterUpdateded(item);
-			}
-			// 好友删除成功或被对方删除
-			else if(item.subscription === 'none') {
-				YYIMChat.log('delete: ' + JSON.stringify(item));
-				item.id = id;
-				YYIMChat.onRosterDeleted(item);
-			}
-			// 删除成功后会受到关系为none的包, remove无需再操作
-			else if(item.subscription === 'remove') {
-				// do nothing
-			}
-
-		});
-
-		// 可能会收到订阅或上线包
-		YYIMChat.getConnection().registerHandler(OPCODE.PRESENCE.KEY, function(packet) {
-			// 订阅， 此处不做处理
-			if(packet.type && packet.type != YYIMChat.getConstants().TYPE.UNAVAILABLE) {
-				YYIMChat.onSubscribe({
-					from: YYIMChat.getJIDUtil().getID(packet.from),
-					type: packet.type
-				});
-				return;
-			}
-			// 上线包
-			var ps = {
-				from: YYIMChat.getJIDUtil().getID(packet.from),
-				resource: YYIMChat.getJIDUtil().getResource(packet.from),
-				type: packet.type,
-				show: packet.show,
-				status: packet.status
-			};
-			if(packet.type && packet.type == YYIMChat.getConstants().TYPE.UNAVAILABLE) {
-				ps.show = YYIMChat.getConstants().STATUS.UNAVAILABLE;
-				ps.status = YYIMChat.getConstants().STATUS.UNAVAILABLE;
-				removeFromOnline(ps.from);
-			}
-
-			if(!YYIMCommonUtil.isStringAndNotEmpty(ps.status)) {
-				ps.show = YYIMChat.getConstants().STATUS.CHAT;
-				ps.status = YYIMChat.getConstants().STATUS.CHAT;
-			};
-			YYIMChat.onPresence(ps);
-		});
-
-	}
-
-	return {
-		monitor: monitor,
-		approveSubscribe: approveSubscribe,
-		rejectSubscribe: rejectSubscribe,
-		deleteRosterItem: deleteRosterItem,
-		queryRosterItem: queryRosterItem,
-		getRostersPresence: getRostersPresence,
-		updateRosterItem: updateRosterItem,
-		setPresence: setPresence,
-		getVCard: getVCard,
-		getBatchVCards: getBatchVCards,
-		getVCards: getVCards,
-		setVCard: setVCard,
-		addRosterItem: addRosterItem,
-		favoriteRoster: favoriteRoster,
-		cancelFavoriteRoster: cancelFavoriteRoster,
-		updateFavoriteRoster: updateFavoriteRoster,
-		getFavoriteRosterList: getFavoriteRosterList,
-		getRosterItems: getRosterItems,
-		setTag: setTag,
-		removeTag: removeTag
-	};
-})();
-YYIMChat.setBackhander({
-	'monitor': {
-		'rosterMonitor': Manager.monitor
-	},
-	'initCallback': {
-		'roster':  function(options){
-			YYIMChat.onPresence = options.onPresence || function(){};  //好友上线
-			YYIMChat.onSubscribe = options.onSubscribe || function(){}; // 对方请求加好友
-			YYIMChat.onRosterDeleted = options.onRosterDeleted || function(){};  // 自己删除好友成功或对方进行了删除操作 
-			YYIMChat.onRosterUpdateded = options.onRosterUpdateded || function(){};  // 好友信息更新
-			YYIMChat.onRosterFavorited = options.onRosterFavorited || function(){};  // 好友收藏
-		}
-	}
-});
-
-/**
- * 设置上线状态
- * @param arg{show, status} 空则为在线
- *  away -- 该实体或资源临时离开.
-    chat -- 该实体或资源活跃并想聊天.
-    dnd -- 该实体或资源忙(dnd = "Do Not Disturb"，免打扰).
-    xa -- 该实体或资源要离开相当长时间(xa = "eXtended Away"，长时间离开).
-       如果show未被提供或为NULL, 该实体被假定在线并且可用. 
- */
-YYIMManager.prototype.setPresence = function(arg){
-	var presence = {};
-	if(arg && arg.show && this.getConstants().STATUS[arg.show.toUpperCase()]){
-		presence.show = arg.show;
-	}
-	if(arg && arg.status){
-		presence.status = arg.status;
-	}
-	Manager.setPresence(presence);
-};
-
-/**
- * 获取自己或好友的VCard
- * @param arg {
- * 		id : 如果没有则获取自己的VCard,
- * 		success : function,
- * 		error : function
- * }
- */
-YYIMManager.prototype.getVCard = function(arg) {
-	arg = arg || {};
-	if(arg){
-		Manager.getVCard({
-			id: arg.id,
-			success : arg.success,
-			error : arg.error
-		});
-	}else{
-		arg.error && arg.error();
-	}
-};
-
-/**
- *  批量拉取roster Vcard
- */
-var batchVcardsList = new BaseList();
-var batchVcardsTimer;
-var getBatchVCards = function(){
-	var handler = batchVcardsList;
-	batchVcardsList = new BaseList();
-	Manager.getBatchVCards({
-		ids: JSON.stringify(handler.keys()),
-		success: function(vcards){
-			handler.forEach(function(item,index){
-				try{
-					item && item.success && item.success(vcards[item.id]);
-				}catch(e){
-					//TODO handle the exception
-					YYIMChat.log('SuccessHandleBatchVCardsError.',0,e);
-				}
-			});
-			handler.clear();
-			handler = null;
+			arg.success && arg.success(data);
 		},
-		error: function(err){
-			handler.forEach(function(item,index){
-				try{
-					item && item.error && item.error(err);
-				}catch(e){
-					//TODO handle the exception
-					YYIMChat.log('ErrorHandleBatchVCardsError.',0,e);
+		error: function error(_error) {
+			arg.error && arg.error(errot);
+		}
+	});
+};
+
+_manager.YYIMManager.prototype.createProfile = function (arg) {
+	arg = arg || {};
+	if (!!arg.profile) {
+		(0, _Manager.createProfile)(arg);
+	} else {
+		arg.error && arg.error();
+	}
+};
+
+_manager.YYIMManager.prototype.removeProfile = function (arg) {
+	arg = arg || {};
+	if (YYIMArrayUtil.isArray(arg.profiles)) {
+		(0, _Manager.removeProfile)(arg);
+	} else {
+		arg.error && arg.error();
+	}
+};
+
+_manager.YYIMManager.prototype.clearProfile = function (arg) {
+	(0, _Manager.clearProfile)(arg || {});
+};
+
+_manager.YYIMManager.prototype.removeGroupAssistant = function (arg) {
+	if (arg && arg.id) {
+		(0, _Manager.removeGroupAssistant)(arg);
+	} else {
+		arg && arg.error && arg.error();
+	}
+};
+
+/***/ }),
+/* 50 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+	value: true
+});
+exports.removeGroupAssistant = exports.clearProfile = exports.removeProfile = exports.createProfile = exports.cancelMuteStick = exports.muteStick = exports.getProfile = undefined;
+
+var _stringify = __webpack_require__(1);
+
+var _stringify2 = _interopRequireDefault(_stringify);
+
+var _manager = __webpack_require__(0);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function getProfile(arg) {
+	var apiKeyParam = _manager.YYIMManager.getInstance().getApiKey();
+	if (apiKeyParam) {
+		apiKeyParam = '&apiKey=' + apiKeyParam;
+	}
+	jQuery.ajax({
+		url: _manager.YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + _manager.YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + _manager.YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + _manager.YYIMManager.getInstance().getUserID() + '/profile?token=' + _manager.YYIMManager.getInstance().getToken() + apiKeyParam,
+		type: 'get',
+		cache: false,
+		datatype: 'json',
+		success: function success(data) {
+			if (data.muteItems) {
+				var temp = {};
+				for (var x in data.muteItems) {
+					var id = _manager.YYIMChat.getJIDUtil().getID(data.muteItems[x]);
+					var type = _manager.YYIMChat.getJIDUtil().getChatTypeByJid(data.muteItems[x]);
+					temp[id] = {
+						id: id,
+						type: type
+					};
 				}
-			});
-			handler.clear();
-			handler = null;
+				data.muteItems = temp;
+			}
+
+			if (data.stickItems) {
+				var temp = {};
+				for (var x in data.stickItems) {
+					var id = _manager.YYIMChat.getJIDUtil().getID(data.stickItems[x]);
+					var type = _manager.YYIMChat.getJIDUtil().getChatTypeByJid(data.stickItems[x]);
+					temp[id] = {
+						id: id,
+						type: type
+					};
+				}
+				data.stickItems = temp;
+			}
+			if (data.userId) {
+				data.userId = _manager.YYIMChat.getJIDUtil().getID(data.userId);
+			}
+			arg.success && arg.success(data);
+			arg = null;
+		},
+		error: function error(xhr) {
+			try {
+				arg.error && arg.error(JSON.parse(xhr.responseText));
+				arg = null;
+			} catch (e) {
+				arg.error && arg.error();
+				arg = null;
+			}
 		}
 	});
 }
 
-YYIMManager.prototype.getBatchVCards = function(arg){
-	if(arg && arg.id && !batchVcardsList.get(arg.id)){
-		batchVcardsList.set(arg.id, arg);
-		clearTimeout(batchVcardsTimer);
-		if(batchVcardsList.length() >= this.getConfig().ROSTER.BATCHVCRADMAXLIMIT){
-			getBatchVCards();
-		}else{
-			batchVcardsTimer = setTimeout(function(){
-				getBatchVCards();
-			},200);
-		}
-	}else{
-		arg.error && arg.error();
+function muteStick(arg) {
+	var to;
+	if (arg.type == _manager.YYIMChat.getConstants().CHAT_TYPE.GROUP_CHAT) {
+		to = _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));
+	} else if (arg.type == _manager.YYIMChat.getConstants().CHAT_TYPE.PUB_ACCOUNT) {
+		to = _manager.YYIMChat.getJIDUtil().buildPubAccountJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));
+	} else {
+		to = _manager.YYIMChat.getJIDUtil().buildUserJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));
 	}
-};
-
-/**
- * 获取所有好友的VCard
- * 
- * @param arg {
- * 		success : function,
- * 		error : function
- * }
- */
-YYIMManager.prototype.getVCards = function(arg) {
-	if(arg){
-		Manager.getVCards({
-			success : arg.success,
-			error : arg.error,
-			complete : arg.complete
-		});
-	}else{
-		arg.error && arg.error();
-	}
-};
-
-/**
- * 修改当前用户的头像
- * @param arg {
- * 		nickname:String,
- * 		photo:String,
- * 		email:String,
- * 		mobile:Number,
- * 		telephone:Number,
- *      organization:String,
- *      gender:,
- *      number:Number,
- *      remarks:,
- * 		location:String,
- *      position:String,
- * 		success : function,
- * 		error : fcuntion
- * }
- */
-YYIMManager.prototype.setVCard = function(arg) {
-	Manager.setVCard({
-		vcard : {
-			nickname : arg.nickname,
-			photo : arg.photo,
-			email : arg.email,
-			mobile : arg.mobile,
-			telephone : arg.telephone,
-			organization : arg.organization,
-			gender : arg.gender,
-			number : arg.number,
-			remarks : arg.remarks,
-			location : arg.location,
-			position : arg.position
+	arg.handle = arg.handle === 'mute' ? arg.handle : 'stick';
+	jQuery.ajax({
+		url: _manager.YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + _manager.YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + _manager.YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + _manager.YYIMManager.getInstance().getUserID() + '/profile/' + arg.handle + '?token=' + _manager.YYIMManager.getInstance().getToken(),
+		type: 'post',
+		data: (0, _stringify2.default)({ bareJID: to }),
+		dataType: 'json',
+		cache: false,
+		processData: false,
+		contentType: "application/json",
+		success: function success(data) {
+			arg.success && arg.success({
+				id: arg.to,
+				type: arg.type
+			});
+			arg = null;
 		},
-		success : arg.success,
-		error : arg.error
+		error: function error(xhr) {
+			try {
+				arg.error && arg.error(JSON.parse(xhr.responseText));
+				arg = null;
+			} catch (e) {
+				arg.error && arg.error();
+				arg = null;
+			}
+		}
+	});
+}
+
+function cancelMuteStick(arg) {
+	var to;
+	if (arg.type == _manager.YYIMChat.getConstants().CHAT_TYPE.GROUP_CHAT) {
+		to = _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));
+	} else if (arg.type == _manager.YYIMChat.getConstants().CHAT_TYPE.PUB_ACCOUNT) {
+		to = _manager.YYIMChat.getJIDUtil().buildPubAccountJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));
+	} else {
+		to = _manager.YYIMChat.getJIDUtil().buildUserJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));
+	}
+	jQuery.ajax({
+		url: _manager.YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + _manager.YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + _manager.YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + _manager.YYIMManager.getInstance().getUserID() + '/profile/' + (arg.handle === 'mute' ? 'mute' : 'stick') + '?token=' + _manager.YYIMManager.getInstance().getToken() + '&bareJID=' + to,
+		type: 'DELETE',
+		dataType: 'json',
+		success: function success(data) {
+			arg.success && arg.success({
+				id: arg.to,
+				type: arg.type
+			});
+			arg = null;
+		},
+		error: function error(xhr) {
+			try {
+				arg.error && arg.error(JSON.parse(xhr.responseText));
+				arg = null;
+			} catch (e) {
+				arg.error && arg.error();
+				arg = null;
+			}
+		}
+	});
+}
+
+function createProfile(arg) {
+	jQuery.ajax({
+		url: _manager.YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + _manager.YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + _manager.YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + _manager.YYIMManager.getInstance().getUserID() + '/profile?token=' + _manager.YYIMManager.getInstance().getToken(),
+		type: 'post',
+		data: (0, _stringify2.default)(arg.profile),
+		dataType: 'json',
+		cache: false,
+		processData: false,
+		contentType: "application/json",
+		success: function success(data) {
+			arg.success && arg.success(arg.profile);
+			arg = null;
+		},
+		error: function error(xhr) {
+			try {
+				arg.error && arg.error(JSON.parse(xhr.responseText));
+				arg = null;
+			} catch (e) {
+				arg.error && arg.error();
+				arg = null;
+			}
+		}
+	});
+}
+
+function removeProfile(arg) {
+	jQuery.ajax({
+		url: _manager.YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + _manager.YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + _manager.YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + _manager.YYIMManager.getInstance().getUserID() + '/profile?token=' + _manager.YYIMManager.getInstance().getToken(),
+		type: 'PUT',
+		data: (0, _stringify2.default)(arg.profiles),
+		dataType: 'json',
+		cache: false,
+		processData: false,
+		contentType: "application/json",
+		success: function success(data) {
+			arg.success && arg.success(arg.profiles);
+			arg = null;
+		},
+		error: function error(xhr) {
+			try {
+				arg.error && arg.error(JSON.parse(xhr.responseText));
+				arg = null;
+			} catch (e) {
+				arg.error && arg.error();
+				arg = null;
+			}
+		}
+	});
+}
+
+function clearProfile(arg) {
+	jQuery.ajax({
+		url: _manager.YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + _manager.YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + _manager.YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + _manager.YYIMManager.getInstance().getUserID() + '/profile?token=' + _manager.YYIMManager.getInstance().getToken(),
+		type: 'DELETE',
+		dataType: 'json',
+		cache: false,
+		success: function success(data) {
+			arg.success && arg.success();
+			arg = null;
+		},
+		error: function error(xhr) {
+			try {
+				arg.error && arg.error(JSON.parse(xhr.responseText));
+				arg = null;
+			} catch (e) {
+				arg.error && arg.error();
+				arg = null;
+			}
+		}
+	});
+}
+
+function removeGroupAssistant(arg) {
+	jQuery.ajax({
+		url: _manager.YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + _manager.YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + _manager.YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + _manager.YYIMManager.getInstance().getUserID() + '/profile/groupassistant?token=' + _manager.YYIMManager.getInstance().getToken() + '&bareJID=' + _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.id)),
+		type: 'DELETE',
+		dataType: 'json',
+		cache: false,
+		success: function success(data) {
+			arg.success && arg.success();
+			arg = null;
+		},
+		error: function error(xhr) {
+			try {
+				arg.error && arg.error(JSON.parse(xhr.responseText));
+				arg = null;
+			} catch (e) {
+				arg.error && arg.error();
+				arg = null;
+			}
+		}
+	});
+}
+
+exports.getProfile = getProfile;
+exports.muteStick = muteStick;
+exports.cancelMuteStick = cancelMuteStick;
+exports.createProfile = createProfile;
+exports.removeProfile = removeProfile;
+exports.clearProfile = clearProfile;
+exports.removeGroupAssistant = removeGroupAssistant;
+
+/***/ }),
+/* 51 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+var _manager = __webpack_require__(0);
+
+var _Manager = __webpack_require__(52);
+
+_manager.YYIMChat.setBackhander({
+  'monitor': {
+    'pubaccountMonitor': _Manager.monitor
+  },
+  'initCallback': {
+    'pubaccount': function pubaccount(options) {
+      _manager.YYIMChat.onPubaccountUpdate = options.onPubaccountUpdate || function () {};
+    }
+  }
+});
+
+_manager.YYIMManager.prototype.getPubAccount = function (arg) {
+  (0, _Manager.getPubAccountItems)(arg);
+};
+
+_manager.YYIMManager.prototype.getPubAccounts = function (arg) {
+  if (YYIMUtil['isWhateType'](arg.ids, 'Array')) {
+    (0, _Manager.getPubAccounts)(arg);
+  } else {
+    arg && arg.error && arg.error();
+  }
+};
+
+var batchInfosList = new BaseList();
+var batchInfosTimer;
+var getBatchInfos = function getBatchInfos() {
+  var handler = batchInfosList;
+  batchInfosList = new BaseList();
+  (0, _Manager.getPubAccounts)({
+    ids: handler.keys(),
+    success: function success(list, data) {
+      handler.forEach(function (item, index) {
+        try {
+          item && item.success && item.success(data[item.id]);
+        } catch (e) {
+          _manager.YYIMChat.log('SuccessHandleBatchPubaccountInfoError.', 0, e);
+        }
+      });
+      handler.clear();
+      handler = null;
+    },
+    error: function error(err) {
+      handler.forEach(function (item, index) {
+        try {
+          item && item.error && item.error(err);
+        } catch (e) {
+          _manager.YYIMChat.log('ErrorHandleBatchPubaccountInfoError.', 0, e);
+        }
+      });
+      handler.clear();
+      handler = null;
+    }
+  });
+};
+
+_manager.YYIMManager.prototype.getBatchPubInfos = function (arg) {
+  if (arg && arg.id && !batchInfosList.get(arg.id)) {
+    batchInfosList.set(arg.id, arg);
+    clearTimeout(batchInfosTimer);
+    if (batchInfosList.length() >= this.getConfig().BETCH_MAXLIMIT.PUBACCOUNT) {
+      getBatchInfos();
+    } else {
+      batchInfosTimer = setTimeout(function () {
+        getBatchInfos();
+      }, 200);
+    }
+  } else {
+    arg.error && arg.error();
+  }
+};
+
+_manager.YYIMManager.prototype.getPubAccountInfo = function (arg) {
+  if (YYIMCommonUtil.isStringAndNotEmpty(arg.id)) {
+    (0, _Manager.getPubAccountInfo)(arg);
+  } else {
+    arg && arg.error && arg.error();
+  }
+};
+
+_manager.YYIMManager.prototype.addPubaccount = function (arg) {
+  if (YYIMCommonUtil.isStringAndNotEmpty(arg.id)) {
+    (0, _Manager.addPubAccount)({
+      jid: _manager.YYIMChat.getJIDUtil().buildPubAccountJID(_manager.YYIMChat.getJIDUtil().getNode(arg.id)),
+      success: arg.success,
+      error: arg.error
+    });
+  } else {
+    arg && arg.error && arg.error();
+  }
+};
+
+_manager.YYIMManager.prototype.removePubaccount = function (arg) {
+  if (YYIMCommonUtil.isStringAndNotEmpty(arg.id)) {
+    (0, _Manager.removePubAccount)({
+      id: Math.uuid(),
+      to: _manager.YYIMChat.getJIDUtil().buildPubAccountJID(_manager.YYIMChat.getJIDUtil().getNode(arg.id)),
+      success: arg.success,
+      error: arg.error
+    });
+  } else {
+    arg && arg.error && arg.error();
+  }
+};
+
+_manager.YYIMManager.prototype.queryPubaccount = function (arg) {
+  if (YYIMCommonUtil.isStringAndNotEmpty(arg.keyword)) {
+    (0, _Manager.queryPubaccount)(arg);
+  } else {
+    arg && arg.error && arg.error();
+  }
+};
+
+/***/ }),
+/* 52 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+exports.queryPubaccount = exports.removePubAccount = exports.getPubAccountInfo = exports.getPubAccountItems = exports.getPubAccounts = exports.addPubAccount = exports.monitor = undefined;
+
+var _stringify = __webpack_require__(1);
+
+var _stringify2 = _interopRequireDefault(_stringify);
+
+var _manager = __webpack_require__(0);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function getPubAccountItems(arg) {
+    var jumpPacket = new JumpPacket({
+        type: _manager.YYIMChat.getConstants().TYPE.GET,
+        ns: NS_PUBACCOUNT,
+        to: _manager.YYIMChat.getConfig().DOMAIN.PUBACCOUNT
+    }, OPCODE.PUBACCOUNT_LIST.SEND);
+
+    _manager.YYIMChat.getConnection().send(jumpPacket, function (pubaccountListResult, _arg) {
+        if (!_arg) return;
+
+        _arg.complete && _arg.complete();
+        var items = pubaccountListResult.items || [];
+        var i = items.length || 0;
+        while (i--) {
+            items[i].id = _manager.YYIMChat.getJIDUtil().getID(items[i].jid);
+        }
+        _arg.success && _arg.success((0, _stringify2.default)(items));
+    }, arg);
+}
+
+function getPubAccounts(arg) {
+    jQuery.ajax({
+        url: _manager.YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + _manager.YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + _manager.YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/pubaccount/' + _manager.YYIMChat.getUserID() + '/items',
+        dataType: 'json',
+        data: {
+            token: _manager.YYIMChat.getToken(),
+            pubIds: (0, _stringify2.default)(arg.ids)
+        },
+        cache: false,
+        success: function success(result) {
+            var data = {};
+            result = result || [];
+            var i = result.length || 0;
+            while (i--) {
+                result[i].id = _manager.YYIMChat.getJIDUtil().getID(result[i].jid);
+                data[result[i].id] = result[i];
+            }
+            arg.success && arg.success(result, data);
+            arg = null;
+        },
+        error: function error(xhr) {
+            try {
+                arg.error && arg.error(JSON.parse(xhr.responseText));
+                arg = null;
+            } catch (e) {
+                arg.error && arg.error();
+                arg = null;
+            }
+        }
+    });
+}
+
+function getPubAccountInfo(arg) {
+    jQuery.ajax({
+        url: _manager.YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + _manager.YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + _manager.YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + arg.id + '/' + _manager.YYIMChat.getUserID() + '/pubaccount/info',
+        dataType: 'json',
+        data: {
+            token: _manager.YYIMChat.getToken()
+        },
+        cache: false,
+        success: function success(result) {
+            if (result && result.data) {
+                result.data.id = _manager.YYIMChat.getJIDUtil().getID(result.data.jid);
+                arg.success && arg.success(result.data);
+                arg = null;
+            }
+        },
+        error: function error(xhr) {
+            try {
+                arg.error && arg.error(JSON.parse(xhr.responseText));
+                arg = null;
+            } catch (e) {
+                arg.error && arg.error();
+                arg = null;
+            }
+        }
+    });
+}
+
+function queryPubaccount(arg) {
+    var iqBody = {
+        start: YYIMCommonUtil.isNumber(arg.start) ? arg.start : 0,
+        size: YYIMCommonUtil.isNumber(arg.size) ? arg.size : 20,
+        fields: ["Accountname", "Name"],
+        search: arg.keyword
+    };
+    _manager.YYIMChat.getConnection().send(new JumpPacket(iqBody, OPCODE.QUERY_PUBACCOUNT.SEND), function (queryResult, _arg) {
+        var items = queryResult.items || [],
+            result = [],
+            i = items.length;
+        while (i--) {
+            var item = items[i],
+                jid = item.jid;
+            result.push({
+                id: _manager.YYIMChat.getJIDUtil().getID(jid),
+                name: YYIMCommonUtil.isStringAndNotEmpty(item.name) ? item.name : _manager.YYIMChat.getJIDUtil().getID(jid),
+                type: item.type
+            });
+        }
+        _arg.complete && _arg.complete();
+        _arg.success && _arg.success({
+            start: queryResult.start,
+            total: queryResult.total,
+            items: result
+        });
+    }, arg);
+}
+
+function addPubAccount(arg) {
+    _manager.YYIMChat.getConnection().send(new JumpPacket({
+        type: _manager.YYIMChat.getConstants().PRESENCE_TYPE.SUBSCRIBE,
+        to: arg.jid
+    }, OPCODE.PRESENCE.SEND), function (addResult, _arg) {
+        _arg.complete && _arg.complete();
+        addResult.from = _manager.YYIMChat.getJIDUtil().getID(addResult.from);
+        addResult.to = _manager.YYIMChat.getJIDUtil().getID(addResult.to);
+        _arg.success && _arg.success(addResult);
+    }, arg);
+}
+
+function removePubAccount(arg) {
+    _manager.YYIMChat.getConnection().send(new JumpPacket({
+        id: arg.id,
+        type: _manager.YYIMChat.getConstants().PRESENCE_TYPE.UNSUBSCRIBE,
+        to: arg.to
+    }, OPCODE.PRESENCE.SEND), function (addResult, _arg) {
+        _arg.complete && _arg.complete();
+        addResult.from = _manager.YYIMChat.getJIDUtil().getID(addResult.from);
+        addResult.to = _manager.YYIMChat.getJIDUtil().getID(addResult.to) || _manager.YYIMChat.getUserID();
+        _arg.success && _arg.success(addResult);
+    }, arg);
+}
+
+function monitor() {
+    _manager.YYIMChat.getConnection().registerHandler(OPCODE.PUBACCOUNT_LIST.KEY, function (packet) {
+        var items = packet.items;
+        if ((items && items.length || 0) === 0) return;
+        var pubaccounts = [],
+            i = items.length;
+        while (i--) {
+            var item = items[i];
+            item.id = _manager.YYIMChat.getJIDUtil().getID(item.jid), pubaccounts.push(item);
+        }
+        _manager.YYIMChat.onPubaccountUpdate(pubaccounts);
+    });
+}
+
+exports.monitor = monitor;
+exports.addPubAccount = addPubAccount;
+exports.getPubAccounts = getPubAccounts;
+exports.getPubAccountItems = getPubAccountItems;
+exports.getPubAccountInfo = getPubAccountInfo;
+exports.removePubAccount = removePubAccount;
+exports.queryPubaccount = queryPubaccount;
+
+/***/ }),
+/* 53 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+var _stringify = __webpack_require__(1);
+
+var _stringify2 = _interopRequireDefault(_stringify);
+
+var _manager = __webpack_require__(0);
+
+var _Manager = __webpack_require__(54);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+_manager.YYIMChat.setBackhander({
+	'monitor': {
+		'rosterMonitor': _Manager.monitor
+	},
+	'initCallback': {
+		'roster': function roster(options) {
+			_manager.YYIMChat.onPresence = options.onPresence || function () {};
+			_manager.YYIMChat.onSubscribe = options.onSubscribe || function () {};
+			_manager.YYIMChat.onRosterDeleted = options.onRosterDeleted || function () {};
+			_manager.YYIMChat.onRosterUpdateded = options.onRosterUpdateded || function () {};
+			_manager.YYIMChat.onRosterFavorited = options.onRosterFavorited || function () {};
+		}
+	}
+});
+
+_manager.YYIMManager.prototype.setPresence = function (arg) {
+	var presence = {};
+	if (arg && arg.show && this.getConstants().STATUS[arg.show.toUpperCase()]) {
+		presence.show = arg.show;
+	}
+	if (arg && arg.status) {
+		presence.status = arg.status;
+	}
+	(0, _Manager.setPresence)(presence);
+};
+
+_manager.YYIMManager.prototype.getVCard = function (arg) {
+	arg = arg || {};
+	if (arg) {
+		(0, _Manager.getVCard)({
+			id: arg.id,
+			success: arg.success,
+			error: arg.error
+		});
+	} else {
+		arg.error && arg.error();
+	}
+};
+
+var batchVcardsList = new BaseList();
+var batchVcardsTimer = void 0;
+var _getBatchVCards = function _getBatchVCards() {
+	var handler = batchVcardsList;
+	batchVcardsList = new BaseList();
+	(0, _Manager.getBatchVCards)({
+		ids: (0, _stringify2.default)(handler.keys()),
+		success: function success(vcards) {
+			handler.forEach(function (item, index) {
+				try {
+					item && item.success && item.success(vcards[item.id]);
+				} catch (e) {
+					_manager.YYIMChat.log('SuccessHandleBatchVCardsError.', 0, e);
+				}
+			});
+			handler.clear();
+			handler = null;
+		},
+		error: function error(err) {
+			handler.forEach(function (item, index) {
+				try {
+					item && item.error && item.error(err);
+				} catch (e) {
+					_manager.YYIMChat.log('ErrorHandleBatchVCardsError.', 0, e);
+				}
+			});
+			handler.clear();
+			handler = null;
+		}
 	});
 };
 
+_manager.YYIMManager.prototype.getBatchVCards = function (arg) {
+	if (arg && arg.id && !batchVcardsList.get(arg.id)) {
+		batchVcardsList.set(arg.id, arg);
+		clearTimeout(batchVcardsTimer);
+		if (batchVcardsList.length() >= this.getConfig().BETCH_MAXLIMIT.ROSTER) {
+			_getBatchVCards();
+		} else {
+			batchVcardsTimer = setTimeout(function () {
+				_getBatchVCards();
+			}, 200);
+		}
+	} else {
+		arg.error && arg.error();
+	}
+};
 
-/**
- * 修改当前用户的Tag rongqb 20160719
- * @param arg {
- * 		tag : Array,
- * 		success : function,
- * 		error : fcuntion
- * }
- */
-YYIMManager.prototype.setVCardTag = function(arg){
+_manager.YYIMManager.prototype.getVCards = function (arg) {
+	if (arg) {
+		(0, _Manager.getVCards)({
+			success: arg.success,
+			error: arg.error,
+			complete: arg.complete
+		});
+	} else {
+		arg.error && arg.error();
+	}
+};
+
+_manager.YYIMManager.prototype.setVCard = function (arg) {
+	(0, _Manager.setVCard)({
+		vcard: {
+			nickname: arg.nickname,
+			photo: arg.photo,
+			email: arg.email,
+			mobile: arg.mobile,
+			telephone: arg.telephone,
+			organization: arg.organization,
+			gender: arg.gender,
+			number: arg.number,
+			remarks: arg.remarks,
+			location: arg.location,
+			position: arg.position
+		},
+		success: arg.success,
+		error: arg.error
+	});
+};
+
+_manager.YYIMManager.prototype.setVCardTag = function (arg) {
 	arg = arg || {};
-	if(YYIMArrayUtil.isArray(arg.tag)){
+	if (YYIMArrayUtil.isArray(arg.tag)) {
 		var that = this;
-		Manager.setTag({
+		(0, _Manager.setTag)({
 			tag: arg.tag,
-			success: function(targetId){
+			success: function success(targetId) {
 				that.getVCard({
 					id: targetId,
-					success: function(vcard){
+					success: function success(vcard) {
 						arg.success && arg.success(vcard);
 					}
 				});
 			},
 			error: arg.error
 		});
-	}else{
+	} else {
 		arg.error && arg.error();
 	}
 };
 
-/**
- * 删除当前用户的Tag rongqb 20160719
- * @param arg {
- * 		tag : Array,
- * 		success : function,
- * 		error : fcuntion
- * }
- */
-YYIMManager.prototype.removeVCardTag = function(arg){
+_manager.YYIMManager.prototype.removeVCardTag = function (arg) {
 	arg = arg || {};
-	if(YYIMArrayUtil.isArray(arg.tag)){
+	if (YYIMArrayUtil.isArray(arg.tag)) {
 		var that = this;
-		Manager.removeTag({
+		(0, _Manager.removeTag)({
 			tag: arg.tag,
-			success: function(targetId){
+			success: function success(targetId) {
 				that.getVCard({
 					id: targetId,
-					success: function(vcard){
+					success: function success(vcard) {
 						arg.success && arg.success(vcard);
 					}
 				});
 			},
 			error: arg.error
 		});
-	}else{
+	} else {
 		arg.error && arg.error();
 	}
 };
 
-
-/**
- * 修改好友的Tag rongqb 20160719
- * @param arg {
- * 		id: String, //targetID 
- * 		tag : Array,
- * 		success : function,
- * 		error : fcuntion
- * }
- */
-YYIMManager.prototype.setRosterTag = function(arg){
+_manager.YYIMManager.prototype.setRosterTag = function (arg) {
 	arg = arg || {};
-	if(arg.id && YYIMArrayUtil.isArray(arg.tag) && arg.id != this.getUserID()){
-		Manager.setTag({
+	if (arg.id && YYIMArrayUtil.isArray(arg.tag) && arg.id != this.getUserID()) {
+		(0, _Manager.setTag)({
 			id: arg.id,
 			tag: arg.tag,
-			success: function(targetId){
+			success: function success(targetId) {
 				arg.success && arg.success(targetId);
 			},
 			error: arg.error
 		});
-	}else{
+	} else {
 		arg.error && arg.error();
 	}
 };
 
-/**
- * 删除好友的Tag rongqb 20160719
- * @param arg {
- * 		id: String, //targetID 
- * 		tag : Array,
- * 		success : function,
- * 		error : fcuntion
- * }
- */
-YYIMManager.prototype.removeRosterTag = function(arg){
+_manager.YYIMManager.prototype.removeRosterTag = function (arg) {
 	arg = arg || {};
-	if(arg.id && YYIMArrayUtil.isArray(arg.tag) && arg.id != this.getUserID()){
-		Manager.removeTag({
+	if (arg.id && YYIMArrayUtil.isArray(arg.tag) && arg.id != this.getUserID()) {
+		(0, _Manager.removeTag)({
 			id: arg.id,
 			tag: arg.tag,
-			success: function(targetId){
+			success: function success(targetId) {
 				arg.success && arg.success(targetId);
 			},
 			error: arg.error
 		});
-	}else{
+	} else {
 		arg.error && arg.error();
 	}
 };
 
-
-/**
- * 获取好友列表[roster]
- * @param arg {
- * 	success: function, 
- * 	error: function,
- * 	complete: function
- * }
- */
-YYIMManager.prototype.getRosterItems = function(arg){
-	Manager.getRosterItems(arg);
+_manager.YYIMManager.prototype.getRosterItems = function (arg) {
+	(0, _Manager.getRosterItems)(arg);
 };
 
-/**
- * 添加好友[roster]
- * @param id
- */
-YYIMManager.prototype.addRosterItem = function(id){
-	if(YYIMCommonUtil.isStringAndNotEmpty(id)) {
-		Manager.addRosterItem(YYIMChat.getJIDUtil().buildUserJID(YYIMChat.getJIDUtil().getNode(id)));
+_manager.YYIMManager.prototype.addRosterItem = function (id) {
+	if (YYIMCommonUtil.isStringAndNotEmpty(id)) {
+		(0, _Manager.addRosterItem)(_manager.YYIMChat.getJIDUtil().buildUserJID(_manager.YYIMChat.getJIDUtil().getNode(id)));
 	}
 };
 
-/**
- * 同意联系人的订阅请求
- * @param id 请求订阅的联系人的ID
- */
-YYIMManager.prototype.approveSubscribe = function(id) {
-	if(YYIMCommonUtil.isStringAndNotEmpty(id)) {
-		Manager.approveSubscribe(YYIMChat.getJIDUtil().buildUserJID(YYIMChat.getJIDUtil().getNode(id)));
+_manager.YYIMManager.prototype.approveSubscribe = function (id) {
+	if (YYIMCommonUtil.isStringAndNotEmpty(id)) {
+		(0, _Manager.approveSubscribe)(_manager.YYIMChat.getJIDUtil().buildUserJID(_manager.YYIMChat.getJIDUtil().getNode(id)));
 	}
 };
 
-/**
- * 拒绝联系人的订阅请求
- * @param id 请求订阅的联系人的ID
- */
-YYIMManager.prototype.rejectSubscribe = function(id) {
-	if(YYIMCommonUtil.isStringAndNotEmpty(id)) {
-		Manager.rejectSubscribe(YYIMChat.getJIDUtil().buildUserJID(YYIMChat.getJIDUtil().getNode(id)));
+_manager.YYIMManager.prototype.rejectSubscribe = function (id) {
+	if (YYIMCommonUtil.isStringAndNotEmpty(id)) {
+		(0, _Manager.rejectSubscribe)(_manager.YYIMChat.getJIDUtil().buildUserJID(_manager.YYIMChat.getJIDUtil().getNode(id)));
 	}
 };
 
-/**
- * 删除好友[roster]
- * @param arg {id: string, success: function, error: function,complete: function}
- */
-YYIMManager.prototype.deleteRosterItem = function(arg) {
-	if(YYIMCommonUtil.isStringAndNotEmpty(arg.id)) {
-		Manager.deleteRosterItem({
-			jid: YYIMChat.getJIDUtil().buildUserJID(YYIMChat.getJIDUtil().getNode(arg.id)),
+_manager.YYIMManager.prototype.deleteRosterItem = function (arg) {
+	if (YYIMCommonUtil.isStringAndNotEmpty(arg.id)) {
+		(0, _Manager.deleteRosterItem)({
+			jid: _manager.YYIMChat.getJIDUtil().buildUserJID(_manager.YYIMChat.getJIDUtil().getNode(arg.id)),
 			success: arg.success,
 			error: arg.error
 		});
 	}
 };
 
-/**
- * 查找好友[roster][包括好友和非好友]，查询字段：userName, name
- * @param arg {keyword,start, size, success: function, error: function,complete: function}
- */
-YYIMManager.prototype.queryRosterItem = function(arg) {
-	if(YYIMCommonUtil.isStringAndNotEmpty(arg.keyword)) {
-		Manager.queryRosterItem(arg);
+_manager.YYIMManager.prototype.queryRosterItem = function (arg) {
+	if (YYIMCommonUtil.isStringAndNotEmpty(arg.keyword)) {
+		(0, _Manager.queryRosterItem)(arg);
 	}
 };
 
-/**
- * 获取用户在线状态 rongqb 20151119
- * arg {
- * username: ['zhangsan','lisi'],
- * success:function,
- * error:function,
- * complete:function,
- * }
- * resource:2.1
- */
-YYIMManager.prototype.getRostersPresence = function(arg) {
-	if(YYIMArrayUtil.isArray(arg.username)) {
-		arg.username = JSON.stringify(arg.username);
-		Manager.getRostersPresence(arg);
+_manager.YYIMManager.prototype.getRostersPresence = function (arg) {
+	if (YYIMArrayUtil.isArray(arg.username)) {
+		arg.username = (0, _stringify2.default)(arg.username);
+		(0, _Manager.getRostersPresence)(arg);
 	}
 };
 
-/**
- * 更新好友
- * @param arg {
- * 		roster : {
- * 			id : 好友id,
- * 			name : 好友昵称,
- * 			groups : ["group1","group2"] // 好友所在分组
- * 		},
- * 		success : function,
- * 		error : function
- * }
- */
-YYIMManager.prototype.updateRosterItem = function(arg) {
-	if(arg && arg.roster && YYIMCommonUtil.isStringAndNotEmpty(arg.roster.id)) {
-		Manager.updateRosterItem({
+_manager.YYIMManager.prototype.updateRosterItem = function (arg) {
+	if (arg && arg.roster && YYIMCommonUtil.isStringAndNotEmpty(arg.roster.id)) {
+		(0, _Manager.updateRosterItem)({
 			roster: {
-				jid: YYIMChat.getJIDUtil().buildUserJID(YYIMChat.getJIDUtil().getNode(arg.roster.id)),
+				jid: _manager.YYIMChat.getJIDUtil().buildUserJID(_manager.YYIMChat.getJIDUtil().getNode(arg.roster.id)),
 				name: arg.roster.name,
 				groups: arg.roster.groups
 			},
@@ -14411,498 +13709,777 @@ YYIMManager.prototype.updateRosterItem = function(arg) {
 	}
 };
 
-/**
- * 收藏/取消收藏 联系人[roster]
- * @param arg id
- */
-YYIMManager.prototype.favoriteRoster = function(id,type){
-	if(YYIMUtil['isWhateType'](id,'String')){
-		var jid = YYIMChat.getJIDUtil().buildUserJID(YYIMChat.getJIDUtil().getNode(id));
-		if(type == YYIMChat.getConstants().FAVORITE_TYPE.REMOVE){
-			Manager.cancelFavoriteRoster(jid);
-		}else{
-			Manager.favoriteRoster(jid);
+_manager.YYIMManager.prototype.favoriteRoster = function (id, type) {
+	if (YYIMUtil['isWhateType'](id, 'String')) {
+		var jid = _manager.YYIMChat.getJIDUtil().buildUserJID(_manager.YYIMChat.getJIDUtil().getNode(id));
+		if (type == _manager.YYIMChat.getConstants().FAVORITE_TYPE.REMOVE) {
+			(0, _Manager.cancelFavoriteRoster)(jid);
+		} else {
+			(0, _Manager.favoriteRoster)(jid);
 		}
 	}
 };
 
-/**
- * 修改收藏联系人的备注 rongqb 20161209
- * @param arg id,name
- */
-YYIMManager.prototype.updateFavoriteRoster = function(id,name){
-	if(YYIMUtil['isWhateType'](id,'String') && YYIMUtil['isWhateType'](name,'String')){
-		var jid = YYIMChat.getJIDUtil().buildUserJID(YYIMChat.getJIDUtil().getNode(id));
-		Manager.updateFavoriteRoster(jid,name);
+_manager.YYIMManager.prototype.updateFavoriteRoster = function (id, name) {
+	if (YYIMUtil['isWhateType'](id, 'String') && YYIMUtil['isWhateType'](name, 'String')) {
+		var jid = _manager.YYIMChat.getJIDUtil().buildUserJID(_manager.YYIMChat.getJIDUtil().getNode(id));
+		(0, _Manager.updateFavoriteRoster)(jid, name);
 	}
 };
 
-/**
- * 获取收藏联系人列表
- * @param {Object} arg {
- * 	success: function,
- * 	error: function
- * }
- */
-YYIMManager.prototype.getFavoriteRosterList = function(arg){
+_manager.YYIMManager.prototype.getFavoriteRosterList = function (arg) {
 	arg = arg || {};
-	Manager.getFavoriteRosterList({
+	(0, _Manager.getFavoriteRosterList)({
 		success: arg.success,
 		error: arg.error
 	});
 };
 
- 	return YYIMManager.getInstance();
-})(YYIMChat);
+/***/ }),
+/* 54 */
+/***/ (function(module, exports, __webpack_require__) {
 
-YYIMChat = (function(YYIMChat){
-	var YYIMManager = YYIMChat.constructor;
-	
-var Manager = (function() {
-	
-	/**
-	 * 发送代办回执 rongqb 20171114
-	 * @param {Object} arg
-	 */
-	function sendToDoReceipts(arg) {
-		jQuery.ajax({
-			url: YYIMChat.getConfig().SERVLET.REST_TODO_USER + 'read/latest?token=' + YYIMChat.getToken() + '&userId='+ YYIMChat.getUserID(),
-			type: 'post',
-			data: JSON.stringify({
-				latestReadTs: arg.latestReadTs || 0
-			}),
-			dataType: 'json',
-			cache: false,
-			processData:false,
-			contentType: "application/json", //必须有
-			success: function() {
-				arg && arg.success && arg.success();
-				arg && (arg = null);
-			},
-			error: function(xhr) {
-				try {
-					arg && arg.error && arg.error(JSON.parse(xhr.responseText));
-					arg && (arg = null);
-				} catch(e) {
-					arg && arg.error && arg.error();
-					arg && (arg = null);
-				}
-			}
-		});
-	}
+"use strict";
 
-	/**
-	 * 拉取代办通知摘要 rongqb 20170831
-	 * @param {Object} arg
-	 */
-	function getTodoDigset(arg) {
-		jQuery.ajax({
-			url: YYIMChat.getConfig().SERVLET.REST_TODO_USER + 'abstract',
-			type: 'get',
-			data: {
-				token: YYIMChat.getToken(),
-				userId: YYIMChat.getUserID()
-			},
-			dataType: 'json',
-			cache: false,
-			success: function(data) {
-				var result;
-				if(data 
-				&& data.result 
-				&& data.result['abstractItem']){
-					
-					result = data.result['abstractItem'] || {};
-					result['todoCount'] = data.result['todoCount'] || 0;
-					result['unReadCount'] = data.result['unReadCount'] || 0;
-					result['latestReadTs'] = data.result['latestReadTs'] || 0;
-				}
-				arg && arg.success && arg.success(result);
-				arg && (arg = null);
-			},
-			error: function(xhr) {
-				try {
-					arg && arg.error && arg.error(JSON.parse(xhr.responseText));
-					arg && (arg = null);
-				} catch(e) {
-					arg && arg.error && arg.error();
-					arg && (arg = null);
-				}
-			}
-		});
-	}
 
-	/**
-	 * 拉取代办通知历史 nizhja 20170831
-	 * @param {Object} arg
-	 */
-	function getHistoryTodo(arg) {
-		jQuery.ajax({
-			url: YYIMChat.getConfig().SERVLET.REST_TODO_USER + 'items',
-			type: 'get',
-			data: {
-				token: YYIMChat.getToken(),
-				userId: YYIMChat.getUserID(),
-				beforeTs: arg && Number(arg.beforeTs) || '',
-				todoState: arg && arg.todoState || '',
-				pageSize: arg && Number(arg.pageSize) || 10
-			},
-			dataType: 'json',
-			cache: false,
-			success: function(data) {
-				var result = [];
-				if(data 
-					&& data.result
-					&& data.result.length){
-						
-					result = data.result;
-				}
-				arg && arg.success && arg.success(result);
-				arg && (arg = null);
-			},
-			error: function(xhr) {
-				try {
-					arg && arg.error && arg.error(JSON.parse(xhr.responseText));
-					arg && (arg = null);
-				} catch(e) {
-					arg && arg.error && arg.error();
-					arg && (arg = null);
-				}
-			}
-		});
-	}
+Object.defineProperty(exports, "__esModule", {
+	value: true
+});
+exports.removeTag = exports.setTag = exports.getRosterItems = exports.getFavoriteRosterList = exports.updateFavoriteRoster = exports.cancelFavoriteRoster = exports.favoriteRoster = exports.addRosterItem = exports.setVCard = exports.getVCards = exports.getBatchVCards = exports.getVCard = exports.setPresence = exports.updateRosterItem = exports.getRostersPresence = exports.queryRosterItem = exports.deleteRosterItem = exports.rejectSubscribe = exports.approveSubscribe = exports.monitor = undefined;
 
-	return {
-		getTodoDigset: getTodoDigset,
-		getHistoryTodo: getHistoryTodo,
-		sendToDoReceipts: sendToDoReceipts
+var _stringify = __webpack_require__(1);
+
+var _stringify2 = _interopRequireDefault(_stringify);
+
+var _manager = __webpack_require__(0);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function getVCard(arg) {
+	var vcardBody = {
+		type: _manager.YYIMChat.getConstants().TYPE.GET
 	};
-})();
 
-/**
- * 拉取代办通知摘要 rongqb 20170831
- * @param {Object} arg {
- * 	success: function,
- *  error: function
- * }
- */
-YYIMManager.prototype.getTodoDigset = function(arg) {
-    Manager.getTodoDigset(arg);
-};
+	if (arg && arg.id) {
+		vcardBody.to = _manager.YYIMChat.getJIDUtil().buildUserJID(_manager.YYIMChat.getJIDUtil().getNode(arg.id));
+	}
 
-/**
- * 发送代办回执 rongqb 20171114
- * @param {Object} arg
- */
-YYIMManager.prototype.sendToDoReceipts = function(arg) {
-    Manager.sendToDoReceipts(arg);
-};
-
-/**
- * 拉取代办通知历史 nizhja 20170831
- * @param {Object} arg {
- *  success: function,
- *  error: function,
- *  beforeTs: Number, //历史结束时间，不填时取当前时间
- *  todoState: 0/1 //0: 未处理待办 1:已处理待办
- *  pageSize：Number //default: 10
- * }
- */
-YYIMManager.prototype.getHistoryTodo = function(arg) {
-	Manager.getHistoryTodo(arg);
-};
-
- 	return YYIMManager.getInstance();
-})(YYIMChat);
-
-YYIMChat = (function(YYIMChat){
-	var YYIMManager = YYIMChat.constructor;
-	
-function FileUpload(){
+	_manager.YYIMChat.getConnection().send(new JumpPacket(vcardBody, OPCODE.VCARD.SEND), function (vcardResult, _arg) {
+		_arg.complete && _arg.complete();
+		var vcard = vcardResult.vcard || {};
+		vcard.id = vcard.userId = _manager.YYIMChat.getJIDUtil().getID(vcard.username);
+		if (!!vcardResult.enableFields) {
+			vcard.enableFields = !!vcardResult.enableFields;
+		}
+		_arg.success && _arg.success(vcard);
+	}, arg);
 }
 
-FileUpload.prototype = new BaseList();
-
-FileUpload.getInstance = function(){
-	if(!this._instance){
-		this._instance = new FileUpload();
-	}
-	return this._instance;
-};
-
-FileUpload.prototype.init = function(options,events){
-	var settings = {
-		browse_button: 'fileUpload',
-		file_data_name: 'file',
-		url: this.getBaseUrl(),
-		filters : {
-			max_file_size : '100mb',   //文件限制大小
-			prevent_duplicates: !!YYIMChat.getConfig().UPLOAD.PREVENT_DUPLICATES //重复上传
+function getBatchVCards(arg) {
+	var url = _manager.YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + _manager.YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + _manager.YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + _manager.YYIMChat.getUserID() + '/vcard?token=' + _manager.YYIMChat.getToken() + '&userids=' + arg.ids;
+	jQuery.ajax({
+		url: url,
+		type: 'get',
+		dataType: 'json',
+		cache: false,
+		success: function success(result) {
+			var map = {};
+			if (result && result.list) {
+				for (var x in result.list) {
+					if (result.list.hasOwnProperty(x)) {
+						var vcard = result.list[x];
+						vcard.id = _manager.YYIMChat.getJIDUtil().getID(vcard.username);
+						map[vcard.id] = vcard;
+					}
+				}
+			}
+			arg.success && arg.success(map);
+			arg = null;
 		},
-		flash_swf_url: YYIMChat.getConfig().UPLOAD.FLASH_SWF_URL,
-        silverlight_xap_url: YYIMChat.getConfig().UPLOAD.SILVERLIGHT_XAP_URL,
-        multi_selection: !!YYIMChat.getConfig().UPLOAD.MULTI_SELECTION, //是否可以在文件浏览对话框中选择多个文件
-        multipart: true,
-        max_retries: 1, //当发生plupload.HTTP_ERROR错误时的重试次数，为0时表示不重试
-        chunk_size: 0,
-        runtimes : 'gears,html5,flash,silverlight,browserplus'
+		error: function error(xhr) {
+			try {
+				arg.error && arg.error(JSON.parse(xhr.responseText));
+				arg = null;
+			} catch (e) {
+				arg.error && arg.error();
+				arg = null;
+			}
+		}
+	});
+}
+
+function getVCards(arg) {
+	var iqBody = {
+		type: 'roster'
 	};
-	
-	if(options['mediaType'] == YYIMChat.getConfig().UPLOAD.MEDIATYPE.IMAGE){
-		settings['filters']['mime_types'] = [{title : "Image files", extensions : "jpg,gif,png,jpeg,bmp"}];
-	}else{
-		settings['filters']['mime_types'] = undefined;
+
+	_manager.YYIMChat.getConnection().send(new JumpPacket(iqBody, OPCODE.VCARDS.SEND), function (vcardsResult, _arg) {
+		var results = vcardsResult.vcards || [];
+		vcards = [], i = results.length;
+		while (i--) {
+			var vcard = results[i];
+			vcard.id = vcard.userId = _manager.YYIMChat.getJIDUtil().getID(vcard.username);
+			vcards.push(vcard);
+		}
+		_arg.complete && _arg.complete();
+		_arg.success && _arg.success(vcards);
+	}, arg);
+}
+
+function setVCard(arg) {
+	_manager.YYIMChat.getConnection().send(new JumpPacket({
+		type: _manager.YYIMChat.getConstants().TYPE.SET,
+		vcard: arg.vcard
+	}, OPCODE.VCARD.SEND), function (vcardResult, _arg) {
+		_arg.complete && _arg.complete();
+		_arg.success && _arg.success();
+	}, arg);
+}
+
+function setTag(arg) {
+	var url;
+	if (!arg.id || arg.id === _manager.YYIMChat.getUserID()) {
+		url = _manager.YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + _manager.YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + _manager.YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + _manager.YYIMChat.getUserID() + '/vcard/tag?token=' + _manager.YYIMChat.getToken();
+	} else {
+		url = _manager.YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + _manager.YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + _manager.YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + _manager.YYIMChat.getUserID() + '/' + arg.id + '/roster/tag?token=' + _manager.YYIMChat.getToken();
 	}
-	
-	jQuery.extend(settings,options);
-	var id = settings['browse_button'];
-	var uploader = new plupload.Uploader(settings);
-	uploader.init();
-	uploader.refresh();
-	this.bindEvents(uploader,events);
+
+	jQuery.ajax({
+		url: url,
+		type: 'post',
+		data: (0, _stringify2.default)({
+			tag: arg.tag
+		}),
+		dataType: 'json',
+		cache: false,
+		processData: false,
+		contentType: "application/json",
+		success: function success(data) {
+			arg.success && arg.success(arg.id);
+			arg = null;
+		},
+		error: function error(xhr) {
+			try {
+				arg.error && arg.error(JSON.parse(xhr.responseText));
+				arg = null;
+			} catch (e) {
+				arg.error && arg.error();
+				arg = null;
+			}
+		}
+	});
 };
 
-FileUpload.prototype.getBaseUrl = function(){
-	return YYIMChat.getServletPath().REST_RESOURCE_SERVLET + YYIMChat.getTenancy().ETP_KEY + '/' + YYIMChat.getTenancy().APP_KEY + '/upload';
+function removeTag(arg) {
+	var url;
+	if (!arg.id || arg.id === _manager.YYIMChat.getUserID()) {
+		url = _manager.YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + _manager.YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + _manager.YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + _manager.YYIMChat.getUserID() + '/vcard/tag?token=' + _manager.YYIMChat.getToken() + '&tag=' + (0, _stringify2.default)(arg.tag);
+	} else {
+		url = _manager.YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + _manager.YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + _manager.YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + _manager.YYIMChat.getUserID() + '/' + arg.id + '/roster/tag?token=' + _manager.YYIMChat.getToken() + '&tag=' + (0, _stringify2.default)(arg.tag);
+	}
+	jQuery.ajax({
+		url: url,
+		type: 'delete',
+		dataType: 'json',
+		cache: false,
+		success: function success(data) {
+			arg.success && arg.success(arg.id);
+			arg = null;
+		},
+		error: function error(xhr) {
+			try {
+				arg.error && arg.error(JSON.parse(xhr.responseText));
+				arg = null;
+			} catch (e) {
+				arg.error && arg.error();
+				arg = null;
+			}
+		}
+	});
 };
 
-FileUpload.prototype.getUploadingSize = function(){
-	var size = 0;
-	for(var x in this.list){
-		if(this.list.hasOwnProperty(x)){
-			var uploader = this.list[x];
-			if(uploader){
-				var file = uploader.getFile(x);
-				
-				if(file.status != plupload.FAILED 
-				&& file.status != plupload.STOPPED){
-					size++;
+function getRostersPresence(arg) {
+	jQuery.ajax({
+		url: _manager.YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + _manager.YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + _manager.YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + _manager.YYIMChat.getUserID() + '/presence/detail?token=' + _manager.YYIMChat.getToken() + '&username=' + arg.username,
+		type: 'get',
+		dataType: 'json',
+		cache: false,
+		timeout: 5000,
+		success: function success(data) {
+			arg.success && arg.success(data);
+			arg = null;
+		},
+		error: function error(xhr) {
+			try {
+				arg.error && arg.error(JSON.parse(xhr.responseText));
+				arg = null;
+			} catch (e) {
+				arg.error && arg.error();
+				arg = null;
+			}
+		}
+	});
+}
+
+function getRosterItems(arg) {
+	var jumpPacket = new JumpPacket({}, OPCODE.ROSTER_LIST.SEND);
+
+	_manager.YYIMChat.getConnection().send(jumpPacket, function (rosterListPacket, _arg) {
+		if (!_arg) return;
+
+		_arg.complete && _arg.complete();
+
+		var items = rosterListPacket.items || [];
+
+		var rosters = [],
+		    i = items.length || 0,
+		    friquest = {};
+
+		while (i--) {
+			var item = items[i],
+			    jid = item.jid,
+			    roster = {
+				id: _manager.YYIMChat.getJIDUtil().getID(jid),
+				resource: _manager.YYIMChat.getJIDUtil().getResource(jid),
+				ask: item.ask,
+				recv: item.recv,
+				name: item.name,
+				photo: item.photo,
+				subscription: item.subscription,
+				group: item.groups,
+				tag: item.tag
+			};
+
+			if (_manager.YYIMChat.getJIDUtil().getDomain(jid) !== _manager.YYIMChat.getConfig().DOMAIN.PUBACCOUNT) {
+				rosters.push(roster);
+
+				if (!friquest[roster.id] && roster.subscription === 'none') {
+					if (roster.recv === 1) {
+						friquest[roster.id] = roster;
+					} else if (roster.ask === 1) {}
 				}
 			}
 		}
-	}
-	return size;
-};
 
-FileUpload.prototype.start = function(file){
-	var uploader;
-	if(file){
-		uploader = this.get(file.id || file);
-		if(uploader){
-			file = uploader.getFile(file.id || file);
-			if(file){
-				file.status = 1;
+		for (var x in friquest) {
+			if (friquest[x].id) {
+				_manager.YYIMChat.onSubscribe({
+					from: friquest[x].id,
+					type: _manager.YYIMChat.getConstants().PRESENCE_TYPE.SUBSCRIBE
+				});
 			}
-			uploader.start();
 		}
-	}
-};
 
-FileUpload.prototype.end = function(file){
-	var uploader;
-	if(file){
-		var fileId = file.id || file;
-		uploader = this.get(fileId);
-		if(uploader){
-			file = uploader.getFile(fileId);
-			if(file){
-				uploader.removeFile(file);
+		_arg.success && _arg.success((0, _stringify2.default)(rosters));
+	}, arg);
+}
+
+function deleteRosterItem(arg) {
+	var iqBody = {
+		type: _manager.YYIMChat.getConstants().TYPE.SET,
+		ns: NS_ROSTER,
+		item: {
+			jid: arg.jid,
+			subscription: 'remove'
+		}
+	};
+
+	_manager.YYIMChat.getConnection().send(new JumpPacket(iqBody, OPCODE.UPDATE_ROSTER.SEND), function (deleteResult, _arg) {
+		_arg.complete && _arg.complete();
+		_arg.success && _arg.success(_manager.YYIMChat.getJIDUtil().getID(_arg.jid));
+	}, arg);
+}
+
+function updateRosterItem(arg) {
+	var roster = arg.roster,
+	    iqBody = {
+		item: {
+			jid: roster.jid,
+			name: roster.name,
+			groups: []
+		}
+	},
+	    groups = roster.groups,
+	    i = groups ? groups.length : 0;
+	while (i-- && YYIMCommonUtil.isStringAndNotEmpty(groups[i])) {
+		iqBody.item.groups = iqBody.item.groups.concat(groups[i]);
+	}_manager.YYIMChat.getConnection().send(new JumpPacket(iqBody, OPCODE.UPDATE_ROSTER.SEND), function (updateResult, _arg) {
+		_arg.complete && _arg.complete();
+
+		if (updateResult.code === 400) {
+			_arg.error && _arg.error(updateResult);
+		} else {
+			updateResult.to = _manager.YYIMChat.getJIDUtil().getID(updateResult.to);
+			_arg.success && _arg.success(updateResult);
+		}
+	}, arg);
+}
+
+function queryRosterItem(arg) {
+	var iqBody = {
+		start: YYIMCommonUtil.isNumber(arg.start) ? arg.start : 0,
+		size: YYIMCommonUtil.isNumber(arg.size) ? arg.size : 20,
+		fields: ["Username", "Name"],
+		search: arg.keyword
+	};
+	_manager.YYIMChat.getConnection().send(new JumpPacket(iqBody, OPCODE.QUERY_USER.SEND), function (queryResult, _arg) {
+		var items = queryResult.items || [],
+		    result = [],
+		    i = items.length;
+		while (i--) {
+			var item = items[i],
+			    jid = item.jid;
+			if (jid === _manager.YYIMChat.getUserBareJID()) continue;
+			result.push({
+				id: _manager.YYIMChat.getJIDUtil().getID(jid),
+				name: YYIMCommonUtil.isStringAndNotEmpty(item.name) ? item.name : _manager.YYIMChat.getJIDUtil().getID(jid),
+				photo: item.photo,
+				email: item.email
+			});
+		}
+		_arg.complete && _arg.complete();
+		_arg.success && _arg.success({
+			start: queryResult.start,
+			total: queryResult.total,
+			items: result
+		});
+	}, arg);
+}
+
+function getFavoriteRosterList(arg) {
+	jQuery.ajax({
+		url: _manager.YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + _manager.YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + _manager.YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + _manager.YYIMChat.getUserID() + '/favoritedRosters',
+		type: 'get',
+		data: {
+			token: _manager.YYIMChat.getToken()
+		},
+		dataType: 'json',
+		cache: false,
+		success: function success(data) {
+			if (data && data.items) {
+				var i = data.items.length;
+				while (i--) {
+					data.items[i].id = _manager.YYIMChat.getJIDUtil().getID(data.items[i].jid);
+				}
 			}
-			this.remove(fileId);
+			arg.success && arg.success(data.items);
+			arg = null;
+		},
+		error: function error(xhr) {
+			try {
+				arg.error && arg.error(JSON.parse(xhr.responseText));
+				arg = null;
+			} catch (e) {
+				arg.error && arg.error();
+				arg = null;
+			}
 		}
-	}else{
-		this.forEach(function(uploader){
-			uploader.splice(0);
-			uploader.destroy();
-		});
-		this.clear();
-	}
+	});
+}
+
+function setPresence(arg) {
+	_manager.YYIMChat.getConnection().send(new JumpPacket(arg, OPCODE.PRESENCE.SEND));
+}
+
+function favoriteRoster(jid) {
+	_manager.YYIMChat.getConnection().send(new JumpPacket({
+		type: _manager.YYIMChat.getConstants().PRESENCE_TYPE.COLLECT,
+		to: jid
+	}, OPCODE.PRESENCE.SEND));
+}
+
+function cancelFavoriteRoster(jid) {
+	_manager.YYIMChat.getConnection().send(new JumpPacket({
+		favoritedRosterItem: {
+			jid: jid,
+			subscription: _manager.YYIMChat.getConstants().FAVORITE_TYPE.REMOVE
+		},
+		from: _manager.YYIMChat.getUserFullJID()
+	}, OPCODE.FAVORITED_ROSTERT.SEND));
+}
+
+function updateFavoriteRoster(jid, name) {
+	_manager.YYIMChat.getConnection().send(new JumpPacket({
+		favoritedRosterItem: {
+			jid: jid,
+			name: name,
+			subscription: _manager.YYIMChat.getConstants().FAVORITE_TYPE.FAVORITE
+		},
+		from: _manager.YYIMChat.getUserFullJID()
+	}, OPCODE.FAVORITED_ROSTERT.SEND));
+}
+
+function addRosterItem(jid) {
+	_manager.YYIMChat.getConnection().send(new JumpPacket({
+		type: _manager.YYIMChat.getConstants().PRESENCE_TYPE.SUBSCRIBE,
+		to: jid
+	}, OPCODE.PRESENCE.SEND));
+}
+
+function approveSubscribe(jid) {
+	_manager.YYIMChat.getConnection().send(new JumpPacket({
+		type: _manager.YYIMChat.getConstants().PRESENCE_TYPE.SUBSCRIBED,
+		to: jid
+	}, OPCODE.PRESENCE.SEND));
+}
+
+function rejectSubscribe(jid) {
+	_manager.YYIMChat.getConnection().send(new JumpPacket({
+		type: _manager.YYIMChat.getConstants().PRESENCE_TYPE.UNSUBSCRIBED,
+		to: jid
+	}, OPCODE.PRESENCE.SEND));
+}
+
+function monitor() {
+	_manager.YYIMChat.getConnection().registerHandler(OPCODE.FAVORITED_ROSTERT.KEY, function (packet) {
+		if (packet && packet.favoritedRosterItem) {
+			packet.favoritedRosterItem.id = _manager.YYIMChat.getJIDUtil().getID(packet.favoritedRosterItem.jid);
+		}
+		if (packet && packet.to) {
+			packet.to = _manager.YYIMChat.getJIDUtil().getID(packet.to);
+		}
+		_manager.YYIMChat.onRosterFavorited(packet);
+	});
+
+	_manager.YYIMChat.getConnection().registerHandler(OPCODE.UPDATE_ROSTER.KEY, function (packet) {
+		var item = packet.item,
+		    id = _manager.YYIMChat.getJIDUtil().getID(packet.item.jid);
+
+		if (item.subscription === 'both') {
+			_manager.YYIMChat.log('update or add: ' + (0, _stringify2.default)(item));
+			item.id = id;
+			_manager.YYIMChat.onRosterUpdateded(item);
+		} else if (item.subscription === 'none') {
+				_manager.YYIMChat.log('delete: ' + (0, _stringify2.default)(item));
+				item.id = id;
+				_manager.YYIMChat.onRosterDeleted(item);
+			} else if (item.subscription === 'remove') {}
+	});
+
+	_manager.YYIMChat.getConnection().registerHandler(OPCODE.PRESENCE.KEY, function (packet) {
+		if (packet.type && packet.type != _manager.YYIMChat.getConstants().TYPE.UNAVAILABLE) {
+			_manager.YYIMChat.onSubscribe({
+				from: _manager.YYIMChat.getJIDUtil().getID(packet.from),
+				type: packet.type
+			});
+			return;
+		}
+
+		var ps = {
+			from: _manager.YYIMChat.getJIDUtil().getID(packet.from),
+			resource: _manager.YYIMChat.getJIDUtil().getResource(packet.from),
+			type: packet.type,
+			show: packet.show,
+			status: packet.status
+		};
+		if (packet.type && packet.type == _manager.YYIMChat.getConstants().TYPE.UNAVAILABLE) {
+			ps.show = _manager.YYIMChat.getConstants().STATUS.UNAVAILABLE;
+			ps.status = _manager.YYIMChat.getConstants().STATUS.UNAVAILABLE;
+			removeFromOnline(ps.from);
+		}
+
+		if (!YYIMCommonUtil.isStringAndNotEmpty(ps.status)) {
+			ps.show = _manager.YYIMChat.getConstants().STATUS.CHAT;
+			ps.status = _manager.YYIMChat.getConstants().STATUS.CHAT;
+		};
+		_manager.YYIMChat.onPresence(ps);
+	});
+}
+
+exports.monitor = monitor;
+exports.approveSubscribe = approveSubscribe;
+exports.rejectSubscribe = rejectSubscribe;
+exports.deleteRosterItem = deleteRosterItem;
+exports.queryRosterItem = queryRosterItem;
+exports.getRostersPresence = getRostersPresence;
+exports.updateRosterItem = updateRosterItem;
+exports.setPresence = setPresence;
+exports.getVCard = getVCard;
+exports.getBatchVCards = getBatchVCards;
+exports.getVCards = getVCards;
+exports.setVCard = setVCard;
+exports.addRosterItem = addRosterItem;
+exports.favoriteRoster = favoriteRoster;
+exports.cancelFavoriteRoster = cancelFavoriteRoster;
+exports.updateFavoriteRoster = updateFavoriteRoster;
+exports.getFavoriteRosterList = getFavoriteRosterList;
+exports.getRosterItems = getRosterItems;
+exports.setTag = setTag;
+exports.removeTag = removeTag;
+
+/***/ }),
+/* 55 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+var _manager = __webpack_require__(0);
+
+var _Manager = __webpack_require__(56);
+
+_manager.YYIMManager.prototype.getTodoDigset = function (arg) {
+  (0, _Manager.getTodoDigset)(arg);
 };
 
-FileUpload.prototype.bindEvents = function(uploader,arg){
-	var that = this;
-	//当Plupload初始化完成后触发
-	uploader.bind('init',function(uploader){ 
-		arg && arg.init && arg.init(uploader);		
-    });
-    
-    //当Init事件发生后触发
-	uploader.bind('PostInit',function(uploader){
-		arg && arg.PostInit && arg.PostInit(uploader);	
-    });
-    
-    //当调用plupload实例的refresh()方法后会触发该事件
-	uploader.bind('Refresh',function(uploader){ 
-		arg && arg.Refresh && arg.Refresh(uploader);
-    });
-    
-    //当上传队列的状态发生改变时触发
-	uploader.bind('StateChanged',function(uploader){ 
-		arg && arg.StateChanged && arg.StateChanged(uploader);
-    });
-    
-    //当上传队列中某一个文件开始上传后触发
-	uploader.bind('UploadFile',function(uploader,file){ 
-		arg && arg.StateChanged && arg.UploadFile(uploader,file);
-    });
-    
-    //当队列中的某一个文件正要开始上传前触发
-	uploader.bind('BeforeUpload',function(uploader,file){ 
-		arg && arg.BeforeUpload && arg.BeforeUpload(uploader,file);
-    });
-    
-    //当队列中的某一个文件正要开始上传前触发
-	uploader.bind('QueueChanged',function(uploader){ 
-		arg && arg.QueueChanged && arg.QueueChanged(uploader);
-    });
-    
-    //当使用Plupload实例的setOption()方法改变当前配置参数后触发
-	uploader.bind('OptionChanged',function(uploader,option_name,new_value,old_value){
-		arg && arg.OptionChanged && arg.OptionChanged(uploader,option_name,new_value,old_value);
-    });
-    
-    //会在文件上传过程中不断触发，可以用此事件来显示上传进度
-    /**
-     *  size	上传队列中所有文件加起来的总大小，单位为字节
-		loaded	队列中当前已上传文件加起来的总大小,单位为字节
-		uploaded	已完成上传的文件的数量
-		failed	上传失败的文件数量
-		queued	队列中剩下的(也就是除开已经完成上传的文件)需要上传的文件数量
-		percent	整个队列的已上传百分比，如50就代表50%
-		bytesPerSec	上传速率，单位为 byte/s，也就是 字节/秒
-     */
-    uploader.bind('UploadProgress',function(uploader,file){
-    		arg && arg.UploadProgress && arg.UploadProgress(uploader,file);
-    });
-    
-    //当文件添加到上传队列后触发
-	uploader.bind('FilesAdded',function(uploader,files){
-		arg && arg.FilesAdded && arg.FilesAdded(uploader,files);
-    });
-    
-    //当文件从上传队列移除后触发
-	uploader.bind('FilesRemoved',function(uploader,files){
-		files.forEach(function(file,index){
-			that.remove(file.id);
-		});
-		arg && arg.FilesRemoved && arg.FilesRemoved(uploader,files);
-    });
-    
-    //每一个文件被添加到上传队列前触发
-	uploader.bind('FileFiltered',function(uploader,file){
-		that.set(file.id,uploader);
-		arg && arg.FileFiltered && arg.FileFiltered(uploader,file);
-    });
-    
-    //当队列中的某一个文件上传完成后触发
-	uploader.bind('FileUploaded',function(uploader,file,responseObject){
-		that.remove(file.id);
-		arg && arg.FileUploaded && arg.FileUploaded(uploader,file,responseObject);
-    });
-    
-    //当使用文件小片上传功能时，每一个小片上传完成后触发
-	uploader.bind('ChunkUploaded',function(uploader,file,responseObject){
-		arg && arg.ChunkUploaded && arg.ChunkUploaded(uploader,file,responseObject);
-    });
-    
-    //当上传队列中所有文件都上传完成后触发
-	uploader.bind('UploadComplete',function(uploader,files){
-		arg && arg.UploadComplete && arg.UploadComplete(uploader,files);
-    });
-    
-    //当发生错误时触发
-	uploader.bind('Error',function(uploader,errObject){
-		arg && arg.Error && arg.Error(uploader,errObject);
-    });
-    
-    //当发生错误时触发
-	uploader.bind('Destroy',function(uploader){
-		arg && arg.Destroy && arg.Destroy(uploader);
-    });
+_manager.YYIMManager.prototype.sendToDoReceipts = function (arg) {
+  (0, _Manager.sendToDoReceipts)(arg);
 };
 
-/**
- * 文件上传 rongqb 20160811
- * @param {Object} 
- * arg {
- *  mediaType: 1/2/3, //1: image,2: file,3: doc
- *  chatInfo: function, //返回to,type
- *  drop_element: //上传文件时的拖拽区域,目前只有html5上传方式才支持拖拽上传
- *  fileFiltered: function, //文件被添加到上传队列
- *  beforeUpload: function, //文件上传之前
- *  success: function,
- *  error: function,
- *  progress: function
- * }
- */
-YYIMManager.getInstance().uploader = function(obj, arg){
+_manager.YYIMManager.prototype.getHistoryTodo = function (arg) {
+  (0, _Manager.getHistoryTodo)(arg);
+};
+
+/***/ }),
+/* 56 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+	value: true
+});
+exports.sendToDoReceipts = exports.getHistoryTodo = exports.getTodoDigset = undefined;
+
+var _stringify = __webpack_require__(1);
+
+var _stringify2 = _interopRequireDefault(_stringify);
+
+var _manager = __webpack_require__(0);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function sendToDoReceipts(arg) {
+	jQuery.ajax({
+		url: _manager.YYIMChat.getConfig().SERVLET.REST_TODO_USER + 'read/latest?token=' + _manager.YYIMChat.getToken() + '&userId=' + _manager.YYIMChat.getUserID(),
+		type: 'post',
+		data: (0, _stringify2.default)({
+			latestReadTs: arg.latestReadTs || 0
+		}),
+		dataType: 'json',
+		cache: false,
+		processData: false,
+		contentType: "application/json",
+		success: function success() {
+			arg && arg.success && arg.success();
+			arg && (arg = null);
+		},
+		error: function error(xhr) {
+			try {
+				arg && arg.error && arg.error(JSON.parse(xhr.responseText));
+				arg && (arg = null);
+			} catch (e) {
+				arg && arg.error && arg.error();
+				arg && (arg = null);
+			}
+		}
+	});
+}
+
+function getTodoDigset(arg) {
+	jQuery.ajax({
+		url: _manager.YYIMChat.getConfig().SERVLET.REST_TODO_USER + 'abstract',
+		type: 'get',
+		data: {
+			token: _manager.YYIMChat.getToken(),
+			userId: _manager.YYIMChat.getUserID()
+		},
+		dataType: 'json',
+		cache: false,
+		success: function success(data) {
+			var result;
+			if (data && data.result && data.result['abstractItem']) {
+
+				result = data.result['abstractItem'] || {};
+				result['todoCount'] = data.result['todoCount'] || 0;
+				result['unReadCount'] = data.result['unReadCount'] || 0;
+				result['latestReadTs'] = data.result['latestReadTs'] || 0;
+			}
+			arg && arg.success && arg.success(result);
+			arg && (arg = null);
+		},
+		error: function error(xhr) {
+			try {
+				arg && arg.error && arg.error(JSON.parse(xhr.responseText));
+				arg && (arg = null);
+			} catch (e) {
+				arg && arg.error && arg.error();
+				arg && (arg = null);
+			}
+		}
+	});
+}
+
+function getHistoryTodo(arg) {
+	jQuery.ajax({
+		url: _manager.YYIMChat.getConfig().SERVLET.REST_TODO_USER + 'items',
+		type: 'get',
+		data: {
+			token: _manager.YYIMChat.getToken(),
+			userId: _manager.YYIMChat.getUserID(),
+			beforeTs: arg && Number(arg.beforeTs) || '',
+			todoState: arg && arg.todoState || '',
+			pageSize: arg && Number(arg.pageSize) || 10
+		},
+		dataType: 'json',
+		cache: false,
+		success: function success(data) {
+			var result = [];
+			if (data && data.result && data.result.length) {
+
+				result = data.result;
+			}
+			arg && arg.success && arg.success(result);
+			arg && (arg = null);
+		},
+		error: function error(xhr) {
+			try {
+				arg && arg.error && arg.error(JSON.parse(xhr.responseText));
+				arg && (arg = null);
+			} catch (e) {
+				arg && arg.error && arg.error();
+				arg && (arg = null);
+			}
+		}
+	});
+}
+
+exports.getTodoDigset = getTodoDigset;
+exports.getHistoryTodo = getHistoryTodo;
+exports.sendToDoReceipts = sendToDoReceipts;
+
+/***/ }),
+/* 57 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+var _manager = __webpack_require__(0);
+
+var _FileUpload = __webpack_require__(15);
+
+__webpack_require__(58);
+
+_manager.YYIMManager.prototype.startUpload = function (file) {
+	_FileUpload.FileUpload.getInstance().start(file);
+};
+
+_manager.YYIMManager.prototype.cancelUpload = function (file) {
+	_FileUpload.FileUpload.getInstance().end(file);
+};
+
+_manager.YYIMManager.prototype.getUploadingSize = function () {
+	return _FileUpload.FileUpload.getInstance().getUploadingSize();
+};
+
+_manager.YYIMManager.prototype.previewLocalImage = function (arg) {
 	arg = arg || {};
-	
-	if(typeof obj == 'string'){
+	var file = arg.file;
+	if (file && /image\//.test(file.type)) {
+		var that = this;
+		try {
+			if (file.type == 'image/gif') {
+				var fr = new moxie.file.FileReader();
+				fr.onload = function () {
+					arg.success && arg.success(fr.result);
+					fr.destroy();
+					fr = null;
+				};
+				fr.readAsDataURL(file.getSource());
+			} else {
+				var preloader = new moxie.image.Image();
+				preloader.onload = function () {
+					var imgsrc = preloader.type == 'image/jpeg' ? preloader.getAsDataURL('image/jpeg', 80) : preloader.getAsDataURL();
+					arg.success && arg.success(imgsrc);
+					preloader.destroy();
+					preloader = null;
+				};
+				preloader.load(file.getSource());
+			}
+		} catch (e) {
+			arg.error && arg.error('Local address parsing errors.');
+		}
+	} else {
+		arg.error && arg.error('The file isn`t Image.');
+	}
+};
+
+/***/ }),
+/* 58 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+var _manager = __webpack_require__(0);
+
+var _FileUpload = __webpack_require__(15);
+
+_manager.YYIMManager.getInstance().uploader = function (obj, arg) {
+	arg = arg || {};
+
+	if (typeof obj == 'string') {
 		obj = document.getElementById(obj);
 	}
-	
-	if(!YYIMUtil['isWhateType'](arg.chatInfo,'Function')){
+
+	if (!YYIMUtil['isWhateType'](arg.chatInfo, 'Function')) {
 		arg.error && arg.error('chatInfo isn`t Function.');
 		return;
 	}
-	
-	FileUpload.getInstance().init({
-		 'mediaType': arg.mediaType || YYIMChat.getConfig().UPLOAD.MEDIATYPE.DOC,
-		 'browse_button': obj.id,
-		 'drop_element': arg.drop_element
-	},{
-		'init': function(uploader){ 
+
+	_FileUpload.FileUpload.getInstance().init({
+		'mediaType': arg.mediaType || YYIMChat.getConfig().UPLOAD.MEDIATYPE.DOC,
+		'browse_button': obj.id,
+		'drop_element': arg.drop_element
+	}, {
+		'init': function init(uploader) {
 			uploader.addFile(obj);
 			obj = null;
-	    },
-	    
-	    //当Init事件发生后触发
-		'PostInit': function(uploader){
-	    },
-	    
-	    //当调用plupload实例的refresh()方法后会触发该事件
-		'Refresh': function(uploader){ 
-	    },
-	    
-	    //当上传队列的状态发生改变时触发
-		'StateChanged': function(uploader){
-	    },
-	    
-	    //当上传队列中某一个文件开始上传后触发
-		'UploadFile': function(uploader,file){
-	    },
-	    
-	    //当队列中的某一个文件正要开始上传前触发
-		'BeforeUpload': function(uploader,file){
+		},
+
+		'PostInit': function PostInit(uploader) {},
+
+		'Refresh': function Refresh(uploader) {},
+
+		'StateChanged': function StateChanged(uploader) {},
+
+		'UploadFile': function UploadFile(uploader, file) {},
+
+		'BeforeUpload': function BeforeUpload(uploader, file) {
 			var chatInfo = uploader.getOption('chatInfo');
-			if(chatInfo){
+			if (chatInfo) {
 				var info = chatInfo[file.id];
-				if(info){
-					try{
+				if (info) {
+					try {
 						arg.beforeUpload && arg.beforeUpload({
 							file: file,
 							chatInfo: info
 						});
-					}catch(e){}
-					
+					} catch (e) {}
+
 					var mediaType = uploader.getOption('mediaType');
-					
-					if(YYIMChat.getConfig().UPLOAD.IMAGE_TYPES.test(file.name)){
+
+					if (YYIMChat.getConfig().UPLOAD.IMAGE_TYPES.test(file.name)) {
 						mediaType = 1;
 					}
-					
-					if(info['file_data_name']){
-						uploader.setOption('file_data_name',info['file_data_name']);
+
+					if (info['file_data_name']) {
+						uploader.setOption('file_data_name', info['file_data_name']);
 					}
-					
-					if(mediaType === 1 || !info.uploadUrl){
+
+					if (info['required_features']) {
+						uploader.setOption('required_features', info['required_features']);
+					}
+
+					if (mediaType === 1 || !info.uploadUrl) {
 						var to = YYIMChat.getJIDUtil().buildUserJID(YYIMChat.getJIDUtil().getNode(info.to));
-						if(info.type 
-						&& info.type == YYIMChat.getConstants().CHAT_TYPE.GROUP_CHAT){
+						if (info.type && info.type == YYIMChat.getConstants().CHAT_TYPE.GROUP_CHAT) {
 							to = YYIMChat.getJIDUtil().buildChatGroupJID(YYIMChat.getJIDUtil().getNode(info.to));
 						}
-						uploader.setOption('url', FileUpload.getInstance().getBaseUrl() + '?' + jQuery.param({
-							token: YYIMChat.getToken(),	
+						uploader.setOption('url', _FileUpload.FileUpload.getInstance().getBaseUrl() + '?' + jQuery.param({
+							token: YYIMChat.getToken(),
 							name: file.name,
 							mediaType: mediaType,
 							creator: YYIMChat.getUserNode(),
@@ -14911,190 +14488,128 @@ YYIMManager.getInstance().uploader = function(obj, arg){
 							size: file.size,
 							original: 1
 						}));
-					}else{
-						uploader.setOption('url', info.uploadUrl); // web: '/file/act/swfupload/fileFrom/40/gid/0'
+					} else {
+						uploader.setOption('url', info.uploadUrl);
 					}
 				}
 			}
-	    },
-	    
-	    //当队列中的某一个文件正要开始上传前触发
-		'QueueChanged': function(uploader){ 
-	    },
-	    
-	    //当使用Plupload实例的setOption()方法改变当前配置参数后触发
-		'OptionChanged': function(uploader,option_name,new_value,old_value){
-	    },
-	    
-	    //会在文件上传过程中不断触发，可以用此事件来显示上传进度
-	    /**
-	     *  size	上传队列中所有文件加起来的总大小，单位为字节
-			loaded	队列中当前已上传文件加起来的总大小,单位为字节
-			uploaded	已完成上传的文件的数量
-			failed	上传失败的文件数量
-			queued	队列中剩下的(也就是除开已经完成上传的文件)需要上传的文件数量
-			percent	整个队列的已上传百分比，如50就代表50%
-			bytesPerSec	上传速率，单位为 byte/s，也就是 字节/秒
-	     */
-	    'UploadProgress': function(uploader,file){
-	   	 	var chatInfo = uploader.getOption('chatInfo'),info;
-			if(chatInfo){
+		},
+
+		'QueueChanged': function QueueChanged(uploader) {},
+
+		'OptionChanged': function OptionChanged(uploader, option_name, new_value, old_value) {},
+
+		'UploadProgress': function UploadProgress(uploader, file) {
+			var chatInfo = uploader.getOption('chatInfo'),
+			    info;
+			if (chatInfo) {
 				info = chatInfo[file.id];
 			}
-			
-		    	arg && arg.progress && arg.progress({
-	    			uploaded: uploader.total.uploaded,
+
+			arg && arg.progress && arg.progress({
+				uploaded: uploader.total.uploaded,
 				queued: uploader.total.queued,
 				bytesPerSec: uploader.total.bytesPerSec,
-		    		percent: uploader.total.percent,
-		    		size: uploader.total.size,
-		    		loaded: uploader.total.loaded,
-		    		file: file,
-		    		chatInfo: info
-		    	});
-	    },
-	    
-	    //当文件添加到上传队列后触发
-		'FilesAdded': function(uploader,files){
-			if(YYIMChat.getConfig().UPLOAD.AUTO_SEND){
+				percent: uploader.total.percent,
+				size: uploader.total.size,
+				loaded: uploader.total.loaded,
+				file: file,
+				chatInfo: info
+			});
+		},
+
+		'FilesAdded': function FilesAdded(uploader, files) {
+			if (YYIMChat.getConfig().UPLOAD.AUTO_SEND) {
 				uploader.start();
 			}
-	    },
-	    
-	    //当文件从上传队列移除后触发
-		'FilesRemoved': function(uploader,files){
-	    },
-	    
-	    //每一个文件被添加到上传队列前触发
-		'FileFiltered': function(uploader,file){
+		},
+
+		'FilesRemoved': function FilesRemoved(uploader, files) {},
+
+		'FileFiltered': function FileFiltered(uploader, file) {
 			var info = arg.chatInfo({
 				fileName: file.name
 			});
-			if(info && info.to){
-				var chatInfo = uploader.getOption('chatInfo') || {};
-				chatInfo[file.id] = info;
-				uploader.setOption('chatInfo', chatInfo);
-				
-				arg && arg.fileFiltered && arg.fileFiltered({
-					file: file,
-					chatInfo: info
-				});
-			}else{
-				uploader.removeFile(file); //拿不到上传的必要信息，任务此次上传失败
-				arg && arg.error && arg.error('chatInfo can`t get \'to\' field.');
-			}
-	    },
-	    
-	    //当队列中的某一个文件上传完成后触发
-		'FileUploaded': function(uploader,file,responseObject){
-			if(responseObject.status === 200){
-				try{
-					var chatInfo = uploader.getOption('chatInfo');
-					var response = {
-						data: JSON.parse(responseObject.response),
+			if (info && info.to) {
+				if (!YYIMUtil['isWhateType'](info.checkType, 'Function') || info.checkType(file.getSource().type)) {
+					var chatInfo = uploader.getOption('chatInfo') || {};
+					chatInfo[file.id] = info;
+					uploader.setOption('chatInfo', chatInfo);
+
+					arg && arg.fileFiltered && arg.fileFiltered({
 						file: file,
-						chatInfo: chatInfo[file.id]
-					};
-					if(file && file.getNative()){
-						response.file.path = file.getNative().path;
-					}
-					delete chatInfo[file.id];
-					uploader.setOption('chatInfo',chatInfo);
+						chatInfo: info
+					});
+				} else {
 					uploader.removeFile(file);
-					arg && arg.success && arg.success(response);
-				}catch(e){
-					arg && arg.error && arg.error('response analysis error.');
+					arg && arg.error && arg.error({
+						file: file,
+						chatInfo: info,
+						error: '格式不支持'
+					});
+				}
+			} else {
+				uploader.removeFile(file);
+				arg && arg.error && arg.error({
+					file: file,
+					chatInfo: info,
+					error: '请指定接收方'
+				});
+			}
+		},
+
+		'FileUploaded': function FileUploaded(uploader, file, responseObject) {
+			if (responseObject.status === 200) {
+				var chatInfo = uploader.getOption('chatInfo');
+				if (file && file.getNative()) {
+					file.path = file.getNative().path;
+				}
+				var info = chatInfo[file.id];
+				try {
+					var response = JSON.parse(responseObject.response);
+					if (response.code === 0 || response.attachId || response[0]) {
+						delete chatInfo[file.id];
+						uploader.setOption('chatInfo', chatInfo);
+						uploader.removeFile(file);
+						_FileUpload.FileUpload.getInstance().remove(file.id);
+						arg && arg.success && arg.success({
+							data: response,
+							file: file,
+							chatInfo: info
+						});
+					} else {
+						arg && arg.error && arg.error({
+							data: response,
+							file: file,
+							chatInfo: info
+						});
+					}
+				} catch (e) {
+					arg && arg.error && arg.error({
+						data: e.message,
+						file: file,
+						chatInfo: info
+					});
 				}
 			}
-	    },
-	    
-	    //当使用文件小片上传功能时，每一个小片上传完成后触发
-		'ChunkUploaded': function(uploader,file,responseObject){
-	    },
-	    
-	    //当上传队列中所有文件都上传完成后触发
-		'UploadComplete': function(uploader,files){
-	    },
-	    
-	    //当发生错误时触发
-		'Error': function(uploader,errObject){
+		},
+
+		'ChunkUploaded': function ChunkUploaded(uploader, file, responseObject) {},
+
+		'UploadComplete': function UploadComplete(uploader, files) {},
+
+		'Error': function Error(uploader, errObject) {
 			var file = errObject.file;
 			var chatInfo = uploader.getOption('chatInfo');
-			if(chatInfo){
+			if (chatInfo) {
 				errObject.chatInfo = chatInfo[file.id];
 			}
 			arg && arg.error && arg.error(errObject);
-	    },
-	    
-	    //当发生错误时触发
-		'Destroy': function(uploader){
-	    }
+		},
+
+		'Destroy': function Destroy(uploader) {}
 	});
 };
 
-/**
- * 手动开始上传 rongqb 20160816
- * file: //预发送文件的id 或者 文件对象（上文返回的）
- */
-YYIMManager.prototype.startUpload = function(file){
-	FileUpload.getInstance().start(file);
-};
-
-/**
- * 取消上传  rongqb 20160816
- * file: //预取消文件的id 或者 文件对象（上文返回的），非必需
- */
-YYIMManager.prototype.cancelUpload = function(file){
-	FileUpload.getInstance().end(file);
-};
-
-/**
- * 文件正在上传的数量
- */
-YYIMManager.prototype.getUploadingSize = function(){
-	return FileUpload.getInstance().getUploadingSize();
-};
-
-/**
- * 本地图片预览
- * @param {Object} 
- * arg {
- * 	file: file,
- *  success: function,
- *  error: funciton
- * }
- */
-YYIMManager.prototype.previewLocalImage = function(arg) {
-	arg = arg || {};
-	var file = arg.file;
-	if(file && /image\//.test(file.type)){ //确保文件是图片
-		var that = this;
-		try {
-			if(file.type == 'image/gif') { //gif使用FileReader进行预览,因为moxie.Image只支持jpg和png
-				var fr = new moxie.file.FileReader();
-				fr.onload = function() {
-					arg.success && arg.success(fr.result);
-					fr.destroy();
-					fr = null;
-				}
-				fr.readAsDataURL(file.getSource());
-			} else {
-				var preloader = new moxie.image.Image();
-				preloader.onload = function() {
-//					preloader.downsize(that.getConfig().UPLOAD.PREVIEW_SIZE.WIDTH, that.getConfig().UPLOAD.PREVIEW_SIZE.HEIGHT); //先压缩一下要预览的图片,宽300，高300
-					var imgsrc = preloader.type == 'image/jpeg' ? preloader.getAsDataURL('image/jpeg', 80) : preloader.getAsDataURL(); //得到图片src,实质为一个base64编码的数据
-					arg.success && arg.success(imgsrc); //callback传入的参数为预览图片的url
-					preloader.destroy();
-					preloader = null;
-				};
-				preloader.load(file.getSource());
-			}
-		} catch(e) {
-			arg.error && arg.error('Local address parsing errors.');
-		}
-	}else{
-		arg.error && arg.error('The file isn`t Image.');
-	}
-};
- 	return YYIMManager.getInstance();
-})(YYIMChat);
+/***/ })
+/******/ ]);

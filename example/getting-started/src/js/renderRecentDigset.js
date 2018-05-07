@@ -38,7 +38,7 @@ export default (digsets) => {
             newtipStr = '<i class="newtip cuttxt">'+ noreadno +'</i>';
         }
         digStr += `<li class="${targetuserid && targetuserid === res.id ? 'active' : ''}" data-sessionVersion="${res.sessionVersion}" data-id="${res.id}" data-type="${res.type}" data-nickname="${res.nickname || res.id}">
-                    <i data-id="${res.id}" class="close">×</i>
+                    <i data-id="${res.id}" data-type="${res.type}" class="close">×</i>
                     <div class="avatar">
                         <img src="${YYIMChat.getFileUrl(res.photo) || './imgs/avatar.jpg'}" alt="">
                     </div>

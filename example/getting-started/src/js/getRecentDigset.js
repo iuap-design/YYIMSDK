@@ -11,7 +11,7 @@ export default () => {
                 let recentDigset = [];
                 result.list.forEach(function(e, i){
                     //目前测试只显示个人聊天，不显示群或其他 
-                    if(e.type !== 'chat'){return;}
+                    if(e.type !== 'chat' && e.type !== 'groupchat'){return;}
                     //通过id获取个人信息
                     YYIMChat.getVCard({
                         id: e.id,

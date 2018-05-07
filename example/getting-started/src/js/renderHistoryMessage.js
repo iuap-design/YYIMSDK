@@ -5,7 +5,7 @@ import {
     $chats_list
 } from './jqelements';
 
-//渲染最近联系人函数
+//获取最近联系人函数
 import getRecentDigset from './getRecentDigset';
 
 //渲染最近联系人函数
@@ -27,21 +27,27 @@ const replaceEmoji = (str) => {
     });
 };
 
-//渲染聊天记录,传入一条聊天记录对象即可
+//渲染聊天记录,如果需要新加入一条聊天信息，传入一条聊天记录对象即可。
 export default (msg) => {
     //拿取本地保存的历史聊天信息
     let historychats = JSON.parse(localStorage.getItem('historychats') || "[]");
+    //拿取本地保存的最近联系人数组
+    let recentDigset = JSON.parse(localStorage.getItem('recentdigset') || "[]");
     //从本地拿取聊天对方id
     let targetuserid = localStorage.getItem('targetuserid');
     //拿我自己的id
     let myid = JSON.parse(localStorage.getItem('currentuserinfo')).id;
+    //拿当前的聊天类型
+    let chattype = localStorage.getItem('chattype');
 
-    //如果msg存在，说明不是初次渲染
+    //消息来源id
+    let msgfromid = '';
+
+    //如果msg存在，说明我正在发送消息或者我接收到了别人的消息
     if(msg){
-        //拿取本地保存的最近联系人数组
-        let recentDigset = JSON.parse(localStorage.getItem('recentdigset') || "[]");
-
-        if(msg.from === myid){ //消息是我发给别人的
+        msgfromid = chattype === 'chat' ? msg.from : msg.from.roster;
+        let isfromme = myid === msgfromid;
+        if(isfromme){ //消息是我发给别人的
             recentDigset.forEach(function(digest, i){
                 if(digest.id === targetuserid){
                     recentDigset[i].lastContactTime = msg.data.dateline;
@@ -61,7 +67,7 @@ export default (msg) => {
         } else { //消息来自于他人给我发的
             let isdigset = false; //判断对方在不在我的最近联系人里
             recentDigset.forEach(function(digest, i){
-                if(digest.id === msg.from){
+                if(digest.id === msgfromid){
                     isdigset = true;
                     recentDigset[i].lastContactTime = msg.data.dateline;
                     recentDigset[i].lastMessage = msg;
@@ -76,7 +82,7 @@ export default (msg) => {
             //不在最近联系人中，刷新最近联系人列表
             if(!isdigset){getRecentDigset();}
             //我正在和他聊天
-            if(msg.from === targetuserid){
+            if(msgfromid === targetuserid){
                 //修改历史消息
                 historychats.push(msg);
                 //修改后保存
@@ -85,11 +91,12 @@ export default (msg) => {
         }
     }
     //如果我没和对方聊天，则不渲染历史信息
-    if(msg && msg.from !== myid && msg.from !== targetuserid) return;
+    if(msg && msgfromid !== myid && msgfromid !== targetuserid) return;
 
     let chatsStr = '';
     historychats.forEach(function(chat, i){
-        let isfromme = myid === chat.from;
+        let isfromme = chattype === 'chat' ? myid === chat.from : myid === chat.from.roster;
+        let chatfrom = chattype === 'chat' ? '' : `<div class="chat-user-name">${chat.from.roster}</div>`;
         //文本消息
         if(chat.data.contentType === 2){
             chatsStr += `<li>
@@ -99,7 +106,7 @@ export default (msg) => {
                                     <img src="./imgs/avatar.jpg" alt="">
                                 </div>
                                 <div class="${ isfromme? 'chat-txt chat-txt-send' :'chat-txt'}">
-                                    <!--<div class="chat-user-name">${chat.from}</div>-->
+                                    ${chatfrom}
                                     <div class="chat-msg">${replaceEmoji(chat.data.content)}</div>
                                 </div>
                             </div>
@@ -113,7 +120,7 @@ export default (msg) => {
                                     <img src="./imgs/avatar.jpg" alt="">
                                 </div>
                                 <div class="${ isfromme? 'chat-txt chat-txt-send' :'chat-txt'}">
-                                    <!--<div class="chat-user-name">${chat.from}</div>-->
+                                    ${chatfrom}
                                     <div class="chat-msg">
                                         <img class="chatpic" data-url="${picurl}" src="${picurl}" title="点击查看图片" alt="" />
                                     </div>
@@ -122,7 +129,7 @@ export default (msg) => {
                         </li> `;
         }else if(chat.data.contentType === 4){
             let picurl = YYIMChat.getFileUrl(chat.data.content.attachId);
-            let filename = chat.data.content.name.slice(0, 20);
+            let filename = chat.data.content.name.slice(0, 14);
             chatsStr += `<li>
                             <div class="chat-tip">${new Date(chat.data.dateline).toLocaleTimeString()}</div>
                             <div class="chat-content">
@@ -130,7 +137,7 @@ export default (msg) => {
                                     <img src="./imgs/avatar.jpg" alt="">
                                 </div>
                                 <div class="${ isfromme? 'chat-txt chat-txt-send' :'chat-txt'}">
-                                    <!--<div class="chat-user-name">${chat.from}</div>-->
+                                    ${chatfrom}
                                     <div class="chat-msg">
                                         <a class="chatfile" href="${picurl}" title="点击下载文件">
                                             <span class="filename">${filename}</span>
