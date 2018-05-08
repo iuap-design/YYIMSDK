@@ -80,6 +80,14 @@ YYIMChat.queryRosterItem({
 	},
 	complete: function(){}
 });
+/**
+* 成功时返回字段：
+*/
+{
+	items: [], //好友列表
+	start: 0, //开始时间戳
+	total: 0 //好友条数
+}
 ``` 
 
 
@@ -151,33 +159,32 @@ YYIMChat.getRostersPresence({
 		console.log(err);
 	}
 });
-/*返回值说明：
-    
-	 [{
-	     "userid": "litingd",
-	     "prensence": [{
-	         available: 1, //1表示在线，0表示不在线
-	         show: "chat", //没有该字段（等同于null)表示在线，chat/away/xa/dnd表示如下文。
-	         device: "android" //可能的值有android/ios/pc/web
-	     }， {
-	         available: 1, //1表示在线，0表示不在线,
-	         show: "away", //没有该字段（等同于null)表示在线，chat/away/xa/dnd表示如下文。
-	         device: "web" //可能的值有android/ios/pc/web
-	     }]
-	 }, {
-	     "userid": "liuhaoi",
-	     "prensence": [{
-	         available: 1, //1表示在线，0表示不在线
-	         show: "chat", //没有该字段（等同于null)表示在线，chat/away/xa/dnd表示如下文。
-	         device: "android" //可能的值有android/ios/pc/web
-	     }， {
-	         available: 1, //1表示在线，0表示不在线
-	         show: "away", //没有该字段（等同于null)表示在线，chat/away/xa/dnd表示如下文。
-	         device: "web" //可能的值有android/ios/pc/web
-	     }]
-	 }]
+/*返回值说明：*/   
+[{
+	"userid": "litingd",
+	"prensence": [{
+		available: 1, //1表示在线，0表示不在线
+		show: "chat", //没有该字段（等同于null)表示在线，chat/away/xa/dnd表示如下文。
+		device: "android" //可能的值有android/ios/pc/web
+	}， {
+		available: 1, //1表示在线，0表示不在线,
+		show: "away", //没有该字段（等同于null)表示在线，chat/away/xa/dnd表示如下文。
+		device: "web" //可能的值有android/ios/pc/web
+	}]
+}, {
+	"userid": "liuhaoi",
+	"prensence": [{
+		available: 1, //1表示在线，0表示不在线
+		show: "chat", //没有该字段（等同于null)表示在线，chat/away/xa/dnd表示如下文。
+		device: "android" //可能的值有android/ios/pc/web
+	}， {
+		available: 1, //1表示在线，0表示不在线
+		show: "away", //没有该字段（等同于null)表示在线，chat/away/xa/dnd表示如下文。
+		device: "web" //可能的值有android/ios/pc/web
+	}]
+}]
 
-show字段对照表：
+/*show字段对照表：
 
     away -- 该实体或资源临时离开.
     chat -- 该实体或资源活跃并想聊天.
@@ -294,6 +301,26 @@ YYIMChat.getVCard({
 		console.log(err);
 	}
 });
+/**
+* 成功时返回字段:
+*/
+{
+	email:"",
+	enableFields:true,
+	gender:"男",
+	id:"zongtf",
+	location:"北京",
+	mobile:"13655253330",
+	nickname:"宗腾飞",
+	number:"1000083",  //工号
+	photo:"attachid",  //图片id
+	position:"职位",
+	remarks:"备注信息",
+	telephone:"",
+	ts:1509934917532,
+	userId:"zongtf",
+	username:"zongtf.udn.yonyou"
+}
 ``` 
 
 #### 4.3.2.修改当前用户的VCard

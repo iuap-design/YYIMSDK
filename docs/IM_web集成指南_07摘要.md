@@ -21,6 +21,23 @@ YYIMChat.getRecentDigset({
 		console.log(err);
 	}
 });
+/**
+ * 成功时返回字段：
+ */
+{
+	personalVersion: 4773,
+	ts: 1525761511308,
+	list: [  //联系人列表
+		contactReadedVersion: 0,
+		jid: "",
+		lastContactTime: 1525674343416,  //最后联系时间
+		lastMessage: {},  //最后一条消息对象
+		readedVersion: 14,  //消息的read版本号
+		sessionVersion: 14,  //消息的session版本号
+		state: exists
+	],
+	count: 22  //联系人数
+}
 ```
 	
 ### 7.2.删除摘要

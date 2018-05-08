@@ -140,7 +140,7 @@
     wsport: Number, //websocket port 5227/5222/5225(长链接端口)
     hbport: Number, //httpbind  port 7075/7070(短链接端口)
     servlet: String, //rest Url(短链接地址)
-    flash_swf_url: &#39;xxx/x/Moxie.swf&#39;, //flash方式上传，用于兼容低版本上传功能， 这里填swf文件位置
+    flash_swf_url: &#39;xxx/x/Moxie.swf&#39;, //flash方式上传，用于兼容低版本浏览器上传功能， 这里填dist下upload中.swf文件在你项目中的路径
     logEnable: false, //client log
     clientMark: &#39;web&#39; //client mark &#39;web&#39; or &#39;pc&#39;,
     apiKey: String  //AI KEY
@@ -185,7 +185,7 @@
         //好友信息更改
     },
     onMessage: function(arg) {
-        //收到消息
+        //收到消息,包括收到他人给自己发的消息和所有的群消息
     },
     onGroupUpdate: function(arg) {
         //群组更新
