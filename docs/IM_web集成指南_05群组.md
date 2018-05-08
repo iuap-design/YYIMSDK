@@ -21,6 +21,24 @@ YYIMChat.getChatGroups({
 		console.log(err);
 	}
 });
+/**
+ * 成功时返回字段:
+ */
+{
+	leftRooms: [""],
+	roomItems: [
+		{
+			collected: 0,
+			jid: "",  //群的jid
+			members: [],  //群人员列表
+			name: "",  //群名
+			numberOfMembers: 2,  //群人员数
+			safeModel: false,
+			superLarge: false,
+			ts: 1493962143933
+		}
+	]
+}
 ```
 
 ### 5.2.创建群组

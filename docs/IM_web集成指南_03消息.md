@@ -27,6 +27,23 @@ YYIMChat.sendTextMessage({
 		console.log(err);
 	}
 });
+/*
+*成功后返回字段(一个文本消息对象):
+*/
+{
+	data: {
+		content: "消息[愉快]", //消息内容
+		contentType: 2,  //消息类型
+		dateline: 1525756786467,  //发送时间
+		extend: "{"intelligentAnalysis":{"intelligentable":true}}"  //消息扩展
+	},
+	from: "zongtf",  //发送者id
+	id: "5075205B-CA24-41CE-9B7E-A4245724EAB1",  //消息id
+	resource: "web-v2.6",  //资源
+	sessionVersion: 0,  //消息版本号
+	to: "majun5",  //接受者id
+	type: "chat"  //聊天类型
+}
 ```
 
 #### 3.1.2.发送图片消息
@@ -64,7 +81,9 @@ YYIMChat.sendPic({
 	fileFiltered: function(){},
 	fileUploaded: function(){},
 	beforeUpload: function(){},
-	progress: function(){},
+	progress: function(pro){
+		console.log('上传进度'+pro);
+	},
 	success:function(data){
 		console.log(data);
 	},
@@ -72,6 +91,33 @@ YYIMChat.sendPic({
 		console.log(err);
 	}
 });
+/*
+*成功后返回字段(一个图片消息对象):
+*/
+{
+	data: {
+		content: {
+			attachId: "", //资源id，可通过YYIMChat.getFileUrl(attachId)获取完整url
+			fid: 0,
+			from: 0,
+			id: "",
+			name: "", //图片名称
+			original: 1,
+			path: "", //图片路径
+			size: 10002, //图片大小
+			type: "png" //图片类型
+		},
+		contentType: 8,  //消息类型
+		dateline: 1525756786467,  //发送时间
+		extend: "{"intelligentAnalysis":{}}"  //消息扩展
+	},
+	from: "zongtf",  //发送者id
+	id: "",  //消息id
+	resource: "web-v2.6",  //资源
+	sessionVersion: 0,  //消息版本号
+	to: "majun5",  //接受者id
+	type: "chat"  //聊天类型
+}
 ```
 
 #### 3.1.3.发送文件消息
@@ -111,6 +157,9 @@ YYIMChat.sendFile({
 		console.log(err);
 	}
 });
+/*
+*成功后返回字段(一个文件消息对象): 结构参照图片类型
+*/
 ```
 
 #### 3.1.4.发送分享消息
@@ -176,7 +225,7 @@ YYIMChat.sendReadedReceiptsPacket({
 ```js
 YYIMChat.init({
 			//...，
-			onMessage : function(msg){}, // 接收到消息
+			onMessage : function(msg){}, // 接收到消息,返回一个消息对象
 			//...
 		});
 ```
@@ -212,6 +261,15 @@ YYIMChat.getHistoryMessage({
 		console.log(err);
 	}
 });
+/**
+*成功时返回数据:
+*/
+{
+	list: [], //消息列表，列表元素是消息对象
+	contactReadVersion: 237,  //消息被度的版本号，用来判断是否有未读消息
+	result: "success",
+	total: 20 //消息条数
+}
 ```
 	
 ### 3.4.消息撤回
