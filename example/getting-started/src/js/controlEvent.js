@@ -423,8 +423,8 @@ $hgroups.on('click', 'li', function(){
     if(!isdigset){
         recentDigset.push({
             id: that.attr('data-id'),
-            readedVersion: 0,
-            sessionVersion: 0,
+            readedVersion: 10000,
+            sessionVersion: 10000,
             type: 'groupchat',
             photo: that.attr('data-photo'),
             nickname:  that.attr('data-name'),
@@ -443,5 +443,5 @@ $hgroups.on('click', 'li', function(){
     //删除保存的聊天历史
     localStorage.removeItem('historychats');
     //获取历史聊天信息
-    getHistoryMessage(0, $(this).attr('data-id'), 'groupchat');
+    getHistoryMessage(10000, $(this).attr('data-id'), 'groupchat');
 });

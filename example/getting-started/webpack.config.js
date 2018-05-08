@@ -23,7 +23,8 @@ module.exports = function(env) {
             }),
             new CopyWebpackPlugin([
                 { from: 'src/css', to: './css' },
-                { from: 'src/imgs', to: './imgs' }
+                { from: 'src/imgs', to: './imgs' },
+                { from: 'src/lib', to: './lib' }
             ])
         ],
         output: {
