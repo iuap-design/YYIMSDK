@@ -26,6 +26,6 @@
     "webpack-dev-server": "^3.1.1"
   },
   "dependencies": {
-
+    "snapdragon-node": "^2.1.1"
   }
 }
