@@ -13,12 +13,6 @@ function createWindow () {
   //and load the index.html of the app.
   if (__isDev__) {
     mainWindow.loadURL("http://localhost:8080/index.html");
-    BrowserWindow.addDevToolsExtension(
-      "/Users/liufei/Library/Application Support/Google/Chrome/Default/Extensions/fmkadmapgofadopljbjfkapdkoienihi/3.2.1_0"
-    );
-    BrowserWindow.addDevToolsExtension(
-      "/Users/liufei/Library/Application Support/Google/Chrome/Default/Extensions/lmhkpmbekcpmknklioeibfkpmmfibljd/2.15.2_0"
-    );
     // Open the DevTools.
     mainWindow.webContents.openDevTools();
   } else {

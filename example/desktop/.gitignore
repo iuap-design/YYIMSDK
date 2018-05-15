@@ -1,1 +1,8 @@
-node_modules
+node_modules/
+release/
+app/*
+!app/package.json
+npm-debug.log
+.idea/
+*.iml
+package-lock.json

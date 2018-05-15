@@ -81,17 +81,17 @@ $('.closechat').click(function () {
 });
 
 //移动事件
-$j_move.on('mousedown', function (e) {
-    let originX = e.clientX;
-    let originY = e.clientY;
-    let boxPos = $yyim_main.position();
-    $yyim_box.on('mousemove', function (e) {
-        $yyim_main.css({left: (boxPos.left + e.clientX - originX) + 'px', top: (boxPos.top + e.clientY - originY) + 'px'});
-    });
-});
-$yyim_box.on('mouseup', function () {
-    $(this).off('mousemove');
-});
+// $j_move.on('mousedown', function (e) {
+//     let originX = e.clientX;
+//     let originY = e.clientY;
+//     let boxPos = $yyim_main.position();
+//     $yyim_box.on('mousemove', function (e) {
+//         $yyim_main.css({left: (boxPos.left + e.clientX - originX) + 'px', top: (boxPos.top + e.clientY - originY) + 'px'});
+//     });
+// });
+// $yyim_box.on('mouseup', function () {
+//     $(this).off('mousemove');
+// });
 
 
 //搜索好友

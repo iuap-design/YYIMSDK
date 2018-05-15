@@ -1,0 +1,19 @@
+{
+  "name": "imsdk",
+  "productName": "imsdk",
+  "version": "1.0.0",
+  "description": "imsdk",
+  "main": "./main.js",
+  "keywords": [],
+  "author": {
+    "name": " ",
+    "email": " "
+  },
+  "scripts": {
+    "postinstall": "npm rebuild --runtime=electron --target=1.8.4 --disturl=https://atom.io/download/atom-shell --build-from-source"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "npm": "^5.8.0"
+  }
+}

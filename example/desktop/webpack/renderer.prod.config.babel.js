@@ -3,6 +3,7 @@ import MinifyPlugin from 'babel-minify-webpack-plugin';
 import CleanWebpackPlugin from 'clean-webpack-plugin';
 import ExtractTextPlugin from 'extract-text-webpack-plugin';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
+import CopyWebpackPlugin from 'copy-webpack-plugin';
 import * as webpack from 'webpack';
 import webpackMerge from 'webpack-merge';
 
@@ -56,6 +57,11 @@ export default webpackMerge(base, {
       },
       isProd: true,
     }),
-    new MinifyPlugin()
+    new MinifyPlugin(),
+    new CopyWebpackPlugin([
+        { from: resolve(__dirname, '../static/css'), to: resolve(__dirname, '../app/renderer/static/css') },
+        { from: resolve(__dirname, '../static/imgs'), to: resolve(__dirname, '../app/renderer/static/imgs') },
+        { from: resolve(__dirname, '../static/lib'), to: resolve(__dirname, '../app/renderer/static/lib') }
+    ])
   ]
 });
