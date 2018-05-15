@@ -1,13 +1,13 @@
 //加载事件操作
-import './js/controlEvent';
+import './js/common/controlEvent';
 
 //获取最近联系人
-import getRecentDigset from './js/getRecentDigset';
+import getRecentDigset from './js/api/getRecentDigset';
 
 //渲染历史聊天记录
-import renderHistoryMessage from './js/renderHistoryMessage';
+import renderHistoryMessage from './js/render/renderHistoryMessage';
 
-import { $own_avatar } from './js/jqelements';
+import { $own_avatar } from './js/common/jqelements';
 
 //初始化SDK，正式环境
 YYIMChat.initSDK({
