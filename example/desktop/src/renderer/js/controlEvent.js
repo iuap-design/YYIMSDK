@@ -1,3 +1,4 @@
+import { remote } from "electron";
 //dom元素
 import {
     $yyim_iogin,
@@ -40,6 +41,8 @@ import getHistoryMessage from './getHistoryMessage';
 //渲染历史聊天记录
 import renderHistoryMessage from './renderHistoryMessage';
 
+const win = remote.getGlobal("win");
+
 //放置表情列表
 $j_bq_box.html(expressionList.data.map((t) => {
     return `<li data-code="${t.actionData}"><img src="${expressionList.path+t.url}" title="${t.actionData}" alt=""></li>`;
@@ -60,8 +63,13 @@ $login_btn.click(function () {
 
 //最大化按钮点击
 $('.scalechat').click(function () {
-    $yyim_main.hasClass('maxwindow') ? $yyim_main.removeClass('maxwindow') : $yyim_main.addClass('maxwindow');
-    $yyim_main.css({left: '0', top: '0'});
+    // $yyim_main.hasClass('maxwindow') ? $yyim_main.removeClass('maxwindow') : $yyim_main.addClass('maxwindow');
+    // $yyim_main.css({left: '0', top: '0'});
+    if(win.isMaximized()){
+      win.unmaximize();
+    }else{
+      win.maximize();
+    }
 });
 
 //关闭窗口按钮点击
@@ -69,6 +77,7 @@ $('.closechat').click(function () {
     localStorage.clear();
     $yyim_box.hide();
     $yyim_iogin.show();
+    //win.close();
 });
 
 //移动事件
