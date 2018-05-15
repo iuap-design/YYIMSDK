@@ -33,6 +33,8 @@ import getRecentDigset from '../api/getRecentDigset';
 import renderRecentDigset from '../render/renderRecentDigset';
 //获取群组
 import getChatGroups from '../api/getChatGroups';
+//获取好友
+import getMyFriend from '../api/getMyFriend';
 //渲染群组
 import renderChatGroups from '../render/renderChatGroups';
 //获取历史聊天记录
@@ -382,6 +384,7 @@ $smgroup.on('click',function(){
     //显示群组列表
    // $hgroups.html('');
     $hgroups.show();
+    getMyFriend();
 
     // let roomItems = localStorage.getItem('roomItems');
     // if(roomItems){
@@ -405,6 +408,8 @@ $hgroups.on('click','ul.left-content-item li',function(){
             //重新获取群组
             getChatGroups();
         }
+    }else{
+        getMyFriend();
     }
 });
 //菜单-公众号
