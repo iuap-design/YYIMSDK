@@ -185,6 +185,21 @@ body{
     background-color: transparent;
     cursor: pointer;
 }
+.side-menu>.setting{
+     position: absolute;
+     bottom:50px;
+     width:100%;
+     color:white;
+     text-align: center;
+     cursor: pointer;
+    
+}
+.side-menu>.setting:hover{
+    color:#EE1A34;
+}
+.side-menu>.setting i{
+    font-size: 24px;
+}
 .side-menu .avatar{
     cursor: default;
 }
@@ -769,48 +784,29 @@ ul.hmyfriend>li>span{
     width:300px;
 }
 .hmygrouplist .avatar{
-    float: left;
-    height: 40px;
-    width: 40px;
+    display: inline-block;
+    display: inline;                        
+    vertical-align: middle;
+    cursor: pointer;  
     margin-left: 10px;
     border-radius: 50%;
-    background-color: #eee;
+    line-height: 60px;
 }
-.hmygrouplist .avatar img{
-    float: left;
-    height: 100%;
-    width: 100%;
+.hmygrouplist .avatar img{ 
+    width:40px;
     border-radius: 50%;
-    background-color: #ccc;
-}
-.hmygrouplist .detail{
-    float: left;
-    height: 40px;
-    width: 120px;
-    margin-left: 10px;
-}
-.hmygrouplist .detail .name{
-    font-weight: normal;
-    font-size: 14px;
-    height: 22px;
-    line-height: 22px;
-    color: #333;
-}
-.hmygrouplist .dingyue .name{
-    font-weight: normal;
-    font-size: 14px;
-    height: 44px;
-    line-height: 44px;
-    color: #333;
-}
-.hmygrouplist .detail .msg{
-    font-size: 12px;
-    height: 20px;
-    line-height: 20px;
-    color: #9e9e9e;
-}
-.hmygrouplist .detail .emoji{
-    height: 18px;
-    width: 18px;
     vertical-align: middle;
 }
+.hmygrouplist .avatar span{
+    margin-left:10px;
+}
+.hmygrouplist,.hmyfriend{
+    position: absolute;
+    top:50px;
+    left:0;
+    bottom:0;
+    right: 0;
+    overflow-x: hidden;
+    overflow-y: scroll;
+}
+ 

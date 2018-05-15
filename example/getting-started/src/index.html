@@ -27,6 +27,9 @@
     <div class="yyim-main">
         <!-- 菜单栏 -->
         <div class="side-menu">
+            <div class="setting">
+                    <i class="iconfont icon-shezhi"></i>
+            </div>
             <ul class="sm-top">
                 <!-- 头像 -->
                 <li class="avatar">
@@ -43,6 +46,7 @@
                 <li class="smgroup">
                         <span class="menu-icom" title="联系人"></span>
                 </li>
+               
                <!--  <li class="smpubcount">
                     <span class="menu-icom" title="订阅号"></span>
                 </li> -->
@@ -108,7 +112,7 @@
                     </div> -->
                     <div id="content-my-friend" class="active">
                              <p>我的好友</p>
-                             <ul class="hmyfriend">
+                             <ul class="hmyfriend scrollbar">
                                 <!-- <li>
                                     <img src="./imgs/avatar.jpg" alt="">
                                     <span>张三</span> 
@@ -129,7 +133,7 @@
                     </div>
                     <div id="content-my-group" class=" ">
                              <p>我的群组</p>
-                             <div class="hmygrouplist">
+                             <div class="hmygrouplist scrollbar">
 
                              </div>
                     </div>
@@ -193,14 +197,14 @@
                                 <i class="typetip bq_tip">表情</i>
                             </li>
                             <li>
-                                <span class="j_menu_tp iconfont icon-icon--"></span>
+                                <span class="j_menu_tp iconfont icon-tupian"></span>
                                 <i class="typetip tp_tip">图片</i>
                                 <form enctype="multipart/form-data" id="oFormPic" style="display: none">
                                     <input type="file" name="file" accept = "image/*" id="uploadPic" />
                                 </form>
                             </li>
                             <li>
-                                <span class="j_menu_wj iconfont icon-icon--1"></span>
+                                <span class="j_menu_wj iconfont icon-wenjian"></span>
                                 <i class="typetip wj_tip">文件</i>
                                 <form enctype="multipart/form-data" id="oFormFile" style="display: none">
                                     <input type="file" name="file" id="uploadFile" />
