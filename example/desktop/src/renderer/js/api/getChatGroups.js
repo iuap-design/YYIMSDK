@@ -1,4 +1,4 @@
-import renderChatGroups from './renderChatGroups';
+import renderChatGroups from '../render/renderChatGroups';
 
 
 export default () => {

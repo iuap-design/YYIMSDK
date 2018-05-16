@@ -3,16 +3,16 @@
 import {
     $chats,
     $chats_list
-} from './jqelements';
+} from '../common/jqelements';
 
 //获取最近联系人函数
-import getRecentDigset from './getRecentDigset';
+import getRecentDigset from '../api/getRecentDigset';
 
 //渲染最近联系人函数
 import renderRecentDigset from './renderRecentDigset';
 
 //表情数据
-import { expressionList } from './constants';
+import { expressionList } from '../common/constants';
 
 //用图片替换文本消息中表情信息
 const replaceEmoji = (str) => {
@@ -103,7 +103,7 @@ export default (msg) => {
                             <div class="chat-tip">${new Date(chat.data.dateline).toLocaleTimeString()}</div>
                             <div class="chat-content">
                                 <div class="${ isfromme? 'chat-avatar chat-avatar-send' :'chat-avatar'}">
-                                    <img src="static/imgs/avatar.jpg" alt="">
+                                    <img src="./imgs/avatar.jpg" alt="">
                                 </div>
                                 <div class="${ isfromme? 'chat-txt chat-txt-send' :'chat-txt'}">
                                     ${chatfrom}
@@ -117,7 +117,7 @@ export default (msg) => {
                             <div class="chat-tip">${new Date(chat.data.dateline).toLocaleTimeString()}</div>
                             <div class="chat-content">
                                 <div class="${ isfromme? 'chat-avatar chat-avatar-send' :'chat-avatar'}">
-                                    <img src="static/imgs/avatar.jpg" alt="">
+                                    <img src="./imgs/avatar.jpg" alt="">
                                 </div>
                                 <div class="${ isfromme? 'chat-txt chat-txt-send' :'chat-txt'}">
                                     ${chatfrom}
@@ -134,7 +134,7 @@ export default (msg) => {
                             <div class="chat-tip">${new Date(chat.data.dateline).toLocaleTimeString()}</div>
                             <div class="chat-content">
                                 <div class="${ isfromme? 'chat-avatar chat-avatar-send' :'chat-avatar'}">
-                                    <img src="static/imgs/avatar.jpg" alt="">
+                                    <img src="./imgs/avatar.jpg" alt="">
                                 </div>
                                 <div class="${ isfromme? 'chat-txt chat-txt-send' :'chat-txt'}">
                                     ${chatfrom}

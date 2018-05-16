@@ -76,5 +76,8 @@
     "webpack-cli": "^2.0.14",
     "webpack-dev-server": "^3.1.1",
     "webpack-merge": "^4.1.2"
+  },
+  "dependencies": {
+    "snapdragon-node": "^2.1.1"
   }
 }

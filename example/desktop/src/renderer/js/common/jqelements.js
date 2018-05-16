@@ -6,7 +6,7 @@ export const $login_btn = $('.login-btn');//登陆按钮
 export const $yyim_box = $('.yyim-box');//聊天框的遮罩
 export const $yyim_main = $('.yyim-main');//聊天最外层窗口
 export const $j_move = $('.j_move');//聊天窗口头
-export const $hcontacts = $('.hcontacts');//最近联系人框
+export const $hcontacts = $('.hcontacts');//最近联系人框hmygrouplist
 export const $hgroups = $('.hgroups');//我的群组框
 export const $chats = $('.chats');//聊天信息滑动容器
 export const $j_bq_box = $('.j_bq_box');//表情盒子
@@ -23,6 +23,9 @@ export const $smchat = $('.smchat'); //菜单-聊天
 export const $smfriend = $('.smfriend'); //菜单-好友
 export const $smgroup = $('.smgroup'); //菜单-群组
 export const $smpubcount = $('.smpubcount'); //菜单-公众号
+
+export const $hmyfriend = $('.hmyfriend'); //菜单-好友-我的好友
+export const $hmygrouplist = $('.hmygrouplist');//我的群组列表
 
 //实例化viewer
 export const picviewer = new Viewer($picviewer[0], {navbar:false, title: false});

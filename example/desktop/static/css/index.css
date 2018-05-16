@@ -156,8 +156,11 @@ body{
     left: 0;
     right: 0;
     bottom: 0;
+    /*margin: auto;*/
     height: 100%;
     width: 100%;
+    /*border-radius: 4px;
+    box-shadow: 10px 10px 20px rgba(0,0,0,.3);*/
     background-color: white;
     overflow: hidden;
 }
@@ -182,6 +185,21 @@ body{
     padding: 20px 15px 5px;
     background-color: transparent;
     cursor: pointer;
+}
+.side-menu>.setting{
+     position: absolute;
+     bottom:50px;
+     width:100%;
+     color:white;
+     text-align: center;
+     cursor: pointer;
+    
+}
+.side-menu>.setting:hover{
+    color:#EE1A34;
+}
+.side-menu>.setting i{
+    font-size: 24px;
 }
 .side-menu .avatar{
     cursor: default;
@@ -215,7 +233,7 @@ body{
     background-image: url(../imgs/sidemenu/friend.png);
 }
 .side-menu .smgroup .menu-icom{
-    background-image: url(../imgs/sidemenu/group.png);
+    background-image: url(../imgs/sidemenu/friend.png);
 }
 .side-menu .smpubcount .menu-icom{
     background-image: url(../imgs/sidemenu/pubcount.png);
@@ -227,7 +245,7 @@ body{
     background-image: url(../imgs/sidemenu/friend_active.png);
 }
 .side-menu .smgroup.active .menu-icom{
-    background-image: url(../imgs/sidemenu/group_active.png);
+    background-image: url(../imgs/sidemenu/friend_active.png);
 }
 .side-menu .smpubcount.active .menu-icom{
     background-image: url(../imgs/sidemenu/pubcount_active.png);
@@ -294,17 +312,20 @@ body{
     overflow-y: auto;
     background-color: white;
 }
-.history-contacts li{
+.history-contacts .hcontacts li{
     position: relative;
     padding: 12px 5px;
     height: 40px;
     cursor: pointer;
 }
-.history-contacts li:hover{
+.history-contacts .hcontacts li:hover{
     background-color: #f5f5f5;
 }
-.history-contacts li.active{
+.history-contacts .hcontacts li.active{
     background-color: #f0f0f0;
+}
+.history-contacts .hcontacts li:hover   i{
+    display: inline-block
 }
 .history-contacts .close{
     position: absolute;
@@ -315,6 +336,7 @@ body{
     line-height: 10px;
     font-size: 14px;
     color: #999;
+    display: none;
 }
 .history-contacts .close:hover{
     color: red;
@@ -327,6 +349,16 @@ body{
     border-radius: 50%;
     background-color: #eee;
 }
+.history-contacts .avatarName{
+    float: left;
+    height: 40px;
+    width: 40px;
+    margin-left: 10px;
+    color:white;
+    line-height: 40px;
+    text-align: center;
+}
+
 .history-contacts .avatar img{
     float: left;
     height: 40px;
@@ -355,8 +387,8 @@ body{
 }
 .history-contacts .detail .msg{
     font-size: 12px;
-    height: 18px;
-    line-height: 18px;
+    height: 20px;
+    line-height: 20px;
     color: #9e9e9e;
 }
 .history-contacts .detail .emoji{
@@ -662,4 +694,121 @@ body{
     opacity: .5;
     cursor: default;
 }
-
+.hgroups{
+    position: absolute;
+    top:51px;
+    left:70px;
+    bottom:0;
+    right:0;
+}
+.hgroups>ul{
+    width:204px;
+    border-right: 1px solid #e4e4e4;
+    height:100%;
+}
+#total-contact-content{
+    position: absolute;
+    top:0;
+    left:205px;
+    bottom:0;
+    right:0;
+    z-index: 100;
+    background:white;
+}
+#total-contact-content>div{
+    display: none;
+}
+#total-contact-content>div>p{
+    line-height: 49px;
+    padding-left:20px;
+    border-bottom:1px solid #e4e4e4;
+}
+#total-contact-content>div.active{
+    display:block;
+}
+.hgroups ul.left-content-item li span{
+    padding-left:15px;
+}
+.hgroups ul.left-content-item li{
+    height: 50px;
+    padding:0 0;
+    padding-left: 20px;
+    line-height: 50px;
+    cursor: pointer;
+}
+.hgroups ul.left-content-item li.active{
+    height: 50px;
+    padding:0 0;
+    padding-left: 20px;
+    line-height: 50px;
+    cursor: pointer;
+    color:#EE1A34;
+    background-color:#e4e4e4;
+}
+.hmyfriend{
+    overflow: hidden;
+}
+ul.hmyfriend>li{
+    width:25%;
+    float: left;
+    padding-left:0px;
+    line-height: 60px;
+    text-align: center;
+    display: inline-block;
+    display: inline;                        
+    vertical-align: middle;
+    cursor: pointer;
+}
+ul.hmyfriend>li:hover{
+    background-color:#e4e4e4;
+}
+ul.hmyfriend>li img{
+    width:40px;
+    border-radius: 50%;
+    vertical-align: middle;
+}
+ul.hmyfriend>li>span{
+    margin-left: 10px;
+}
+.hmygrouplist>li{
+    overflow: hidden;
+    list-style: none;
+    height:60px;
+    cursor: pointer;
+}
+.hmygrouplist>li:active{
+    background-color: #e4e4e4;
+}
+.hmygrouplist>li:hover{
+    background-color: #e4e4e4;
+}
+.hmygrouplist>li>.detail{
+    width:300px;
+}
+.hmygrouplist .avatar{
+    display: inline-block;
+    display: inline;                        
+    vertical-align: middle;
+    cursor: pointer;  
+    margin-left: 10px;
+    border-radius: 50%;
+    line-height: 60px;
+}
+.hmygrouplist .avatar img{ 
+    width:40px;
+    border-radius: 50%;
+    vertical-align: middle;
+}
+.hmygrouplist .avatar span{
+    margin-left:10px;
+}
+.hmygrouplist,.hmyfriend{
+    position: absolute;
+    top:50px;
+    left:0;
+    bottom:0;
+    right: 0;
+    overflow-x: hidden;
+    overflow-y: scroll;
+}
+ 

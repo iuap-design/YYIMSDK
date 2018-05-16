@@ -2,11 +2,10 @@
 import {
     $chat_box,
     $chats_list
-} from './jqelements';
+} from '../common/jqelements';
 
 //渲染聊天记录
-import renderHistoryMessage from './renderHistoryMessage';
-
+import renderHistoryMessage from '../render/renderHistoryMessage';
 //获取聊天历史,传入sessionVersion,对方id和type参数
 export default (sessionVersion, id, type) => {
     let start = sessionVersion > 20 ? sessionVersion - 20 : 0;

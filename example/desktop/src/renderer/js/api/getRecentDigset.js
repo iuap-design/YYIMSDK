@@ -1,6 +1,6 @@
 
 //导入最近联系人渲染函数
-import renderRecentDigset from './renderRecentDigset';
+import renderRecentDigset from '../render/renderRecentDigset';
 
 //获取最近联系人
 export default () => {
