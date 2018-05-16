@@ -27,6 +27,9 @@
     <div class="yyim-main">
         <!-- 菜单栏 -->
         <div class="side-menu">
+            <div class="setting">
+                    <i class="iconfont icon-shezhi"></i>
+            </div>
             <ul class="sm-top">
                 <!-- 头像 -->
                 <li class="avatar">
@@ -37,15 +40,16 @@
                 <li class="smchat active">
                     <span class="menu-icom" title="聊天"></span>
                 </li>
-                <li class="smfriend">
+                <!-- <li class="smfriend">
                     <span class="menu-icom" title="好友"></span>
-                </li>
+                </li> -->
                 <li class="smgroup">
-                        <span class="menu-icom" title="群组"></span>
+                        <span class="menu-icom" title="联系人"></span>
                 </li>
-                <li class="smpubcount">
+               
+               <!--  <li class="smpubcount">
                     <span class="menu-icom" title="订阅号"></span>
-                </li>
+                </li> -->
             </ul>
         </div>
         <!--侧边栏-->
@@ -81,12 +85,59 @@
                             <!--<i class="newtip cuttxt">99</i>-->
                         <!--</li>-->
                     </ul>
-                    <!--群组-->
-                    <ul class="hgroups" style="display: none"></ul>
+                   
+                  
                     <!--订阅号-->
-                    <ul class="hsubscribe" style="display: none"></ul>
+                    <!-- <ul class="hsubscribe" style="display: none"></ul> -->
                 </div>
             </div>
+        </div>
+         <!--群组-->
+         <div  class="hgroups" style="display: none">
+                <ul class="left-content-item">
+                        <!-- <li class="recentContact active"  data-tar='#content-recent-contact'>
+                           <i class="iconfont  icon-lianxiren"></i> <span class="recent—contact" title="">最近联系人</span>
+                        </li> -->
+                        <li class="myFriend active"   data-tar='#content-my-friend'>
+                                <i class="iconfont icon-wodehaoyou"></i><span class="my-friend" title="">我的好友</span>
+                        </li>
+                        <li class="myGroup"   data-tar='#content-my-group'>
+                                <i class="iconfont icon-qunzuduoren"></i><span class="my-group" title="">我的群组</span>
+                        </li>
+                </ul>
+                <div id="total-contact-content">
+                    <!-- <div id="content-recent-contact" class="active">
+                            <p>最近联系人 </p>
+                            
+                    </div> -->
+                    <div id="content-my-friend" class="active">
+                             <p>我的好友</p>
+                             <ul class="hmyfriend scrollbar">
+                                <!-- <li>
+                                    <img src="./imgs/avatar.jpg" alt="">
+                                    <span>张三</span> 
+                                </li>
+                                <li>
+                                        <img src="./imgs/avatar.jpg" alt="">                                                <span>张三</span> 
+                                    </li>
+                                    <li>
+                                            <img src="./imgs/avatar.jpg" alt="">                                                <span>张三</span> 
+                                        </li>
+                                        <li>
+                                                <img src="./imgs/avatar.jpg" alt="">                                                <span>张三</span> 
+                                            </li>
+                                            <li>
+                                                    <img src="./imgs/avatar.jpg" alt="">                                                <span>张三</span> 
+                                                </li> -->
+                             </ul>
+                    </div>
+                    <div id="content-my-group" class=" ">
+                             <p>我的群组</p>
+                             <div class="hmygrouplist scrollbar">
+
+                             </div>
+                    </div>
+                </div>
         </div>
         <!--聊天信息框-->
         <div class="chat-con">
@@ -96,7 +147,7 @@
                     <div class="j_move chat-name cuttxt"></div>
                     <div class="window-control">
                         <span class="scalechat iconfont icon-quanpingzuidahua" title="点击切换窗口大小"></span>
-                        <span class="closechat iconfont icon-chahao" title="关闭"></span>
+                        <span class="closechat iconfont icon-shanchu" title="关闭"></span>
                     </div>
                 </div>
                 <div class="chat-box">
@@ -146,14 +197,14 @@
                                 <i class="typetip bq_tip">表情</i>
                             </li>
                             <li>
-                                <span class="j_menu_tp iconfont icon-icon--"></span>
+                                <span class="j_menu_tp iconfont icon-tupian"></span>
                                 <i class="typetip tp_tip">图片</i>
                                 <form enctype="multipart/form-data" id="oFormPic" style="display: none">
                                     <input type="file" name="file" accept = "image/*" id="uploadPic" />
                                 </form>
                             </li>
                             <li>
-                                <span class="j_menu_wj iconfont icon-icon--1"></span>
+                                <span class="j_menu_wj iconfont icon-wenjian"></span>
                                 <i class="typetip wj_tip">文件</i>
                                 <form enctype="multipart/form-data" id="oFormFile" style="display: none">
                                     <input type="file" name="file" id="uploadFile" />
