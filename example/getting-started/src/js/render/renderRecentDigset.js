@@ -47,7 +47,7 @@ export default (digsets) => {
     //拿取聊天对方id
     let targetuserid = localStorage.getItem('targetuserid');
     let digStr = '';
-    digsets.sort(function(a, b){return b.lastContactTime - a.lastContactTime});
+    //digsets.sort(function(a, b){return b.lastContactTime - a.lastContactTime});
     digsets.forEach(function(res){
         let lastmsg = res.lastMessage, lastmsgStr = '', newtipStr = '';
         let noreadno = res.sessionVersion - res.readedVersion;

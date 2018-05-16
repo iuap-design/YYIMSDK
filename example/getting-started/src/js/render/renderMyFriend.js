@@ -7,7 +7,7 @@ export default (myfriendData) =>{
     let myfriend_str='';
     myfriendData.forEach(element => {
         myfriend_str+=`
-        <li>
+        <li data-id="${element.id}" data-nickname="${element.name||element.id}" data-type="chat">
         <img src="${YYIMChat.getFileUrl(element.photo)}" alt="">
         <span>${element.name}</span> 
         </li>
