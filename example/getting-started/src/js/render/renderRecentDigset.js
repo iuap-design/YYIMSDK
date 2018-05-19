@@ -61,29 +61,43 @@ export default (digsets) => {
         if(noreadno){
             newtipStr = '<i class="newtip cuttxt">'+ noreadno +'</i>';
         }
-        if(res.photo){
-            digStr += `<li class="${targetuserid && targetuserid === res.id ? 'active' : ''}" data-sessionVersion="${res.sessionVersion}" data-id="${res.id}" data-type="${res.type}" data-nickname="${res.nickname || res.id}">
+        if(res.type == 'chat'){
+            if(res.photo){
+                digStr += `<li class="${targetuserid && targetuserid === res.id ? 'active' : ''}" data-sessionVersion="${res.sessionVersion}" data-id="${res.id}" data-type="${res.type}" data-nickname="${res.nickname || res.id}">
+                <i data-id="${res.id}" data-type="${res.type}" class="close">×</i>
+                <div class="avatar">
+                    <img src="${YYIMChat.getFileUrl(res.photo)}" alt="">
+                </div>
+                <div class="detail">
+                    <h3 class="name cuttxt">${res.nickname || res.id}</h3>
+                    <p class="msg cuttxt">${replaceEmoji(lastmsgStr)}</p>
+                </div>${newtipStr}
+              </li>`;
+            }else{
+                digStr += `<li class="${targetuserid && targetuserid === res.id ? 'active' : ''}" data-sessionVersion="${res.sessionVersion}" data-id="${res.id}" data-type="${res.type}" data-nickname="${res.nickname || res.id}">
+                <i data-id="${res.id}" data-type="${res.type}" class="close">×</i>
+                <div class="avatar avatarName"  style="background:${getColor(res.nickname)||getColor(res.id)}">
+                     ${getNameLastTwo(res.nickname) || getNameLastTwo(res.id)}
+                </div>
+                <div class="detail">
+                    <h3 class="name cuttxt">${res.nickname || res.id}</h3>
+                    <p class="msg cuttxt">${replaceEmoji(lastmsgStr)}</p>
+                </div>${newtipStr}
+              </li>`;
+            }
+        }else{
+            digStr += `<li data-id="${res.id}" data-nickname="${res.nickname}" data-photo="${res.photo || ''}" data-type="groupchat" data-sessionVersion="${res.sessionVersion}">
             <i data-id="${res.id}" data-type="${res.type}" class="close">×</i>
             <div class="avatar">
-                <img src="${YYIMChat.getFileUrl(res.photo)}" alt="">
+                <img src="${YYIMChat.getFileUrl(res.photo) || './imgs/group.png'}" alt=""> 
             </div>
             <div class="detail">
-                <h3 class="name cuttxt">${res.nickname || res.id}</h3>
+                <h3 class="name cuttxt">${res.nickname || res.name}</h3>
                 <p class="msg cuttxt">${replaceEmoji(lastmsgStr)}</p>
-            </div>${newtipStr}
-          </li>`;
-        }else{
-            digStr += `<li class="${targetuserid && targetuserid === res.id ? 'active' : ''}" data-sessionVersion="${res.sessionVersion}" data-id="${res.id}" data-type="${res.type}" data-nickname="${res.nickname || res.id}">
-            <i data-id="${res.id}" data-type="${res.type}" class="close">×</i>
-            <div class="avatar avatarName"  style="background:${getColor(res.nickname)||getColor(res.id)}">
-                 ${getNameLastTwo(res.nickname) || getNameLastTwo(res.id)}
             </div>
-            <div class="detail">
-                <h3 class="name cuttxt">${res.nickname || res.id}</h3>
-                <p class="msg cuttxt">${replaceEmoji(lastmsgStr)}</p>
-            </div>${newtipStr}
-          </li>`;
+             </li>`;
         }
+       
        
     });
     $hcontacts.html(digStr);
