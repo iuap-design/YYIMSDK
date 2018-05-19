@@ -22,7 +22,8 @@ import {
     $smfriend,
     $smgroup,
     $smpubcount,
-    $hmyfriend
+    $hmyfriend,
+    $hmygrouplist
 } from './jqelements';
 //表情数据
 import { expressionList } from './constants';
@@ -134,7 +135,7 @@ $hmyfriend.on('click','li',function(){
     //删除保存的聊天历史
     localStorage.removeItem('historychats');
     //获取历史聊天信息
-    getHistoryMessage( "100", $(this).attr('data-id'), $(this).attr('data-type'));
+    getHistoryMessage( "19", $(this).attr('data-id'), $(this).attr('data-type'));
     //处理摘要显示
     let nowDigest = JSON.parse(localStorage.getItem('recentdigset'));
     let hasHistory = false;
@@ -165,6 +166,52 @@ $hmyfriend.on('click','li',function(){
   
     localStorage.setItem('recentdigset',JSON.stringify(nowDigest));
     renderRecentDigset(nowDigest);
+});
+//点击我的群组开始聊天
+$hmygrouplist.on('click','li',function(){
+    $smgroup.removeClass('active');
+    $smchat.addClass('active');
+    $hgroups.hide();
+    $hcontacts.show();
+    $j_move.html($(this).attr('data-nickname'));
+    //把选择的聊天对方id保存起来,用于给他发送消息
+     localStorage.setItem('targetuserid', $(this).attr('data-id'));
+     //保存聊天类型
+     localStorage.setItem('chattype', $(this).attr('data-type'));
+    // //删除保存的聊天历史
+     localStorage.removeItem('historychats');
+     //获取历史聊天信息
+     getHistoryMessage( "19", $(this).attr('data-id'), $(this).attr('data-type'));
+    // //处理摘要显示
+     let nowDigest = JSON.parse(localStorage.getItem('recentdigset'));
+     let hasHistory = false;
+     console.log('用户ID'+$(this).attr('data-id'));
+     let chatId = $(this).attr('data-id');
+     let chatType =  $(this).attr('data-type');
+     console.log('用户类型'+ $(this).attr('data-type'));
+    if(nowDigest.length>0){
+        for(var i=0;i<nowDigest.length;i++){
+            if((nowDigest[i].id == chatId)){
+                nowDigest.unshift(nowDigest[i]);
+                i++;
+                nowDigest.splice(i,1); 
+                hasHistory = true;
+                break;   
+            }
+        }
+    };
+    if(!hasHistory){
+        nowDigest.unshift({
+            id:$(this).attr('data-id'),
+            type: $(this).attr('data-chat'),
+            photo: $(this).attr('data-photo') || '',
+            nickname: $(this).attr('data-nickname'),
+        });
+    }
+     hasHistory = false;
+  
+     localStorage.setItem('recentdigset',JSON.stringify(nowDigest));
+     renderRecentDigset(nowDigest);
 });
 //删除最近联系人
 $hcontacts.on('click','.close',function () {

@@ -59,7 +59,7 @@ export default (digsets) => {
             }
         }
         if(noreadno){
-            newtipStr = '<i class="newtip cuttxt">'+ noreadno +'</i>';
+           // newtipStr = '<i class="newtip cuttxt">'+ noreadno +'</i>';
         }
         if(res.type == 'chat'){
             if(res.photo){
@@ -86,7 +86,7 @@ export default (digsets) => {
               </li>`;
             }
         }else{
-            digStr += `<li data-id="${res.id}" data-nickname="${res.nickname}" data-photo="${res.photo || ''}" data-type="groupchat" data-sessionVersion="${res.sessionVersion}">
+            digStr += `<li class="${targetuserid && targetuserid === res.id ? 'active' : ''}"  data-id="${res.id}" data-nickname="${res.nickname}" data-photo="${res.photo || ''}" data-type="groupchat" data-sessionVersion="${res.sessionVersion}" >
             <i data-id="${res.id}" data-type="${res.type}" class="close">×</i>
             <div class="avatar">
                 <img src="${YYIMChat.getFileUrl(res.photo) || './imgs/group.png'}" alt=""> 
