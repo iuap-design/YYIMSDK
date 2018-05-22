@@ -1,6 +1,6 @@
 {
   "name": "yyimsdk-example-desktop",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "imsdk",
   "main": "app/main.js",
   "scripts": {
