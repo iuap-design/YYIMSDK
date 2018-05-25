@@ -10,15 +10,43 @@ export default () => {
             if (result.list.length) {
                 let digestChatNum = 0;//聊天摘要数量
                 let digestGroupchatNum = 0;//群聊摘要数量
+				let pubaccountNum = 0;//公众号数量
                 //暂时将公众号类型的摘要删除
-                for(var i = 0;i <result.list.length;i++){
-                    if(result.list[i].type == "pubaccount"){
-                        result.list.splice(i,1);
-                        i--;
-                    }
-                }
+                //for(var i = 0;i <result.list.length;i++){
+                //    if(result.list[i].type == "pubaccount"){
+                //        result.list.splice(i,1);
+                //        i--;
+                //    }
+                //}
                 let recentDigset = [];
                 result.list.forEach(function(e, i){
+					//显示公众号
+					if(e.type == 'pubaccount'){
+						YYIMChat.getPubAccountInfo({
+							id: e.id,
+							success:function(data){
+                                 recentDigset.push({
+                                    id: data.id,
+                                    readedVersion: e.readedVersion,
+                                    sessionVersion: e.sessionVersion,
+                                    type: e.type,
+                                    photo: './imgs/pubaccount.png',
+                                    nickname: data.name,
+                                    lastMessage: e.lastMessage.data.content,
+                                    lastContactTime: e.lastContactTime
+                                });
+                                pubaccountNum ++;
+                                if(digestChatNum + digestGroupchatNum+pubaccountNum == result.list.length){
+                                    //把最近联系人列表保存到本地
+                                    localStorage.setItem('recentdigset', JSON.stringify(recentDigset));
+                                    renderRecentDigset(recentDigset);
+                                }
+							},
+							error:function(err){
+								console.log(err);
+							}
+						});
+					}
                     //目前测试只显示个人聊天,和群组
                     if(e.type == 'chat'){
                            //通过id获取个人信息
@@ -37,7 +65,7 @@ export default () => {
                                     lastContactTime: e.lastContactTime
                                 });
                                 digestChatNum ++;
-                                if(digestChatNum + digestGroupchatNum == result.list.length){
+                                if(digestChatNum + digestGroupchatNum+pubaccountNum == result.list.length){
                                     //把最近联系人列表保存到本地
                                     localStorage.setItem('recentdigset', JSON.stringify(recentDigset));
                                     renderRecentDigset(recentDigset);
@@ -63,7 +91,7 @@ export default () => {
                                     lastMessage: e.lastMessage,
                                     lastContactTime: e.lastContactTime
                                 });
-                                if(digestChatNum + digestGroupchatNum == result.list.length){
+                                if(digestChatNum + digestGroupchatNum+pubaccountNum == result.list.length){
                                     //把最近联系人列表保存到本地
                                     localStorage.setItem('recentdigset', JSON.stringify(recentDigset));
                                     renderRecentDigset(recentDigset);

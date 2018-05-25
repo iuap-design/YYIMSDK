@@ -51,12 +51,18 @@ export default (digsets) => {
     digsets.forEach(function(res){
         let lastmsg = res.lastMessage, lastmsgStr = '', newtipStr = '';
         let noreadno = res.sessionVersion - res.readedVersion;
+		
         if(lastmsg){
-            switch(lastmsg.data.contentType){
-                case 2: lastmsgStr = res.lastMessage.data.content; break;
-                case 4: lastmsgStr = '[文件消息]'; break;
-                case 8: lastmsgStr = '[图片消息]';break;
-            }
+			if(res.type=="pubaccount"){
+				lastmsgStr=lastmsg;
+			}
+            else{
+				switch(lastmsg.data.contentType){
+                   case 2: lastmsgStr = res.lastMessage.data.content; break;
+                   case 4: lastmsgStr = '[文件消息]'; break;
+                   case 8: lastmsgStr = '[图片消息]';break;
+                }
+			}
         }
         if(noreadno){
            // newtipStr = '<i class="newtip cuttxt">'+ noreadno +'</i>';
@@ -85,7 +91,19 @@ export default (digsets) => {
                 </div>${newtipStr}
               </li>`;
             }
-        }else{
+        }else if (res.type == 'pubaccount'){
+			 digStr += `<li class="${targetuserid && targetuserid === res.id ? 'active' : ''}"  data-id="${res.id}" data-nickname="${res.nickname}" data-photo="${res.photo || ''}" data-type="pubaccount" data-sessionVersion="${res.sessionVersion}" >
+            <i data-id="${res.id}" data-type="${res.type}" class="close">×</i>
+            <div class="avatar">
+                <img src="${YYIMChat.getFileUrl(res.photo) || './imgs/group.png'}" alt=""> 
+            </div>
+            <div class="detail">
+                <h3 class="name cuttxt">${res.nickname || res.name}</h3>
+                <p class="msg cuttxt">${replaceEmoji(lastmsgStr)}</p>
+            </div>
+             </li>`;
+		}
+		else{
             digStr += `<li class="${targetuserid && targetuserid === res.id ? 'active' : ''}"  data-id="${res.id}" data-nickname="${res.nickname}" data-photo="${res.photo || ''}" data-type="groupchat" data-sessionVersion="${res.sessionVersion}" >
             <i data-id="${res.id}" data-type="${res.type}" class="close">×</i>
             <div class="avatar">
