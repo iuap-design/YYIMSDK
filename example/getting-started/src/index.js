@@ -10,31 +10,31 @@ import renderHistoryMessage from './js/render/renderHistoryMessage';
 import { $own_avatar } from './js/common/jqelements';
 
 //初始化SDK，正式环境
-YYIMChat.initSDK({
-    app: 'udn', //appId
-    etp: 'yonyou', //etpId
-    wsurl: 'stellar.yyuap.com', //websocket Url
-    wsport: 5227, //websocket port 5227/5222/5225
-    hbport: 7075, //httpbind  port 7075/7070
-    servlet: 'https://im.yyuap.com/', //rest Url
-    flash_swf_url: './lib/upload/Moxie.swf', //flash 上传 swf文件位置
-    logEnable: true, //client log
-    clientMark: 'web', //client mark 'web' or 'pc'
-    apiKey: "85de79b9f7e34c37a99accaddb256990"
-});
-//初始化SDK，测试环境
 // YYIMChat.initSDK({
-//     app: 'im_pre', //appId
+//     app: 'udn', //appId
 //     etp: 'yonyou', //etpId
-//     wsurl: '172.20.15.60', //websocket Url
+//     wsurl: 'stellar.yyuap.com', //websocket Url
 //     wsport: 5227, //websocket port 5227/5222/5225
 //     hbport: 7075, //httpbind  port 7075/7070
-//     servlet: 'http://172.20.15.60/', //rest Url
-//     flash_swf_url: 'xxx/x/Moxie.swf', //flash 上传 swf文件位置
+//     servlet: 'https://im.yyuap.com/', //rest Url
+//     flash_swf_url: './lib/upload/Moxie.swf', //flash 上传 swf文件位置
 //     logEnable: true, //client log
 //     clientMark: 'web', //client mark 'web' or 'pc'
 //     apiKey: "85de79b9f7e34c37a99accaddb256990"
 // });
+//初始化SDK，测试环境
+YYIMChat.initSDK({
+    app: 'im_pre', //appId
+    etp: 'yonyou', //etpId
+    wsurl: '172.20.15.60', //websocket Url
+    wsport: 5227, //websocket port 5227/5222/5225
+    hbport: 7075, //httpbind  port 7075/7070
+    servlet: 'http://172.20.15.60/', //rest Url
+    flash_swf_url: 'xxx/x/Moxie.swf', //flash 上传 swf文件位置
+    logEnable: true, //client log
+    clientMark: 'web', //client mark 'web' or 'pc'
+    apiKey: "85de79b9f7e34c37a99accaddb256990"
+});
 
 //初始化回调方法
 YYIMChat.init({
