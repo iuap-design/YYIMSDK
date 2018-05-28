@@ -143,7 +143,7 @@ $hmyfriend.on('click','li',function(){
     let chatId = $(this).attr('data-id');
     let chatType =  $(this).attr('data-type');
     console.log('用户类型'+ $(this).attr('data-type'));
-    if(nowDigest.length>0){
+    if(nowDigest&&nowDigest.length>0){
         for(var i=0;i<nowDigest.length;i++){
             if((nowDigest[i].id == chatId)&&(nowDigest[i].type == chatType)){
                 nowDigest.unshift(nowDigest[i]);

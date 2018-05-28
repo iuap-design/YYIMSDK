@@ -94,6 +94,8 @@ YYIMChat.init({
         if(chattype == 'chat'){   //如果给群组发消息会出发此回调
             //渲染历史聊天记录
             renderHistoryMessage(msg);
+        }else if(chattype == "groupchat"){
+            renderHistoryMessage(msg);
         }
     },
     onGroupUpdate: function(arg) {
