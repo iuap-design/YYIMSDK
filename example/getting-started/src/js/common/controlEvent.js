@@ -32,7 +32,7 @@ import userLogin from './userLogin';
 //获取最近联系人
 import getRecentDigset from '../api/getRecentDigset';
 //渲染最近联系人
-import renderRecentDigset from '../render/renderRecentDigset';
+import {renderRecentDigset} from '../render/renderRecentDigset';
 //获取群组
 import getChatGroups from '../api/getChatGroups';
 //获取好友
