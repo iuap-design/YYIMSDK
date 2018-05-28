@@ -43,7 +43,7 @@ const getColor = (name) =>{
         return color[4]
     }
 }
-export default (digsets) => {
+export const renderRecentDigset = (digsets) => {
     //拿取聊天对方id
     let targetuserid = localStorage.getItem('targetuserid');
     let digStr = '';

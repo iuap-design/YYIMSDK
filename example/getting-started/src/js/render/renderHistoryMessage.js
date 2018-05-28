@@ -9,7 +9,7 @@ import {
 import getRecentDigset from '../api/getRecentDigset';
 
 //渲染最近联系人函数
-import renderRecentDigset from './renderRecentDigset';
+import {renderRecentDigset} from './renderRecentDigset';
 
 //表情数据
 import { expressionList } from '../common/constants';
