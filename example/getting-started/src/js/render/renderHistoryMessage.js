@@ -156,7 +156,7 @@ export default (msg) => {
                                     <img src=${YYIMChat.getFileUrl(chat.photo)||'./imgs/avatar.jpg'} alt="">
                                 </div>
                                 <div class="${ isfromme? 'chat-txt chat-txt-send' :'chat-txt'}">
-                                    ${chatfrom}
+                                    <p class="tr">${chatfrom}</p>
                                     <div class="chat-msg">${replaceEmoji(chat.data.content)}</div>
                                 </div>
                             </div>
@@ -170,7 +170,7 @@ export default (msg) => {
                                     <img src=${YYIMChat.getFileUrl(chat.photo)||'./imgs/avatar.jpg'} alt="">
                                 </div>
                                 <div class="${ isfromme? 'chat-txt chat-txt-send' :'chat-txt'}">
-                                    ${chatfrom}
+                                <p class="tr">${chatfrom}</p>
                                     <div class="chat-msg">
                                         <img class="chatpic" data-url="${picurl}" src="${picurl}" title="点击查看图片" alt="" />
                                     </div>
@@ -187,7 +187,7 @@ export default (msg) => {
                                     <img src=${YYIMChat.getFileUrl(chat.photo)||'./imgs/avatar.jpg'} alt="">
                                 </div>
                                 <div class="${ isfromme? 'chat-txt chat-txt-send' :'chat-txt'}">
-                                    ${chatfrom}
+                                <p class="tr">${chatfrom}</p>
                                     <div class="chat-msg">
                                         <a class="chatfile" href="${picurl}" title="点击下载文件">
                                             <span class="filename">${filename}</span>
@@ -221,7 +221,6 @@ export default (msg) => {
     if (msg && msgfromid !== myid && msgfromid !== targetuserid) return;
 
     let chatsStr = '';
-    historychats  = historychats.reverse();
     historychats.forEach(function (chat, i) {
         let isfromme = chattype === 'chat' ? myid === chat.from : myid === chat.from.roster;
         // let chatfrom = chattype === 'chat' ? '' : `<div class="chat-user-name">${chat.from.roster}</div>`;
@@ -235,7 +234,7 @@ export default (msg) => {
                                     <img src=${YYIMChat.getFileUrl(chat.photo)||'./imgs/avatar.jpg'} alt="">
                                 </div>
                                 <div class="${ isfromme? 'chat-txt chat-txt-send' :'chat-txt'}">
-                                    ${chatfrom}
+                                <p class="tr">${chatfrom}</p>
                                     <div class="chat-msg">${replaceEmoji(chat.data.content)}</div>
                                 </div>
                             </div>
@@ -249,7 +248,7 @@ export default (msg) => {
                                     <img src=${YYIMChat.getFileUrl(chat.photo)||'./imgs/avatar.jpg'} alt="">
                                 </div>
                                 <div class="${ isfromme? 'chat-txt chat-txt-send' :'chat-txt'}">
-                                    ${chatfrom}
+                                <p class="tr">${chatfrom}</p>
                                     <div class="chat-msg">
                                         <img class="chatpic" data-url="${picurl}" src="${picurl}" title="点击查看图片" alt="" />
                                     </div>
@@ -266,7 +265,7 @@ export default (msg) => {
                                     <img src=${YYIMChat.getFileUrl(chat.photo)||'./imgs/avatar.jpg'} alt="">
                                 </div>
                                 <div class="${ isfromme? 'chat-txt chat-txt-send' :'chat-txt'}">
-                                    ${chatfrom}
+                                <p class="tr">${chatfrom}</p>
                                     <div class="chat-msg">
                                         <a class="chatfile" href="${picurl}" title="点击下载文件">
                                             <span class="filename">${filename}</span>

@@ -801,6 +801,7 @@ ul.hmyfriend>li>span{
 }
 .hmygrouplist .avatar img{ 
     width:40px;
+    height:40px;
     border-radius: 50%;
     vertical-align: middle;
 }
@@ -815,5 +816,8 @@ ul.hmyfriend>li>span{
     right: 0;
     overflow-x: hidden;
     overflow-y: scroll;
+}
+.tr{
+    text-align: right;
 }
  
