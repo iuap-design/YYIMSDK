@@ -38,6 +38,9 @@ body{
     border: 1px solid #cfcfcf;
     border-radius: 4px;
 }
+.none{
+    display: none;
+}
 .yyim-iogin input{
     display: block;
     border: 0;
@@ -136,6 +139,10 @@ body{
     font-size: 20px;
     cursor: pointer;
 }
+.login-Out:hover{
+    cursor: pointer;
+    color:tomato;
+}
 .close_chatmsk:hover{
     color: tomato;
 }
@@ -194,7 +201,7 @@ body{
      cursor: pointer;
     
 }
-.side-menu>.setting:hover{
+.side-menu .iconfont:hover{
     color:#EE1A34;
 }
 .side-menu>.setting i{

@@ -23,7 +23,8 @@ import {
     $smgroup,
     $smpubcount,
     $hmyfriend,
-    $hmygrouplist
+    $hmygrouplist,
+    $hloginout
 } from './jqelements';
 //表情数据
 import { expressionList } from './constants';
@@ -74,7 +75,15 @@ $('.closechat').click(function () {
     $yyim_box.hide();
     $yyim_iogin.show();
 });
-
+$('.icon-shezhi').click(function(){
+    $hloginout.toggleClass('none');
+});
+//退出登陆
+$hloginout.click(function(){
+    $yyim_box.hide();
+    $yyim_iogin.show();
+    YYIMChat.logout();
+});
 //移动事件
 $j_move.on('mousedown', function (e) {
     let originX = e.clientX;

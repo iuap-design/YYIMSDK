@@ -17,10 +17,54 @@ export default (sessionVersion, id, type) => {
         endVersion: sessionVersion,
         success: function (res) {
             let historychats = res.result || [];
+            let historychatsData = [];
+            let historyNumber = 0;
+            historychats.forEach(chat => {
+                 //通过id获取个人信息
+                 let chatId = '';
+                 if(chat.type == "chat"){
+                    chatId = chat.from;
+                 }else if(chat.type == "groupchat"){
+                    chatId = chat.from.roster;
+                 }
+             YYIMChat.getVCard({
+                    id: chatId,
+                    success: function(res){
+                        //整理最近联系人列表到一个新数组
+                        historychatsData.push({
+                            data: chat.data,
+                            dateline:chat.dateline,
+                            from:chat.from,
+                            id:chat.id,
+                            sessionVersion:chat.sessionVersion,
+                            to:chat.to,
+                            type:chat.type,
+                            photo: res.photo || '',
+                            nickname: res.nickname || res.id,
+                        });
+                        historyNumber ++;
+                        if(historyNumber  == historychats.length){
+                              //把聊天记录缓存到本地
+                            localStorage.setItem('historychats', JSON.stringify(historychatsData));
+                            renderHistoryMessage(historychatsData);
+                        }
+
+                    
+                    },
+                    error:function(err){
+                        historyNumber ++;
+                        if(historyNumber  == historychats.length){
+                            //把聊天记录缓存到本地
+                          localStorage.setItem('historychats', JSON.stringify(historychatsData));
+                          renderHistoryMessage(historychatsData);
+                      }
+                        console.log(err);
+                    }
+                });
+            });
             $chat_box.show();
             historychats.reverse();
-            //把聊天记录缓存到本地
-            localStorage.setItem('historychats', JSON.stringify(historychats));
+           
             //渲染聊天信息
             renderHistoryMessage();
         }

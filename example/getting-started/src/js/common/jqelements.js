@@ -26,6 +26,7 @@ export const $smpubcount = $('.smpubcount'); //菜单-公众号
 
 export const $hmyfriend = $('.hmyfriend'); //菜单-好友-我的好友
 export const $hmygrouplist = $('.hmygrouplist');//我的群组列表
+export const $hloginout = $('.login-Out'); //菜单-好友-我的好友
 
 //实例化viewer
 export const picviewer = new Viewer($picviewer[0], {navbar:false, title: false});
