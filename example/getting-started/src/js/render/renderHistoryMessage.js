@@ -112,7 +112,7 @@ export default (msg) => {
                             <div class="chat-tip">${new Date(chat.data.dateline).toLocaleTimeString()}</div>
                             <div class="chat-content">
                                 <div class="${ isfromme? 'chat-avatar chat-avatar-send' :'chat-avatar'}">
-                                    <img src=${chat.photo||'./imgs/avatar.jpg'} alt="">
+                                    <img src=${YYIMChat.getFileUrl(chat.photo)||'./imgs/avatar.jpg'} alt="">
                                 </div>
                                 <div class="${ isfromme? 'chat-txt chat-txt-send' :'chat-txt'}">
                                     ${chatfrom}
@@ -126,7 +126,7 @@ export default (msg) => {
                             <div class="chat-tip">${new Date(chat.data.dateline).toLocaleTimeString()}</div>
                             <div class="chat-content">
                                 <div class="${ isfromme? 'chat-avatar chat-avatar-send' :'chat-avatar'}">
-                                    <img src="./imgs/avatar.jpg" alt="">
+                                    <img src=${YYIMChat.getFileUrl(chat.photo)||'./imgs/avatar.jpg'} alt="">
                                 </div>
                                 <div class="${ isfromme? 'chat-txt chat-txt-send' :'chat-txt'}">
                                     ${chatfrom}
@@ -143,7 +143,7 @@ export default (msg) => {
                             <div class="chat-tip">${new Date(chat.data.dateline).toLocaleTimeString()}</div>
                             <div class="chat-content">
                                 <div class="${ isfromme? 'chat-avatar chat-avatar-send' :'chat-avatar'}">
-                                    <img src="./imgs/avatar.jpg" alt="">
+                                    <img src=${YYIMChat.getFileUrl(chat.photo)||'./imgs/avatar.jpg'} alt="">
                                 </div>
                                 <div class="${ isfromme? 'chat-txt chat-txt-send' :'chat-txt'}">
                                     ${chatfrom}

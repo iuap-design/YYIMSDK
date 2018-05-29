@@ -46,7 +46,7 @@ export default (sessionVersion, id, type) => {
                         if(historyNumber  == historychats.length){
                               //把聊天记录缓存到本地
                             localStorage.setItem('historychats', JSON.stringify(historychatsData));
-                            renderHistoryMessage(historychatsData);
+                            renderHistoryMessage();
                         }
 
                     
@@ -56,7 +56,7 @@ export default (sessionVersion, id, type) => {
                         if(historyNumber  == historychats.length){
                             //把聊天记录缓存到本地
                           localStorage.setItem('historychats', JSON.stringify(historychatsData));
-                          renderHistoryMessage(historychatsData);
+                          renderHistoryMessage();
                       }
                         console.log(err);
                     }
