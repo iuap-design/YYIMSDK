@@ -108,15 +108,23 @@ export default (msg) => {
             let sendFromId;
             if (chattype === 'chat') {
                 sendFromId = msg.from;
+                //如果发过来的消息，不是当前正在聊天的，不更新历史消息
+                if(msg.from != targetuserid){
+                    return;
+                }
             } else {
                 sendFromId = msg.from.roster;
+                //如果发过来的消息，不是当前正在聊天的，不更新历史消息
+                if(msg.from.room != targetuserid){
+                    return;
+                }
             }
             //获取发送的人员头像和姓名
             YYIMChat.getVCard({
                 id: sendFromId,
                 success: function (res) {
                     //整理最近联系人列表到一个新数组
-                    historychats.push({
+                    historychats.unshift({
                         data: msg.data,
                         dateline: msg.dateline,
                         from: msg.from,
@@ -134,6 +142,7 @@ export default (msg) => {
 
 
                     let chatsStr = '';
+                    historychats  = historychats.reverse();
                     historychats.forEach(function (chat, i) {
                         let isfromme = chattype === 'chat' ? myid === chat.from : myid === chat.from.roster;
                         // let chatfrom = chattype === 'chat' ? '' : `<div class="chat-user-name">${chat.from.roster}</div>`;
@@ -212,6 +221,7 @@ export default (msg) => {
     if (msg && msgfromid !== myid && msgfromid !== targetuserid) return;
 
     let chatsStr = '';
+    historychats  = historychats.reverse();
     historychats.forEach(function (chat, i) {
         let isfromme = chattype === 'chat' ? myid === chat.from : myid === chat.from.roster;
         // let chatfrom = chattype === 'chat' ? '' : `<div class="chat-user-name">${chat.from.roster}</div>`;

@@ -57,7 +57,7 @@ export const renderRecentDigset = (digsets) => {
 				lastmsgStr=lastmsg;
 			}
             else{
-				switch(lastmsg.data.contentType){
+				switch(lastmsg.data&&lastmsg.data.contentType){
                    case 2: lastmsgStr = res.lastMessage.data.content; break;
                    case 4: lastmsgStr = '[文件消息]'; break;
                    case 8: lastmsgStr = '[图片消息]';break;
@@ -102,8 +102,7 @@ export const renderRecentDigset = (digsets) => {
                 <p class="msg cuttxt">${replaceEmoji(lastmsgStr)}</p>
             </div>
              </li>`;
-		}
-		else{
+		}else{
             digStr += `<li class="${targetuserid && targetuserid === res.id ? 'active' : ''}"  data-id="${res.id}" data-nickname="${res.nickname}" data-photo="${res.photo || ''}" data-type="groupchat" data-sessionVersion="${res.sessionVersion}" >
             <i data-id="${res.id}" data-type="${res.type}" class="close">×</i>
             <div class="avatar">
