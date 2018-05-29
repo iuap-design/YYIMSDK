@@ -45,57 +45,97 @@ export default (msg) => {
 
     //如果msg存在，说明我正在发送消息或者我接收到了别人的消息
     if(msg){
-         
-        msgfromid = chattype === 'chat' ? msg.from : msg.from.room;
-        let isfromme = myid === msgfromid;
-            if(isfromme){ //消息是我发给别人的
-                recentDigset.forEach(function(digest, i){
-                    if(digest.id === targetuserid){
-                        recentDigset[i].lastContactTime = msg.data.dateline;
-                        recentDigset[i].lastMessage = msg;
-                        recentDigset[i].sessionVersion++;
-                        recentDigset[i].readedVersion++;
-                        //保存修改后的最近联系人数组
-                        localStorage.setItem('recentdigset', JSON.stringify(recentDigset));
-                        //渲染最近联系人
-                        renderRecentDigset(recentDigset);
-                    }
-                });
-                //修改历史消息
-                historychats.push(msg);
-                //修改后保存
-                localStorage.setItem('historychats',JSON.stringify(historychats));
-            } else { //消息来自于他人给我发的
-                let isdigset = false; //判断对方在不在我的最近联系人里
-                recentDigset.forEach(function(digest, i){
-                    if(digest.id === msgfromid){
-                        isdigset = true;
-                        recentDigset[i].lastContactTime = msg.data.dateline;
-                        recentDigset[i].lastMessage = msg;
-                        recentDigset[i].sessionVersion++;
-                        recentDigset[i].readedVersion++;
-                        //保存修改后的最近联系人数组
-                        localStorage.setItem('recentdigset', JSON.stringify(recentDigset));
-                        //渲染最近联系人
-                        renderRecentDigset(recentDigset);
-                    }
-                });
-                //不在最近联系人中，刷新最近联系人列表
-                if(!isdigset){getRecentDigset();}
-                //我正在和他聊天
-                if(chattype == "chat"&&msgfromid === targetuserid){
-                    //修改历史消息
-                    historychats.push(msg);
-                    //修改后保存
-                    localStorage.setItem('historychats',JSON.stringify(historychats));
-                }else if(chattype == "groupchat"&& msgfromid === targetuserid){
-                    //修改历史消息
-                    historychats.push(msg);
-                    //修改后保存
-                    localStorage.setItem('historychats',JSON.stringify(historychats));
+        let isfromme;
+        if(chattype === 'chat'){
+            msgfromid = chattype === 'chat' ? msg.from : msg.from.roster;
+             isfromme = myid === msgfromid;
+        }else{
+            msgfromid =  msg.from.room;
+            let sendMsgId = msg.from.roster;
+             isfromme = myid === sendMsgId;
+        }
+        if(isfromme){ //消息是我发给别人的
+            recentDigset.forEach(function(digest, i){
+                if(digest.id === targetuserid){
+                    recentDigset[i].lastContactTime = msg.data.dateline;
+                    recentDigset[i].lastMessage = msg;
+                    recentDigset[i].sessionVersion++;
+                    recentDigset[i].readedVersion++;
+                    //保存修改后的最近联系人数组
+                    localStorage.setItem('recentdigset', JSON.stringify(recentDigset));
+                    //渲染最近联系人
+                    renderRecentDigset(recentDigset);
                 }
-                 
-            }
+            });
+            //获取发送的人员头像和姓名
+            // YYIMChat.getVCard({
+            //     id: chatId,
+            //     success: function(res){
+            //         //整理最近联系人列表到一个新数组
+            //         historychats.push({
+            //             data: chat.data,
+            //             dateline:chat.dateline,
+            //             from:chat.from,
+            //             id:chat.id,
+            //             sessionVersion:chat.sessionVersion,
+            //             to:chat.to,
+            //             type:chat.type,
+            //             photo: res.photo || '',
+            //             nickname: res.nickname || res.id,
+            //         });
+            //               //把聊天记录缓存到本地
+            //             localStorage.setItem('historychats', JSON.stringify(historychatsData));
+            //             renderHistoryMessage();
+
+                
+            //     },
+            //     error:function(err){
+            //             //把聊天记录缓存到本地
+            //           localStorage.setItem('historychats', JSON.stringify(historychatsData));
+            //           renderHistoryMessage();
+            //         console.log(err);
+            //     }
+            // });
+            //修改历史消息
+            let userVcard = JSON.parse(localStorage.getItem('currentuserinfo') || "{}");
+
+            historychats.push({
+                data: msg.data,
+                dateline:msg.dateline,
+                from:msg.from,
+                id:msg.id,
+                sessionVersion:msg.sessionVersion,
+                to:msg.to,
+                type:msg.type,
+                photo: userVcard.photo || '',
+                nickname: userVcard.nickname || userVcard.id,
+            });
+            //修改后保存
+            localStorage.setItem('historychats',JSON.stringify(historychats));
+        } else { //消息来自于他人给我发的
+            let isdigset = false; //判断对方在不在我的最近联系人里
+            recentDigset.forEach(function(digest, i){
+                if(digest.id === msgfromid){
+                    isdigset = true;
+                    recentDigset[i].lastContactTime = msg.data.dateline;
+                    recentDigset[i].lastMessage = msg;
+                    recentDigset[i].sessionVersion++;
+                    recentDigset[i].readedVersion++;
+                    //保存修改后的最近联系人数组
+                    localStorage.setItem('recentdigset', JSON.stringify(recentDigset));
+                    //渲染最近联系人
+                    renderRecentDigset(recentDigset);
+                }
+            });
+            //不在最近联系人中，刷新最近联系人列表
+            if(!isdigset){getRecentDigset();}
+            //修改历史消息
+            historychats.push(msg);
+            //修改后保存
+            localStorage.setItem('historychats',JSON.stringify(historychats));
+            
+        }
+       
         
     }
     //如果我没和对方聊天，则不渲染历史信息

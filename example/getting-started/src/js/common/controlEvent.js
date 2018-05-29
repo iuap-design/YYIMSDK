@@ -420,8 +420,13 @@ $yyim_editor.on('keydown',function(e){
                 //发送成功之后清空输入框
                 $yyim_editor.val('');
                 $btn_send.addClass('adit-btn-send-disabled');
-                //渲染历史信息
-                renderHistoryMessage(msg);
+                if(chattype == "groupchat"){
+                    //渲染历史信息
+                    renderHistoryMessage();
+                }else{
+                    renderHistoryMessage(msg);
+                }
+
             }
         });
     }
