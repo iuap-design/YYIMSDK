@@ -88,19 +88,69 @@ export default (msg) => {
             localStorage.setItem('historychats', JSON.stringify(historychats));
         } else { //消息来自于他人给我发的
             let isdigset = false; //判断对方在不在我的最近联系人里
-            recentDigset.forEach(function (digest, i) {
-                if (digest.id === msgfromid) {
-                    isdigset = true;
-                    recentDigset[i].lastContactTime = msg.data.dateline;
-                    recentDigset[i].lastMessage = msg;
-                    recentDigset[i].sessionVersion++;
-                    recentDigset[i].readedVersion++;
-                    //保存修改后的最近联系人数组
-                    localStorage.setItem('recentdigset', JSON.stringify(recentDigset));
-                    //渲染最近联系人
-                    renderRecentDigset(recentDigset);
+            let chattype = localStorage.getItem('chattype');
+            if(chattype == "groupchat"){
+                if(msg.from.room == targetuserid){
+                    recentDigset.forEach(function (digest, i) {
+                        if (digest.id === msgfromid&&msg.from.room == targetuserid) {
+                            isdigset = true;
+                            recentDigset[i].lastContactTime = msg.data.dateline;
+                            recentDigset[i].lastMessage = msg;
+                            recentDigset[i].sessionVersion++;
+                            recentDigset[i].readedVersion++;
+                            //保存修改后的最近联系人数组
+                            localStorage.setItem('recentdigset', JSON.stringify(recentDigset));
+                            //渲染最近联系人
+                            renderRecentDigset(recentDigset);
+                        }
+                    });
+                }else{
+                    recentDigset.forEach(function (digest, i) {
+                        if (digest.id === msgfromid&&msg.from.room == targetuserid) {
+                            isdigset = true;
+                            recentDigset[i].lastContactTime = msg.data.dateline;
+                            recentDigset[i].lastMessage = msg;
+                            recentDigset[i].sessionVersion++;
+                            //保存修改后的最近联系人数组
+                            localStorage.setItem('recentdigset', JSON.stringify(recentDigset));
+                            //渲染最近联系人
+                            renderRecentDigset(recentDigset);
+                        }
+                    });
                 }
-            });
+                
+            }else if(chattype == "chat"){
+                if(msg.from == targetuserid){
+                    recentDigset.forEach(function (digest, i) {
+                        if (digest.id === msgfromid&&msg.from == targetuserid) {
+                            isdigset = true;
+                            recentDigset[i].lastContactTime = msg.data.dateline;
+                            recentDigset[i].lastMessage = msg;
+                            recentDigset[i].sessionVersion++;
+                            recentDigset[i].readedVersion++;
+                            //保存修改后的最近联系人数组
+                            localStorage.setItem('recentdigset', JSON.stringify(recentDigset));
+                            //渲染最近联系人
+                            renderRecentDigset(recentDigset);
+                        }
+                    });
+                }else{
+                    recentDigset.forEach(function (digest, i) {
+                        if (digest.id === msgfromid&&msg.from == targetuserid) {
+                            isdigset = true;
+                            recentDigset[i].lastContactTime = msg.data.dateline;
+                            recentDigset[i].lastMessage = msg;
+                            recentDigset[i].sessionVersion++;
+                            //保存修改后的最近联系人数组
+                            localStorage.setItem('recentdigset', JSON.stringify(recentDigset));
+                            //渲染最近联系人
+                            renderRecentDigset(recentDigset);
+                        }
+                    }); 
+                }
+               
+            }
+            
             //不在最近联系人中，刷新最近联系人列表
             if (!isdigset) {
                 getRecentDigset();
