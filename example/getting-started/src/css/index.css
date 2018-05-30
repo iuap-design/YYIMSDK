@@ -820,4 +820,10 @@ ul.hmyfriend>li>span{
 .tr{
     text-align: right;
 }
+.chat-txt>p{
+    text-align: left;
+}
+.chat-txt-send.chat-txt>p{
+    text-align: right;
+}
  

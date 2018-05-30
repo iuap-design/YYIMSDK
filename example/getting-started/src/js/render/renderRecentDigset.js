@@ -65,11 +65,11 @@ export const renderRecentDigset = (digsets) => {
 			}
         }
         if(noreadno){
-           // newtipStr = '<i class="newtip cuttxt">'+ noreadno +'</i>';
+            newtipStr = '<i class="newtip cuttxt">'+ noreadno +'</i>';
         }
         if(res.type == 'chat'){
             if(res.photo){
-                digStr += `<li class="${targetuserid && targetuserid === res.id ? 'active' : ''}" data-sessionVersion="${res.sessionVersion}" data-id="${res.id}" data-type="${res.type}" data-nickname="${res.nickname || res.id}">
+                digStr += `<li class="${targetuserid && targetuserid === res.id ? 'active' : ''}" data-sessionVersion="${res.sessionVersion}" data-id="${res.id}" data-type="${res.type}" data-nickname="${res.nickname || res.id}" data-from="${res.lastMessage?res.lastMessage.from:""}" data-baowen="${res.lastMessage?res.lastMessage.id:''}">
                 <i data-id="${res.id}" data-type="${res.type}" class="close">×</i>
                 <div class="avatar">
                     <img src="${YYIMChat.getFileUrl(res.photo)}" alt="">
@@ -80,7 +80,7 @@ export const renderRecentDigset = (digsets) => {
                 </div>${newtipStr}
               </li>`;
             }else{
-                digStr += `<li class="${targetuserid && targetuserid === res.id ? 'active' : ''}" data-sessionVersion="${res.sessionVersion}" data-id="${res.id}" data-type="${res.type}" data-nickname="${res.nickname || res.id}">
+                digStr += `<li class="${targetuserid && targetuserid === res.id ? 'active' : ''}" data-sessionVersion="${res.sessionVersion}" data-id="${res.id}" data-type="${res.type}" data-nickname="${res.nickname || res.id}" data-from="${res.lastMessage?res.lastMessage.from:""}" data-baowen="${res.lastMessage?res.lastMessage.id:''}">
                 <i data-id="${res.id}" data-type="${res.type}" class="close">×</i>
                 <div class="avatar avatarName"  style="background:${getColor(res.nickname)||getColor(res.id)}">
                      ${getNameLastTwo(res.nickname) || getNameLastTwo(res.id)}
@@ -103,7 +103,7 @@ export const renderRecentDigset = (digsets) => {
             </div>
              </li>`;
 		}else{
-            digStr += `<li class="${targetuserid && targetuserid === res.id ? 'active' : ''}"  data-id="${res.id}" data-nickname="${res.nickname}" data-photo="${res.photo || ''}" data-type="groupchat" data-sessionVersion="${res.sessionVersion}" >
+            digStr += `<li class="${targetuserid && targetuserid === res.id ? 'active' : ''}"  data-id="${res.id}" data-nickname="${res.nickname}" data-photo="${res.photo || ''}" data-type="groupchat" data-sessionVersion="${res.sessionVersion}" data-from="${res.lastMessage?res.lastMessage.from.room:""}" data-baowen="${res.lastMessage?res.lastMessage.id:''}" >
             <i data-id="${res.id}" data-type="${res.type}" class="close">×</i>
             <div class="avatar">
                 <img src="${YYIMChat.getFileUrl(res.photo) || './imgs/group.png'}" alt=""> 

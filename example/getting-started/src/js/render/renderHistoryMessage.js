@@ -73,7 +73,7 @@ export default (msg) => {
             //修改历史消息
             let userVcard = JSON.parse(localStorage.getItem('currentuserinfo') || "{}");
 
-            historychats.push({
+            historychats.unshift({
                 data: msg.data,
                 dateline: msg.dateline,
                 from: msg.from,
@@ -142,7 +142,7 @@ export default (msg) => {
 
 
                     let chatsStr = '';
-                    historychats  = historychats.reverse();
+                   // historychats  = historychats.reverse();
                     historychats.forEach(function (chat, i) {
                         let isfromme = chattype === 'chat' ? myid === chat.from : myid === chat.from.roster;
                         // let chatfrom = chattype === 'chat' ? '' : `<div class="chat-user-name">${chat.from.roster}</div>`;
@@ -221,6 +221,7 @@ export default (msg) => {
     if (msg && msgfromid !== myid && msgfromid !== targetuserid) return;
 
     let chatsStr = '';
+    historychats  = historychats.reverse();
     historychats.forEach(function (chat, i) {
         let isfromme = chattype === 'chat' ? myid === chat.from : myid === chat.from.roster;
         // let chatfrom = chattype === 'chat' ? '' : `<div class="chat-user-name">${chat.from.roster}</div>`;

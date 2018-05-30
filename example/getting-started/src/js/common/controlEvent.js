@@ -129,6 +129,13 @@ $hcontacts.on('click','li',function () {
     localStorage.removeItem('historychats');
     //获取历史聊天信息
     getHistoryMessage($(this).attr('data-sessionVersion'), $(this).attr('data-id'), $(this).attr('data-type'));
+    //发送已读回执
+    YYIMChat.sendReadedReceiptsPacket({
+        to:  $(this).attr('data-from'),
+        id:  $(this).attr('data-baowen'),
+        type: $(this).attr('data-type'),
+        sessionVersion: $(this).attr('data-sessionVersion')
+    });
 });
 //点击我的好友开始聊天
 $hmyfriend.on('click','li',function(){
@@ -244,6 +251,8 @@ $hcontacts.on('click','.close',function () {
             localStorage.setItem('chattype', 'groupchat');
             //渲染最近联系人
             renderRecentDigset(recentDigset);
+            //删除保存的聊天历史
+            localStorage.removeItem('historychats');
         },
         error:function(err){
             console.log(err);
