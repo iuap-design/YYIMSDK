@@ -92,7 +92,7 @@ export default (msg) => {
             if(chattype == "groupchat"){
                 if(msg.from.room == targetuserid){
                     recentDigset.forEach(function (digest, i) {
-                        if (digest.id === msgfromid&&msg.from.room == targetuserid) {
+                        if (digest.id === msgfromid) {
                             isdigset = true;
                             recentDigset[i].lastContactTime = msg.data.dateline;
                             recentDigset[i].lastMessage = msg;
@@ -106,7 +106,7 @@ export default (msg) => {
                     });
                 }else{
                     recentDigset.forEach(function (digest, i) {
-                        if (digest.id === msgfromid&&msg.from.room == targetuserid) {
+                        if (digest.id === msgfromid) {
                             isdigset = true;
                             recentDigset[i].lastContactTime = msg.data.dateline;
                             recentDigset[i].lastMessage = msg;
@@ -122,7 +122,7 @@ export default (msg) => {
             }else if(chattype == "chat"){
                 if(msg.from == targetuserid){
                     recentDigset.forEach(function (digest, i) {
-                        if (digest.id === msgfromid&&msg.from == targetuserid) {
+                        if (digest.id === msgfromid) {
                             isdigset = true;
                             recentDigset[i].lastContactTime = msg.data.dateline;
                             recentDigset[i].lastMessage = msg;
@@ -136,7 +136,7 @@ export default (msg) => {
                     });
                 }else{
                     recentDigset.forEach(function (digest, i) {
-                        if (digest.id === msgfromid&&msg.from == targetuserid) {
+                        if (digest.id === msgfromid) {
                             isdigset = true;
                             recentDigset[i].lastContactTime = msg.data.dateline;
                             recentDigset[i].lastMessage = msg;
@@ -174,7 +174,7 @@ export default (msg) => {
                 id: sendFromId,
                 success: function (res) {
                     //整理最近联系人列表到一个新数组
-                    historychats.unshift({
+                    historychats.push({
                         data: msg.data,
                         dateline: msg.dateline,
                         from: msg.from,
