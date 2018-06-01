@@ -3,14 +3,6 @@ import {
     renderRecentDigset
 } from '../render/renderRecentDigset';
 
-// 根据lastContactTime排序
-const arrSort = (arr) => {
-    arr.sort((a, b) => {
-        return a.lastContactTime - b.lastContactTime;
-    });
-    return arr;
-};
-
 //获取最近联系人
 export default () => {
     // 获取最近联系人API
@@ -89,7 +81,6 @@ export default () => {
                                 digestChatNum++;
                                 if (digestChatNum + digestGroupchatNum + pubaccountNum == result.list.length) {
                                     //把最近联系人列表保存到本地
-                                    arrSort(recentDigset);
                                     localStorage.setItem('recentdigset', JSON.stringify(recentDigset));
                                     renderRecentDigset(recentDigset);
                                 }
@@ -100,7 +91,6 @@ export default () => {
                                 digestChatNum++;
                                 if (digestChatNum + digestGroupchatNum + pubaccountNum == result.list.length) {
                                     //把最近联系人列表保存到本地
-                                    arrSort(recentDigset);
                                     localStorage.setItem('recentdigset', JSON.stringify(recentDigset));
                                     renderRecentDigset(recentDigset);
                                 }
@@ -126,7 +116,6 @@ export default () => {
                                 });
                                 if (digestChatNum + digestGroupchatNum + pubaccountNum == result.list.length) {
                                     //把最近联系人列表保存到本地
-                                    arrSort(recentDigset);
                                     localStorage.setItem('recentdigset', JSON.stringify(recentDigset));
                                     renderRecentDigset(recentDigset);
                                 }
@@ -135,7 +124,6 @@ export default () => {
                                 digestGroupchatNum++;
                                 if (digestChatNum + digestGroupchatNum + pubaccountNum == result.list.length) {
                                     //把最近联系人列表保存到本地
-                                    arrSort(recentDigset);
                                     localStorage.setItem('recentdigset', JSON.stringify(recentDigset));
                                     renderRecentDigset(recentDigset);
                                 }
