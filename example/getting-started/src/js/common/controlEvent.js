@@ -312,13 +312,14 @@ $('.j_menu_tp').hover(function () {
 $('#uploadPic').on('change', function(){
     //获取对话人id
     let to = localStorage.getItem('targetuserid');
+    let type = localStorage.getItem('chattype');
     YYIMChat.sendPic({
         fileInputId:'uploadPic', //文件域id 
         // drop_element: [dropID], //拖拽上传元素id，或者数组
         chatInfo: function(){ //用户发送消息时获取对话人信息
             return {
                 to: to, //对话人id
-                type: 'chat', //chat/groupchat/pubaccount
+                type: type, //chat/groupchat/pubaccount
                 extend: '' //扩展字段
             };
         },
@@ -327,7 +328,7 @@ $('#uploadPic').on('change', function(){
         beforeUpload: function(){}, //文件上传之前触发
         success:function(msg){
             //渲染历史信息
-            renderHistoryMessage(msg);
+            renderHistoryMessage();
         },
         error: function(err){
             console.log(err);
