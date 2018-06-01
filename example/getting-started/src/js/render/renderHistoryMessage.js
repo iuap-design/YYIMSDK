@@ -63,7 +63,7 @@ export default (msg) => {
                     recentDigset[i].lastContactTime = msg.data.dateline;
                     recentDigset[i].lastMessage = msg;
                     recentDigset[i].sessionVersion++;
-                    recentDigset[i].readedVersion++;
+                    recentDigset[i].readedVersion = recentDigset[i].sessionVersion;
                     //保存修改后的最近联系人数组
                     localStorage.setItem('recentdigset', JSON.stringify(recentDigset));
                     //渲染最近联系人
@@ -174,7 +174,7 @@ export default (msg) => {
                 id: sendFromId,
                 success: function (res) {
                     //整理最近联系人列表到一个新数组
-                    historychats.push({
+                    historychats.unshift({
                         data: msg.data,
                         dateline: msg.dateline,
                         from: msg.from,
@@ -189,10 +189,8 @@ export default (msg) => {
                     //historychats.push(msg);
                     //修改后保存
                     localStorage.setItem('historychats', JSON.stringify(historychats));
-
-
                     let chatsStr = '';
-                   // historychats  = historychats.reverse();
+                    historychats  = historychats.reverse();
                     historychats.forEach(function (chat, i) {
                         let isfromme = chattype === 'chat' ? myid === chat.from : myid === chat.from.roster;
                         // let chatfrom = chattype === 'chat' ? '' : `<div class="chat-user-name">${chat.from.roster}</div>`;
@@ -200,59 +198,58 @@ export default (msg) => {
                         //文本消息
                         if (chat.data.contentType === 2) {
                             chatsStr += `<li>
-                            <div class="chat-tip">${new Date(chat.data.dateline).toLocaleTimeString()}</div>
-                            <div class="chat-content">
-                                <div class="${ isfromme? 'chat-avatar chat-avatar-send' :'chat-avatar'}">
-                                    <img src=${YYIMChat.getFileUrl(chat.photo)||'./imgs/avatar.jpg'} alt="">
-                                </div>
-                                <div class="${ isfromme? 'chat-txt chat-txt-send' :'chat-txt'}">
-                                    <p class="tr">${chatfrom}</p>
-                                    <div class="chat-msg">${replaceEmoji(chat.data.content)}</div>
-                                </div>
-                            </div>
-                        </li> `;
+                                            <div class="chat-tip">${new Date(chat.data.dateline).toLocaleTimeString()}</div>
+                                            <div class="chat-content">
+                                                <div class="${ isfromme? 'chat-avatar chat-avatar-send' :'chat-avatar'}">
+                                                    <img src=${YYIMChat.getFileUrl(chat.photo)||'./imgs/avatar.jpg'} alt="">
+                                                </div>
+                                                <div class="${ isfromme? 'chat-txt chat-txt-send' :'chat-txt'}">
+                                                <p class="tr">${chatfrom}</p>
+                                                    <div class="chat-msg">${replaceEmoji(chat.data.content)}</div>
+                                                </div>
+                                            </div>
+                                        </li> `;
                         } else if (chat.data.contentType === 8) { //图片消息
                             let picurl = YYIMChat.getFileUrl(chat.data.content.attachId);
                             chatsStr += `<li>
-                            <div class="chat-tip">${new Date(chat.data.dateline).toLocaleTimeString()}</div>
-                            <div class="chat-content">
-                                <div class="${ isfromme? 'chat-avatar chat-avatar-send' :'chat-avatar'}">
-                                    <img src=${YYIMChat.getFileUrl(chat.photo)||'./imgs/avatar.jpg'} alt="">
-                                </div>
-                                <div class="${ isfromme? 'chat-txt chat-txt-send' :'chat-txt'}">
-                                <p class="tr">${chatfrom}</p>
-                                    <div class="chat-msg">
-                                        <img class="chatpic" data-url="${picurl}" src="${picurl}" title="点击查看图片" alt="" />
-                                    </div>
-                                </div>
-                            </div>
-                        </li> `;
+                                            <div class="chat-tip">${new Date(chat.data.dateline).toLocaleTimeString()}</div>
+                                            <div class="chat-content">
+                                                <div class="${ isfromme? 'chat-avatar chat-avatar-send' :'chat-avatar'}">
+                                                    <img src=${YYIMChat.getFileUrl(chat.photo)||'./imgs/avatar.jpg'} alt="">
+                                                </div>
+                                                <div class="${ isfromme? 'chat-txt chat-txt-send' :'chat-txt'}">
+                                                <p class="tr">${chatfrom}</p>
+                                                    <div class="chat-msg">
+                                                        <img class="chatpic" data-url="${picurl}" src="${picurl}" title="点击查看图片" alt="" />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </li> `;
                         } else if (chat.data.contentType === 4) {
                             let picurl = YYIMChat.getFileUrl(chat.data.content.attachId);
                             let filename = chat.data.content.name.slice(0, 14);
                             chatsStr += `<li>
-                            <div class="chat-tip">${new Date(chat.data.dateline).toLocaleTimeString()}</div>
-                            <div class="chat-content">
-                                <div class="${ isfromme? 'chat-avatar chat-avatar-send' :'chat-avatar'}">
-                                    <img src=${YYIMChat.getFileUrl(chat.photo)||'./imgs/avatar.jpg'} alt="">
-                                </div>
-                                <div class="${ isfromme? 'chat-txt chat-txt-send' :'chat-txt'}">
-                                <p class="tr">${chatfrom}</p>
-                                    <div class="chat-msg">
-                                        <a class="chatfile" href="${picurl}" title="点击下载文件">
-                                            <span class="filename">${filename}</span>
-                                            <span class="filesize">${chat.data.content.size}B</span>
-                                        </a>
-                                    </div>
-                                </div>
-                            </div>
-                        </li> `;
+                                            <div class="chat-tip">${new Date(chat.data.dateline).toLocaleTimeString()}</div>
+                                            <div class="chat-content">
+                                                <div class="${ isfromme? 'chat-avatar chat-avatar-send' :'chat-avatar'}">
+                                                    <img src=${YYIMChat.getFileUrl(chat.photo)||'./imgs/avatar.jpg'} alt="">
+                                                </div>
+                                                <div class="${ isfromme? 'chat-txt chat-txt-send' :'chat-txt'}">
+                                                <p class="tr">${chatfrom}</p>
+                                                    <div class="chat-msg">
+                                                        <a class="chatfile" href="${picurl}" title="点击下载文件">
+                                                            <span class="filename">${filename}</span>
+                                                            <span class="filesize">${chat.data.content.size}B</span>
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </li> `;
                         }
                     });
                     $chats_list.html(chatsStr);
                     $chats.scrollTop($chats[0].scrollHeight);
-                    return ;
-
+                    return;
                 },
                 error: function (err) {
                     //把聊天记录缓存到本地
@@ -261,7 +258,6 @@ export default (msg) => {
                     console.log(err);
                 }
             });
-
             return;
         }
 
