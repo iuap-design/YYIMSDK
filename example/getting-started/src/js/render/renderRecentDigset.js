@@ -100,7 +100,7 @@ export const renderRecentDigset = (digsets) => {
             <div class="detail">
                 <h3 class="name cuttxt">${res.nickname || res.name}</h3>
                 <p class="msg cuttxt">${replaceEmoji(lastmsgStr)}</p>
-            </div>
+            </div>${newtipStr}
              </li>`;
 		}else{
             digStr += `<li class="${targetuserid && targetuserid === res.id ? 'active' : ''}"  data-id="${res.id}" data-nickname="${res.nickname}" data-photo="${res.photo || ''}" data-type="groupchat" data-sessionVersion="${res.sessionVersion}" data-from="${res.lastMessage?res.lastMessage.from.room:""}" data-baowen="${res.lastMessage?res.lastMessage.id:''}" >
@@ -111,7 +111,7 @@ export const renderRecentDigset = (digsets) => {
             <div class="detail">
                 <h3 class="name cuttxt">${res.nickname || res.name}</h3>
                 <p class="msg cuttxt">${replaceEmoji(lastmsgStr)}</p>
-            </div>
+            </div>${newtipStr}
              </li>`;
         }
        

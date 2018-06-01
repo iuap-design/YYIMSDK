@@ -1,6 +1,15 @@
-
 //导入最近联系人渲染函数
-import {renderRecentDigset} from '../render/renderRecentDigset';
+import {
+    renderRecentDigset
+} from '../render/renderRecentDigset';
+
+// 根据lastContactTime排序
+const arrSort = (arr) => {
+    arr.sort((a, b) => {
+        return a.lastContactTime - b.lastContactTime;
+    });
+    return arr;
+};
 
 //获取最近联系人
 export default () => {
@@ -8,20 +17,20 @@ export default () => {
     YYIMChat.getRecentDigset({
         success: function (result) {
             if (result.list.length) {
-                let digestChatNum = 0;//聊天摘要数量
-                let digestGroupchatNum = 0;//群聊摘要数量
-				let pubaccountNum = 0;//公众号数量
+                let digestChatNum = 0; //聊天摘要数量
+                let digestGroupchatNum = 0; //群聊摘要数量
+                let pubaccountNum = 0; //公众号数量
                 let recentDigset = [];
-                   //暂时将公众号类型的摘要删除
-                   for(var i = 0;i <result.list.length;i++){
-                    if(result.list[i].type == "pubaccount"){
-                        result.list.splice(i,1);
+                //暂时将公众号类型的摘要删除
+                for (var i = 0; i < result.list.length; i++) {
+                    if (result.list[i].type == "pubaccount") {
+                        result.list.splice(i, 1);
                         i--;
                     }
-                 }
-                result.list.forEach(function(e, i){
-					// //显示公众号
-					// if(e.type == 'pubaccount'){
+                }
+                result.list.forEach(function (e, i) {
+                    // //显示公众号
+                    // if(e.type == 'pubaccount'){
                     //     let lastMessageData = '';
                     //     if(e.state == "remove"){
                     //         result.list.splice(i,1);
@@ -34,9 +43,9 @@ export default () => {
                     //         }
                     //     }
 
-					// 	YYIMChat.getPubAccountInfo({
-					// 		id: e.id,
-					// 		success:function(data){
+                    // 	YYIMChat.getPubAccountInfo({
+                    // 		id: e.id,
+                    // 		success:function(data){
                     //              recentDigset.push({
                     //                 id: data.id,
                     //                 readedVersion: e.readedVersion,
@@ -53,19 +62,19 @@ export default () => {
                     //                 localStorage.setItem('recentdigset', JSON.stringify(recentDigset));
                     //                 renderRecentDigset(recentDigset);
                     //             }
-					// 		},
-					// 		error:function(err){
-					// 			console.log(err);
-					// 		}
-					// 	});
+                    // 		},
+                    // 		error:function(err){
+                    // 			console.log(err);
+                    // 		}
+                    // 	});
                     // }
-                  
+
                     //目前测试只显示个人聊天,和群组
-                    if(e.type == 'chat'){
-                           //通过id获取个人信息
+                    if (e.type == 'chat') {
+                        //通过id获取个人信息
                         YYIMChat.getVCard({
                             id: e.id,
-                            success: function(res){
+                            success: function (res) {
                                 //整理最近联系人列表到一个新数组
                                 recentDigset.push({
                                     id: res.id,
@@ -77,32 +86,34 @@ export default () => {
                                     lastMessage: e.lastMessage,
                                     lastContactTime: e.lastContactTime
                                 });
-                                digestChatNum ++;
-                                if(digestChatNum + digestGroupchatNum+pubaccountNum == result.list.length){
+                                digestChatNum++;
+                                if (digestChatNum + digestGroupchatNum + pubaccountNum == result.list.length) {
                                     //把最近联系人列表保存到本地
+                                    arrSort(recentDigset);
                                     localStorage.setItem('recentdigset', JSON.stringify(recentDigset));
                                     renderRecentDigset(recentDigset);
                                 }
 
-                            
+
                             },
-                            error:function(err){
-                                digestChatNum ++;
-                                if(digestChatNum + digestGroupchatNum+pubaccountNum == result.list.length){
+                            error: function (err) {
+                                digestChatNum++;
+                                if (digestChatNum + digestGroupchatNum + pubaccountNum == result.list.length) {
                                     //把最近联系人列表保存到本地
+                                    arrSort(recentDigset);
                                     localStorage.setItem('recentdigset', JSON.stringify(recentDigset));
                                     renderRecentDigset(recentDigset);
                                 }
                                 console.log(err);
                             }
                         });
-                    }else if(e.type == 'groupchat'){
+                    } else if (e.type == 'groupchat') {
                         YYIMChat.getChatGroupInfo({
-                            id:  e.id,
+                            id: e.id,
                             membersLimit: 40,
-                            success:function(data){
+                            success: function (data) {
                                 console.log(data);
-                                digestGroupchatNum ++;
+                                digestGroupchatNum++;
                                 recentDigset.push({
                                     id: data.id,
                                     readedVersion: e.readedVersion,
@@ -113,16 +124,18 @@ export default () => {
                                     lastMessage: e.lastMessage,
                                     lastContactTime: e.lastContactTime
                                 });
-                                if(digestChatNum + digestGroupchatNum+pubaccountNum == result.list.length){
+                                if (digestChatNum + digestGroupchatNum + pubaccountNum == result.list.length) {
                                     //把最近联系人列表保存到本地
+                                    arrSort(recentDigset);
                                     localStorage.setItem('recentdigset', JSON.stringify(recentDigset));
                                     renderRecentDigset(recentDigset);
                                 }
                             },
-                            error:function(err){
-                                digestGroupchatNum ++;
-                                if(digestChatNum + digestGroupchatNum+pubaccountNum == result.list.length){
+                            error: function (err) {
+                                digestGroupchatNum++;
+                                if (digestChatNum + digestGroupchatNum + pubaccountNum == result.list.length) {
                                     //把最近联系人列表保存到本地
+                                    arrSort(recentDigset);
                                     localStorage.setItem('recentdigset', JSON.stringify(recentDigset));
                                     renderRecentDigset(recentDigset);
                                 }
@@ -130,11 +143,11 @@ export default () => {
                             }
                         });
                     }
-                 
+
                 });
             }
         },
-        error:function (err){
+        error: function (err) {
             console.log(err);
         }
     });

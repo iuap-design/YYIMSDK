@@ -120,6 +120,7 @@ $hcontacts.on('click','li',function () {
     $chats_list.html('');
     $(this).addClass('active');
     $(this).siblings().removeClass('active');
+    $(this).find('.newtip').remove();
     $j_move.html($(this).attr('data-nickname'));
     //把选择的聊天对方id保存起来,用于给他发送消息
     localStorage.setItem('targetuserid', $(this).attr('data-id'));
@@ -136,6 +137,7 @@ $hcontacts.on('click','li',function () {
         type: $(this).attr('data-type'),
         sessionVersion: $(this).attr('data-sessionVersion')
     });
+
 });
 //点击我的好友开始聊天
 $hmyfriend.on('click','li',function(){
