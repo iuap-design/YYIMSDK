@@ -328,7 +328,12 @@ $('#uploadPic').on('change', function(){
         beforeUpload: function(){}, //文件上传之前触发
         success:function(msg){
             //渲染历史信息
-            renderHistoryMessage();
+            if(type == "chat"){
+                renderHistoryMessage(msg);
+            }else{
+                renderHistoryMessage();
+            }
+            
         },
         error: function(err){
             console.log(err);
@@ -370,7 +375,11 @@ $('#uploadFile').on('change', function(){
         beforeUpload: function(){}, //文件上传之前触发
         success:function(msg){
             //渲染历史信息
-            renderHistoryMessage();
+            if(type == "chat"){
+                renderHistoryMessage(msg);
+            }else{
+                renderHistoryMessage();
+            }
         },
         error: function(err){
             console.log(err);
