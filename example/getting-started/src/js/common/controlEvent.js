@@ -44,6 +44,8 @@ import renderChatGroups from '../render/renderChatGroups';
 import getHistoryMessage from '../api/getHistoryMessage';
 //渲染历史聊天记录
 import renderHistoryMessage from '../render/renderHistoryMessage';
+// common公共方法
+import { isClear } from './common.js';
 
 //放置表情列表
 $j_bq_box.html(expressionList.data.map((t) => {
@@ -115,8 +117,13 @@ $('.yyim-search').on('keydown',function (e) {
     }
 });
 
+
+
 //点击最近联系人
 $hcontacts.on('click','li',function () {
+    if (isClear($(this).attr('data-id'))) {
+        $yyim_editor.val('');
+    }
     $chats_list.html('');
     $(this).addClass('active');
     $(this).siblings().removeClass('active');
@@ -141,6 +148,9 @@ $hcontacts.on('click','li',function () {
 });
 //点击我的好友开始聊天
 $hmyfriend.on('click','li',function(){
+    if (isClear($(this).attr('data-id'))) {
+        $yyim_editor.val('');
+    }
     $smgroup.removeClass('active');
     $smchat.addClass('active');
     $hgroups.hide();
@@ -187,6 +197,9 @@ $hmyfriend.on('click','li',function(){
 });
 //点击我的群组开始聊天
 $hmygrouplist.on('click','li',function(){
+    if (isClear($(this).attr('data-id'))) {
+        $yyim_editor.val('');
+    }
     $smgroup.removeClass('active');
     $smchat.addClass('active');
     $hgroups.hide();
@@ -394,7 +407,7 @@ $('#uploadFile').on('change', function(){
 
 //控制是否可以发送
 $yyim_editor.on('input propertychange', function () {
-    if($(this).val()&&!($(this).val().replace(/(^s*)|(s*$)/g, "").length ==0)){
+    if($(this).val()&&!($(this).val().replace(/(^\s+)|(\s+$)/g, "").length ==0)){
         $btn_send.removeClass('adit-btn-send-disabled');
     }else {
         $btn_send.addClass('adit-btn-send-disabled');
@@ -403,12 +416,12 @@ $yyim_editor.on('input propertychange', function () {
 
 //发送按钮点击
 $btn_send.on('click',function () {
-    if($yyim_editor.val()&&!($yyim_editor.val().replace(/(^s*)|(s*$)/g, "").length ==0)){
-        //从本地拿取聊天对方id
+    if($yyim_editor.val() && !($yyim_editor.val().replace(/(^\s+)|(\s+$)/g, "").length ==0)){
+        // 从本地拿取聊天对方id
         let to = localStorage.getItem('targetuserid');
-        //从本地拿取聊天类型
+        // 从本地拿取聊天类型
         let chattype = localStorage.getItem('chattype');
-        //调用发送文本消息接口
+        // 调用发送文本消息接口
         YYIMChat.sendTextMessage({
             to: to, //对话人id
             type: chattype,  //chat:单聊，groupcgat:群聊,pubaccount:公众号
@@ -432,30 +445,32 @@ $btn_send.on('click',function () {
 
 //按下enter也可以发送
 $yyim_editor.on('keydown',function(e){
-    if(e.keyCode === 13 && $yyim_editor.val()){
-        //从本地拿取聊天对方id
-        let to = localStorage.getItem('targetuserid');
-        //从本地拿取聊天类型
-        let chattype = localStorage.getItem('chattype');
-        //调用发送文本消息接口
-        YYIMChat.sendTextMessage({
-            to: to, //对话人id
-            type: chattype,  //chat:单聊，groupchat:群聊,pubaccount:公众号
-            content:$yyim_editor.val(), //消息文本
-            body: '',  //扩展字段
-            success: function (msg) {
-                //发送成功之后清空输入框
-                $yyim_editor.val('');
-                $btn_send.addClass('adit-btn-send-disabled');
-                if(chattype == "groupchat"){
-                    //渲染历史信息
-                    renderHistoryMessage();
-                }else{
-                    renderHistoryMessage(msg);
+    if(e.keyCode === 13){
+        if ($yyim_editor.val() && !($yyim_editor.val().replace(/(^\s+)|(\s+$)/g, "").length ==0)) {
+            //从本地拿取聊天对方id
+            let to = localStorage.getItem('targetuserid');
+            //从本地拿取聊天类型
+            let chattype = localStorage.getItem('chattype');
+            //调用发送文本消息接口
+            YYIMChat.sendTextMessage({
+                to: to, //对话人id
+                type: chattype,  //chat:单聊，groupchat:群聊,pubaccount:公众号
+                content:$yyim_editor.val(), //消息文本
+                body: '',  //扩展字段
+                success: function (msg) {
+                    //发送成功之后清空输入框
+                    $yyim_editor.val('');
+                    $btn_send.addClass('adit-btn-send-disabled');
+                    if(chattype == "groupchat"){
+                        //渲染历史信息
+                        renderHistoryMessage();
+                    }else{
+                        renderHistoryMessage(msg);
+                    }
+    
                 }
-
-            }
-        });
+            });
+        }
     }
 });
 
