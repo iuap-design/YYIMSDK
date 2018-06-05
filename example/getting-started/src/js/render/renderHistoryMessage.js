@@ -42,7 +42,6 @@ export default (msg) => {
     let myid = JSON.parse(localStorage.getItem('currentuserinfo')).id;
     //拿当前的聊天类型
     let chattype = localStorage.getItem('chattype');
-
     //消息来源id
     let msgfromid = '';
 
