@@ -1,9 +1,12 @@
-body{
+body {
     background-color: #F4F8FB;
 }
+
 /*登陆*/
-.yyim-iogin{
-    display: block; /*默认显示*/
+
+.yyim-iogin {
+    display: block;
+    /*默认显示*/
     position: fixed;
     top: 0;
     left: 0;
@@ -16,7 +19,8 @@ body{
     border-radius: 4px;
     border: 1px #e1e1e1 solid;
 }
-.login-tit{
+
+.login-tit {
     height: 60px;
     padding-top: 18px;
     line-height: 60px;
@@ -25,12 +29,14 @@ body{
     font-size: 18px;
     color: #262626;
 }
-.login-desc{
+
+.login-desc {
     font-size: 13px;
     color: #666;
     padding: 10px 20px;
 }
-.yyim-iogin label{
+
+.yyim-iogin label {
     display: block;
     width: 340px;
     height: 40px;
@@ -38,10 +44,12 @@ body{
     border: 1px solid #cfcfcf;
     border-radius: 4px;
 }
-.none{
-    display: none;
+
+.none {
+    visibility: hidden;
 }
-.yyim-iogin input{
+
+.yyim-iogin input {
     display: block;
     border: 0;
     outline: 0;
@@ -51,7 +59,8 @@ body{
     text-indent: 10px;
     color: #666;
 }
-.yyim-iogin button{
+
+.yyim-iogin button {
     display: block;
     border: 0;
     outline: 0;
@@ -65,21 +74,24 @@ body{
 }
 
 /* 聊天框中遮罩 */
-.chatmsk{
+
+.chatmsk {
     position: absolute;
     height: 100%;
     width: 100%;
     left: 0;
     top: 0;
     z-index: 100000;
-    background-color: rgba(0,0,0,0.4);
+    background-color: rgba(0, 0, 0, 0.4);
 }
 
 /* 个人信息框 */
-.personinfo{
+
+.personinfo {
     display: none;
 }
-.personinfo .site{
+
+.personinfo .site {
     position: absolute;
     top: 0;
     left: 0;
@@ -93,12 +105,14 @@ body{
     box-shadow: 0 0 20px #666;
     overflow: hidden;
 }
-.personinfo .hd{
+
+.personinfo .hd {
     height: 100px;
     padding: 25px 10px;
-    background-color: rgba(0,0,0,0.5);
+    background-color: rgba(0, 0, 0, 0.5);
 }
-.personinfo .hdpic{
+
+.personinfo .hdpic {
     height: 76px;
     width: 76px;
     margin: 0 auto;
@@ -106,28 +120,33 @@ body{
     background-color: white;
     border-radius: 50%;
 }
-.personinfo .hdpic img{
+
+.personinfo .hdpic img {
     float: left;
     height: 100%;
     width: 100%;
     border-radius: 50%;
 }
-.personinfo .nickname{
+
+.personinfo .nickname {
     text-align: center;
     color: white;
     font-weight: normal;
     font-size: 14px;
     padding-top: 6px;
 }
-.personinfo .infolist li{
+
+.personinfo .infolist li {
     padding: 10px 15px;
 }
-.personinfo .infolist label{
+
+.personinfo .infolist label {
     display: inline-block;
     width: 100px;
     color: #999;
 }
-.close_chatmsk{
+
+.close_chatmsk {
     position: absolute;
     top: 10px;
     right: 10px;
@@ -139,24 +158,30 @@ body{
     font-size: 20px;
     cursor: pointer;
 }
-.login-Out:hover{
+
+.login-Out:hover {
     cursor: pointer;
-    color:tomato;
+    color: tomato;
 }
-.close_chatmsk:hover{
+
+.close_chatmsk:hover {
     color: tomato;
 }
 
 /*聊天面板*/
-.yyim-box{
-    display: none; /*默认隐藏*/
+
+.yyim-box {
+    display: none;
+    /*默认隐藏*/
     position: fixed;
     width: 100%;
     height: 100%;
-    background-color: rgba(0,0,0,0.2);
+    background-color: rgba(0, 0, 0, 0.2);
 }
+
 /*主体框*/
-.yyim-main{
+
+.yyim-main {
     position: absolute;
     z-index: 100;
     top: 0;
@@ -167,17 +192,19 @@ body{
     height: 590px;
     width: 882px;
     border-radius: 4px;
-    box-shadow: 10px 10px 20px rgba(0,0,0,.3);
+    box-shadow: 10px 10px 20px rgba(0, 0, 0, .3);
     background-color: white;
     overflow: hidden;
 }
-.yyim-main.maxwindow{
+
+.yyim-main.maxwindow {
     height: 100%;
     width: 100%;
 }
 
 /* 菜单栏 */
-.side-menu{
+
+.side-menu {
     position: absolute;
     top: 0;
     left: 0;
@@ -185,45 +212,53 @@ body{
     height: 100%;
     background-color: #1A2940;
 }
-.side-menu li{
+
+.side-menu li {
     height: 40px;
     background: white;
     padding: 20px 15px 5px;
     background-color: transparent;
     cursor: pointer;
 }
-.side-menu>.setting{
-     position: absolute;
-     bottom:50px;
-     width:100%;
-     color:white;
-     text-align: center;
-     cursor: pointer;
-    
+
+.side-menu>.setting {
+    position: absolute;
+    bottom: 50px;
+    width: 100%;
+    color: white;
+    text-align: center;
+    cursor: pointer;
+    min-height: 52px;
 }
-.side-menu .iconfont:hover{
-    color:#EE1A34;
+
+.side-menu .iconfont:hover {
+    color: #EE1A34;
 }
-.side-menu>.setting i{
+
+.side-menu>.setting i {
     font-size: 24px;
 }
-.side-menu .avatar{
+
+.side-menu .avatar {
     cursor: default;
 }
-.side-menu .own_avatar{
+
+.side-menu .own_avatar {
     height: 100%;
     width: 100%;
     border-radius: 50%;
     cursor: pointer;
 }
-.side-menu .avatar img{
+
+.side-menu .avatar img {
     float: left;
     height: 100%;
     width: 100%;
     border-radius: 50%;
     background-color: #ccc;
 }
-.side-menu .menu-icom{
+
+.side-menu .menu-icom {
     display: block;
     margin: 0 auto;
     height: 30px;
@@ -232,48 +267,60 @@ body{
     background-repeat: no-repeat;
     background-position: center;
 }
-.side-menu .smchat .menu-icom{
+
+.side-menu .smchat .menu-icom {
     background-image: url(../imgs/sidemenu/chat.png);
 }
-.side-menu .smfriend .menu-icom{
+
+.side-menu .smfriend .menu-icom {
     background-image: url(../imgs/sidemenu/friend.png);
 }
-.side-menu .smgroup .menu-icom{
+
+.side-menu .smgroup .menu-icom {
     background-image: url(../imgs/sidemenu/friend.png);
 }
-.side-menu .smpubcount .menu-icom{
+
+.side-menu .smpubcount .menu-icom {
     background-image: url(../imgs/sidemenu/pubcount.png);
 }
-.side-menu .smchat.active .menu-icom{
+
+.side-menu .smchat.active .menu-icom {
     background-image: url(../imgs/sidemenu/chat_active.png);
 }
-.side-menu .smfriend.active .menu-icom{
+
+.side-menu .smfriend.active .menu-icom {
     background-image: url(../imgs/sidemenu/friend_active.png);
 }
-.side-menu .smgroup.active .menu-icom{
+
+.side-menu .smgroup.active .menu-icom {
     background-image: url(../imgs/sidemenu/friend_active.png);
 }
-.side-menu .smpubcount.active .menu-icom{
+
+.side-menu .smpubcount.active .menu-icom {
     background-image: url(../imgs/sidemenu/pubcount_active.png);
 }
 
 /*侧边栏*/
-.sidebar{
+
+.sidebar {
     position: absolute;
     top: 0;
     left: 70px;
     width: 210px;
     height: 100%;
 }
+
 /*搜索*/
-.yyim-search-box{
+
+.yyim-search-box {
     position: absolute;
     width: 210px;
     height: 50px;
     border-bottom: 1px solid #e4e4e4;
     background-color: #ececee;
 }
-.yyim-search-box label{
+
+.yyim-search-box label {
     float: left;
     width: 156px;
     height: 26px;
@@ -283,7 +330,8 @@ body{
     background-size: 14px;
     border-radius: 13px;
 }
-.yyim-search-box .yyim-search{
+
+.yyim-search-box .yyim-search {
     float: right;
     height: 26px;
     width: 115px;
@@ -291,7 +339,8 @@ body{
     outline: 0;
     margin-right: 10px;
 }
-.yyim-search-box .creat-chat{
+
+.yyim-search-box .creat-chat {
     float: left;
     margin: 16px 0 0 10px;
     height: 20px;
@@ -302,38 +351,46 @@ body{
     color: #999;
     cursor: pointer;
 }
-.yyim-search-box .creat-chat:hover{
+
+.yyim-search-box .creat-chat:hover {
     color: #ff4e5b;
 }
 
 /*最近联系人*/
-.history-contacts-con{
+
+.history-contacts-con {
     box-sizing: border-box;
     padding-top: 51px;
     height: 100%;
 }
-.history-contacts{
+
+.history-contacts {
     height: 100%;
     border-right: 1px solid #e4e4e4;
     overflow-y: auto;
     background-color: white;
 }
-.history-contacts .hcontacts li{
+
+.history-contacts .hcontacts li {
     position: relative;
     padding: 12px 5px;
     height: 40px;
     cursor: pointer;
 }
-.history-contacts .hcontacts li:hover{
+
+.history-contacts .hcontacts li:hover {
     background-color: #f5f5f5;
 }
-.history-contacts .hcontacts li.active{
+
+.history-contacts .hcontacts li.active {
     background-color: #f0f0f0;
 }
-.history-contacts .hcontacts li:hover   i{
+
+.history-contacts .hcontacts li:hover i {
     display: inline-block
 }
-.history-contacts .close{
+
+.history-contacts .close {
     position: absolute;
     top: 27px;
     left: 3px;
@@ -344,10 +401,12 @@ body{
     color: #999;
     display: none;
 }
-.history-contacts .close:hover{
+
+.history-contacts .close:hover {
     color: red;
 }
-.history-contacts .avatar{
+
+.history-contacts .avatar {
     float: left;
     height: 40px;
     width: 40px;
@@ -355,54 +414,61 @@ body{
     border-radius: 50%;
     background-color: #eee;
 }
-.history-contacts .avatarName{
+
+.history-contacts .avatarName {
     float: left;
     height: 40px;
     width: 40px;
     margin-left: 10px;
-    color:white;
+    color: white;
     line-height: 40px;
     text-align: center;
 }
 
-.history-contacts .avatar img{
+.history-contacts .avatar img {
     float: left;
     height: 40px;
     width: 40px;
     border-radius: 50%;
 }
-.history-contacts .detail{
+
+.history-contacts .detail {
     float: left;
     height: 40px;
     width: 120px;
     margin-left: 10px;
 }
-.history-contacts .detail .name{
+
+.history-contacts .detail .name {
     font-weight: normal;
     font-size: 14px;
     height: 22px;
     line-height: 22px;
     color: #333;
 }
-.history-contacts .dingyue .name{
+
+.history-contacts .dingyue .name {
     font-weight: normal;
     font-size: 14px;
     height: 44px;
     line-height: 44px;
     color: #333;
 }
-.history-contacts .detail .msg{
+
+.history-contacts .detail .msg {
     font-size: 12px;
     height: 20px;
     line-height: 20px;
     color: #9e9e9e;
 }
-.history-contacts .detail .emoji{
+
+.history-contacts .detail .emoji {
     height: 18px;
     width: 18px;
     vertical-align: middle;
 }
-.hcontacts .newtip{
+
+.hcontacts .newtip {
     position: absolute;
     top: 12px;
     right: 5px;
@@ -417,23 +483,30 @@ body{
 }
 
 /*聊天框主体*/
-.chat-con{
+
+.chat-con {
     margin-left: 280px;
     height: 100%;
 }
+
 /*右边历史聊天记录*/
-.history-chat{
+
+.history-chat {
     position: relative;
     height: 100%;
     background: url("../imgs/chatbg.png") no-repeat center #f8f8f8;
     background-size: 70px;
 }
+
 /*没有输入的聊天框*/
-.history-chat-only{
+
+.history-chat-only {
     padding-bottom: 0;
 }
+
 /*聊天头*/
-.history-chat .chat-hd{
+
+.history-chat .chat-hd {
     position: absolute;
     top: 0;
     left: 0;
@@ -443,20 +516,24 @@ body{
     border-bottom: 1px solid #e4e4e4;
     background-color: #ececee;
 }
-.history-chat .chat-hd .chat-name{
-    width:80%;
+
+.history-chat .chat-hd .chat-name {
+    width: 80%;
     padding: 15px 20px;
     cursor: move;
     user-select: none;
 }
+
 /*窗口控制框*/
-.window-control{
+
+.window-control {
     position: absolute;
     right: 0;
     top: 0;
     margin: 15px 10px 0;
 }
-.window-control>span{
+
+.window-control>span {
     display: inline-block;
     height: 20px;
     width: 20px;
@@ -464,13 +541,16 @@ body{
     margin-left: 10px;
     cursor: pointer;
 }
+
 .window-control>span:hover {
     color: #fa4f52;
 }
 
 /*聊天信息框*/
-.chat-box{
-    display: none; /*默认隐藏*/
+
+.chat-box {
+    display: none;
+    /*默认隐藏*/
     position: relative;
     box-sizing: border-box;
     height: 100%;
@@ -478,7 +558,7 @@ body{
     padding-bottom: 150px;
 }
 
-.chats{
+.chats {
     box-sizing: border-box;
     height: 100%;
     overflow-y: auto;
@@ -486,49 +566,59 @@ body{
     background-color: #f8f8f8;
     border-bottom: 1px solid #e4e4e4;
 }
-.chats-list>li{
+
+.chats-list>li {
     padding: 7px;
     overflow: hidden;
 }
-.chats-list .chat-tip{
+
+.chats-list .chat-tip {
     font-size: 12px;
     text-align: center;
     color: #ccc;
     padding: 0 20px 14px;
 }
-.chats-list .chat-avatar{
+
+.chats-list .chat-avatar {
     float: left;
     height: 30px;
     width: 30px;
     border-radius: 50%;
     overflow: hidden;
 }
-.chats-list .chat-avatar-send{
+
+.chats-list .chat-avatar-send {
     float: right;
 }
-.chats-list .chat-avatar img{
+
+.chats-list .chat-avatar img {
     height: 30px;
     width: 30px;
     border-radius: 50%;
 }
-.chats-list .chat-txt{
+
+.chats-list .chat-txt {
     float: left;
     max-width: 400px;
     margin-left: 10px;
 }
-.chats-list .chat-txt-send{
+
+.chats-list .chat-txt-send {
     float: right;
     margin: 0 10px 0 0;
 }
-.chat-user-name{
+
+.chat-user-name {
     font-size: 12px;
     margin-bottom: 3px;
     color: #9e9e9e;
 }
-.chats-list .chat-txt-send .chat-user-name{
+
+.chats-list .chat-txt-send .chat-user-name {
     text-align: right;
 }
-.chats-list .chat-msg{
+
+.chats-list .chat-msg {
     padding: 5px 10px;
     line-height: 26px;
     border-radius: 4px;
@@ -537,20 +627,24 @@ body{
     word-break: break-all;
     word-wrap: break-word;
 }
-.chats-list .chat-txt-send .chat-msg{
+
+.chats-list .chat-txt-send .chat-msg {
     background-color: #bbeaff;
 }
-.chats-list .chat-msg .emoji{
+
+.chats-list .chat-msg .emoji {
     display: inline-block;
     width: 22px;
     margin: 0 2px;
     vertical-align: middle;
 }
-.chats-list .chat-msg .chatpic{
+
+.chats-list .chat-msg .chatpic {
     width: 200px;
     cursor: pointer;
 }
-.chats-list .chat-msg .chatfile{
+
+.chats-list .chat-msg .chatfile {
     position: relative;
     display: block;
     padding: 10px 60px 10px 10px;
@@ -562,7 +656,8 @@ body{
     cursor: pointer;
     border-radius: 4px;
 }
-.chats-list .chat-msg .chatfile::after{
+
+.chats-list .chat-msg .chatfile::after {
     content: " ";
     display: block;
     position: absolute;
@@ -573,16 +668,15 @@ body{
     background: url(../imgs/icon-file.png) no-repeat center #dedede;
     background-size: 24px 20px;
 }
-.chats-list .chat-msg .chatfile .filesize{
+
+.chats-list .chat-msg .chatfile .filesize {
     display: block;
     color: #999;
 }
 
+/*信息输入框*/
 
-
-
-    /*信息输入框*/
-.inputarea{
+.inputarea {
     box-sizing: border-box;
     position: absolute;
     bottom: 0;
@@ -592,18 +686,22 @@ body{
     padding: 10px;
     background-color: #f8f8f8;
 }
+
 /*聊天菜单*/
-.edit-menu{
+
+.edit-menu {
     height: 25px;
 }
-.edit-menu>li{
+
+.edit-menu>li {
     position: relative;
     float: left;
     height: 20px;
     width: 20px;
     margin: 0 10px 5px;
 }
-.edit-menu .iconfont{
+
+.edit-menu .iconfont {
     display: block;
     height: 20px;
     width: 20px;
@@ -612,10 +710,12 @@ body{
     color: #999;
     cursor: pointer;
 }
-.edit-menu .iconfont.hover{
+
+.edit-menu .iconfont.hover {
     color: #fa4f52;
 }
-.edit-menu .typetip{
+
+.edit-menu .typetip {
     display: none;
     position: absolute;
     left: 50%;
@@ -629,7 +729,8 @@ body{
     border-radius: 3px;
     transform: translateX(-50%);
 }
-.edit-menu .typetip:after{
+
+.edit-menu .typetip:after {
     content: "";
     position: absolute;
     bottom: -10px;
@@ -639,7 +740,8 @@ body{
     border-top-color: #222;
     transform: translateX(-50%);
 }
-.j_bq_box{
+
+.j_bq_box {
     display: none;
     position: absolute;
     left: -10px;
@@ -651,7 +753,8 @@ body{
     border-right: 1px solid #f2f2f2;
     background-color: white;
 }
-.j_bq_box>li{
+
+.j_bq_box>li {
     float: left;
     height: 20px;
     width: 20px;
@@ -660,13 +763,16 @@ body{
     border-top: 0;
     border-right: 0;
 }
-.j_bq_box>li>img{
+
+.j_bq_box>li>img {
     height: 100%;
     width: 100%;
     cursor: pointer;
 }
+
 /*聊天输入框*/
-.yyim-editor{
+
+.yyim-editor {
     display: block;
     width: 100%;
     height: 75px;
@@ -677,10 +783,12 @@ body{
     font-size: 14px;
     background-color: transparent;
 }
-.edit-btns{
+
+.edit-btns {
     height: 28px;
 }
-.edit-btns button{
+
+.edit-btns button {
     float: right;
     height: 28px;
     width: 62px;
@@ -691,140 +799,167 @@ body{
     border-radius: 4px;
     margin-left: 10px;
 }
-.adit-btn-send{
+
+.adit-btn-send {
     background-color: #fa4f52;
     cursor: pointer;
 }
-.adit-btn-send-disabled{
+
+.adit-btn-send-disabled {
     opacity: .5;
     cursor: default;
 }
-.hgroups{
+
+.hgroups {
     position: absolute;
-    top:51px;
-    left:70px;
-    bottom:0;
-    right:0;
+    top: 51px;
+    left: 70px;
+    bottom: 0;
+    right: 0;
 }
-.hgroups>ul{
-    width:204px;
+
+.hgroups>ul {
+    width: 204px;
     border-right: 1px solid #e4e4e4;
-    height:100%;
+    height: 100%;
 }
-#total-contact-content{
+
+#total-contact-content {
     position: absolute;
-    top:0;
-    left:205px;
-    bottom:0;
-    right:0;
+    top: 0;
+    left: 205px;
+    bottom: 0;
+    right: 0;
     z-index: 500;
-    background:white;
+    background: white;
 }
-#total-contact-content>div{
+
+#total-contact-content>div {
     display: none;
 }
-#total-contact-content>div>p{
+
+#total-contact-content>div>p {
     line-height: 49px;
-    padding-left:20px;
-    border-bottom:1px solid #e4e4e4;
+    padding-left: 20px;
+    border-bottom: 1px solid #e4e4e4;
 }
-#total-contact-content>div.active{
-    display:block;
+
+#total-contact-content>div.active {
+    display: block;
 }
-.hgroups ul.left-content-item li span{
-    padding-left:15px;
+
+.hgroups ul.left-content-item li span {
+    padding-left: 15px;
 }
-.hgroups ul.left-content-item li{
+
+.hgroups ul.left-content-item li {
     height: 50px;
-    padding:0 0;
+    padding: 0 0;
     padding-left: 20px;
     line-height: 50px;
     cursor: pointer;
 }
-.hgroups ul.left-content-item li.active{
+
+.hgroups ul.left-content-item li.active {
     height: 50px;
-    padding:0 0;
+    padding: 0 0;
     padding-left: 20px;
     line-height: 50px;
     cursor: pointer;
-    color:#EE1A34;
-    background-color:#e4e4e4;
+    color: #EE1A34;
+    background-color: #e4e4e4;
 }
-.hmyfriend{
+
+.hmyfriend {
     overflow: hidden;
 }
-ul.hmyfriend>li{
-    width:25%;
+
+ul.hmyfriend>li {
+    width: 25%;
     float: left;
-    padding-left:0px;
+    padding-left: 0px;
     line-height: 60px;
     text-align: center;
     display: inline-block;
-    display: inline;                        
+    display: inline;
     vertical-align: middle;
     cursor: pointer;
 }
-ul.hmyfriend>li:hover{
-    background-color:#e4e4e4;
+
+ul.hmyfriend>li:hover {
+    background-color: #e4e4e4;
 }
-ul.hmyfriend>li img{
-    width:40px;
+
+ul.hmyfriend>li img {
+    width: 40px;
     height: 40px;
     border-radius: 50%;
     vertical-align: middle;
 }
-ul.hmyfriend>li>span{
+
+ul.hmyfriend>li>span {
     margin-left: 10px;
 }
-.hmygrouplist>li{
+
+.hmygrouplist>li {
     overflow: hidden;
     list-style: none;
-    height:60px;
+    height: 60px;
     cursor: pointer;
 }
-.hmygrouplist>li:active{
+
+.hmygrouplist>li:active {
     background-color: #e4e4e4;
 }
-.hmygrouplist>li:hover{
+
+.hmygrouplist>li:hover {
     background-color: #e4e4e4;
 }
-.hmygrouplist>li>.detail{
-    width:300px;
+
+.hmygrouplist>li>.detail {
+    width: 300px;
 }
-.hmygrouplist .avatar{
+
+.hmygrouplist .avatar {
     display: inline-block;
-    display: inline;                        
+    display: inline;
     vertical-align: middle;
-    cursor: pointer;  
+    cursor: pointer;
     margin-left: 10px;
     border-radius: 50%;
     line-height: 60px;
 }
-.hmygrouplist .avatar img{ 
-    width:40px;
-    height:40px;
+
+.hmygrouplist .avatar img {
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
     vertical-align: middle;
 }
-.hmygrouplist .avatar span{
-    margin-left:10px;
+
+.hmygrouplist .avatar span {
+    margin-left: 10px;
 }
-.hmygrouplist,.hmyfriend{
+
+.hmygrouplist,
+.hmyfriend {
     position: absolute;
-    top:50px;
-    left:0;
-    bottom:0;
+    top: 50px;
+    left: 0;
+    bottom: 0;
     right: 0;
     overflow-x: hidden;
     overflow-y: scroll;
 }
-.tr{
+
+.tr {
     text-align: right;
 }
-.chat-txt>p{
+
+.chat-txt>p {
     text-align: left;
 }
-.chat-txt-send.chat-txt>p{
+
+.chat-txt-send.chat-txt>p {
     text-align: right;
 }
- 

@@ -80,6 +80,11 @@ $('.closechat').click(function () {
 $('.icon-shezhi').click(function(){
     $hloginout.toggleClass('none');
 });
+$('.setting').on('mouseleave', function () {
+    if (!$hloginout.hasClass('none')) {
+        $hloginout.addClass('none');
+    } 
+});
 //退出登陆
 $hloginout.click(function(){
     $yyim_box.hide();
