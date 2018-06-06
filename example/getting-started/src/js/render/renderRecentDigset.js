@@ -1,7 +1,8 @@
 
 //dom元素
 import {
-    $hcontacts
+    $hcontacts,
+    $history_contacts 
 } from '../common/jqelements';
 //表情数据
 import { expressionList } from '../common/constants';
@@ -118,4 +119,7 @@ export const renderRecentDigset = (digsets) => {
        
     });
     $hcontacts.html(digStr);
+    //$history_contacts.scrollTop($history_contacts[0].scrollHeight);
+    var scrollHeight1 = $history_contacts[0].scrollHeight
+    $history_contacts.scrollTop( scrollHeight1+"px");
 }

@@ -122,7 +122,7 @@ export default () => {
                                     sessionVersion: e.sessionVersion,
                                     type: e.type,
                                     photo: data.photo || '',
-                                    nickname: data.nickname || data.name,
+                                    nickname: data.nickname || data.name || data.id,
                                     lastMessage: e.lastMessage,
                                     lastContactTime: e.lastContactTime
                                 });
