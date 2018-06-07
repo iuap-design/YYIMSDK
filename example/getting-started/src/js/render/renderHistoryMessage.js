@@ -38,13 +38,17 @@ export default (msg) => {
     let recentDigset = JSON.parse(localStorage.getItem('recentdigset') || "[]");
     //从本地拿取聊天对方id
     let targetuserid = localStorage.getItem('targetuserid');
+    //拿报文ID
+    let baowenId = localStorage.getItem('baowenId');
+    //拿sessionversionID
+    let sessionversionID = localStorage.getItem('sessionversionId');
     //拿我自己的id
     let myid = JSON.parse(localStorage.getItem('currentuserinfo')).id;
     //拿当前的聊天类型
     let chattype = localStorage.getItem('chattype');
     //消息来源id
     let msgfromid = '';
-
+     
     //如果msg存在，说明我正在发送消息或者我接收到了别人的消息
     if (msg) {
         let isfromme;
@@ -90,6 +94,7 @@ export default (msg) => {
             let chattype = localStorage.getItem('chattype');
             if(chattype == "groupchat"){
                 if(msg.from.room == targetuserid){
+
                     recentDigset.forEach(function (digest, i) {
                         if (digest.id === msgfromid) {
                             isdigset = true;
@@ -103,6 +108,13 @@ export default (msg) => {
                             renderRecentDigset(recentDigset);
                         }
                     });
+                     //发送已读回执
+                        YYIMChat.sendReadedReceiptsPacket({
+                            to:   targetuserid,
+                            id: baowenId,
+                            type: "groupchat",
+                            sessionVersion:sessionversionID
+                        });
                 }else{
                     recentDigset.forEach(function (digest, i) {
                         if (digest.id === msgfromid) {
@@ -132,6 +144,13 @@ export default (msg) => {
                             //渲染最近联系人
                             renderRecentDigset(recentDigset);
                         }
+                    });
+                     //发送已读回执
+                     YYIMChat.sendReadedReceiptsPacket({
+                        to:   targetuserid,
+                        id: baowenId,
+                        type: "chat",
+                        sessionVersion:sessionversionID
                     });
                 }else{
                     recentDigset.forEach(function (digest, i) {

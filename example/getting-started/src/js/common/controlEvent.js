@@ -135,6 +135,10 @@ $hcontacts.on('click','li',function () {
     $j_move.html($(this).attr('data-nickname'));
     //把选择的聊天对方id保存起来,用于给他发送消息
     localStorage.setItem('targetuserid', $(this).attr('data-id'));
+    //把选择的聊天对方报文保存,用于给他发消息回执
+    localStorage.setItem('baowenId', $(this).attr('data-baowen'));
+    //把选择的sessionversion,用于给他发消息回执
+    localStorage.setItem('sessionversionId', $(this).attr('data-sessionversion'));
     //保存聊天类型
     localStorage.setItem('chattype', $(this).attr('data-type'));
     //删除保存的聊天历史
@@ -189,8 +193,8 @@ $hmyfriend.on('click','li',function(){
     if(!hasHistory){
         nowDigest.unshift({
             id:$(this).attr('data-id'),
-            type: $(this).attr('data-chat'),
-            photo: $(this).attr('data-photo') || '',
+            type: $(this).attr('data-type'),
+            photo: $(this).attr('data-photo') =="undefined"?'':$(this).attr('data-photo'),
             nickname: $(this).attr('data-nickname'),
         });
     }
