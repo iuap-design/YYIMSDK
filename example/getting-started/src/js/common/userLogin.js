@@ -2,7 +2,7 @@
 import { $yyim_iogin, $yyim_box } from './jqelements';
 
 //用户登陆
-export default (username, password) => {
+  const   userLogin = (username, password) => {
     //正式环境
     // $.ajax({
     //     url: 'https://im.yyuap.com/sysadmin/rest/yonyou/udn/token',
@@ -47,6 +47,14 @@ export default (username, password) => {
                 return
             }else{
                 let clientIdentify = "pc" + String(new Date().getTime());
+                let  tokenMessage = {
+                    'username':username,
+                    'token':result.token,
+                    'expiration':result.expiration,
+                    'appType':4,
+                    "identify": clientIdentify                    
+                }
+                localStorage.setItem("tokenMessage",JSON.stringify(tokenMessage));
                 $yyim_iogin.hide();
                 $yyim_box.show();
                 //登陆YYIMSDK
@@ -65,3 +73,10 @@ export default (username, password) => {
         }
     });
 }
+//token登录
+const tokenLogin = (value) =>{
+    $yyim_iogin.hide();
+    $yyim_box.show();
+    YYIMChat.login(value);
+}
+export {userLogin,tokenLogin}

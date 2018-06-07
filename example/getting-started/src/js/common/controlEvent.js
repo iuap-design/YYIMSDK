@@ -29,7 +29,7 @@ import {
 //表情数据
 import { expressionList } from './constants';
 //用户登陆
-import userLogin from './userLogin';
+import {userLogin,tokenLogin} from './userLogin';
 //获取最近联系人
 import getRecentDigset from '../api/getRecentDigset';
 //渲染最近联系人
@@ -44,18 +44,14 @@ import renderChatGroups from '../render/renderChatGroups';
 import getHistoryMessage from '../api/getHistoryMessage';
 //渲染历史聊天记录
 import renderHistoryMessage from '../render/renderHistoryMessage';
-// common公共方法
-import { isClear } from './common.js';
 
+import { getColor,getNameLastTwo,isClear } from './common';
 //放置表情列表
 $j_bq_box.html(expressionList.data.map((t) => {
     return `<li data-code="${t.actionData}"><img src="${expressionList.path+t.url}" title="${t.actionData}" alt=""></li>`;
 }));
 
-//临时自动登录的
-if(localStorage.getItem('currentuserinfo')){
-    userLogin(JSON.parse(localStorage.getItem('currentuserinfo')).username);
-}
+
 //用户登陆
 $login_btn.click(function () {
     let username = $login_username.val();
@@ -485,22 +481,41 @@ $yyim_editor.on('keydown',function(e){
 //头像点击
 $own_avatar.on('click',function(){
     let userVcard = JSON.parse(localStorage.getItem('currentuserinfo') || "{}");
-    $personinfo.html(`
-            <div class="site">
-                <div class="hd">
-                    <div class="hdpic">
-                        <img src="${userVcard.photo? YYIMChat.getFileUrl(userVcard.photo) : ''}" alt="">
+    let photoMsg = '';
+    if(userVcard.photo){
+        photoMsg =`
+                    <div class="site">
+                            <div class="hd">
+                                <div class="hdpic">
+                                    <img src="${userVcard.photo? YYIMChat.getFileUrl(userVcard.photo) : ''}" alt="">
+                                </div>
+                                <h3 class="nickname">${userVcard.nickname || userVcard.id}</h3>
+                            </div>
+                            <ul class="infolist">
+                                <li><label>邮箱</label>${userVcard.email || ''}</li>
+                                <li><label>手机</label>${userVcard.mobile || ''}</li>
+                            </ul>
+                            <span class="close_chatmsk">×</span>
+                        </div>
+                     `
+    }else{
+        photoMsg =`
+                <div class="site">
+                        <div class="hd">
+                            <div class="hdpic">
+                            <div class="myFriend-noPhoto myFriend-noPhoto-big" style="background:${getColor(userVcard.nickname)||getColor(userVcard.id)}">${getNameLastTwo(userVcard.nickname) || getNameLastTwo(userVcard.id)}</div>
+                            </div>
+                            <h3 class="nickname">${userVcard.nickname || userVcard.id}</h3>
+                        </div>
+                        <ul class="infolist">
+                            <li><label>邮箱</label>${userVcard.email || ''}</li>
+                            <li><label>手机</label>${userVcard.mobile || ''}</li>
+                        </ul>
+                        <span class="close_chatmsk">×</span>
                     </div>
-                    <h3 class="nickname">${userVcard.nickname || userVcard.id}</h3>
-                </div>
-                <ul class="infolist">
-                    <li><label>邮箱</label>${userVcard.email || ''}</li>
-                    <li><label>性别</label>${userVcard.gender || ''}</li>
-                    <li><label>手机</label>${userVcard.mobile || ''}</li>
-                </ul>
-                <span class="close_chatmsk">×</span>
-            </div>
-    `).show();
+                `
+    }
+    $personinfo.html(photoMsg).show();
 });
 //关闭个人信息
 $personinfo.on('click','.close_chatmsk',function(){
@@ -538,8 +553,6 @@ $smgroup.on('click',function(){
     $hcontacts.hide();
     //隐藏聊天框
     $chat_box.hide();
-    //显示群组列表
-   // $hgroups.html('');
     $hgroups.show();
     getMyFriend();
 
@@ -557,14 +570,7 @@ $hgroups.on('click','ul.left-content-item li',function(){
 	var tar=$(this).attr('data-tar');
     $(tar).addClass('active').siblings('.active').removeClass('active');
     if(tar=="#content-my-group"){
-         let roomItems = localStorage.getItem('roomItems');
-        if(roomItems){
-            //使用本地保存的群组渲染
-            renderChatGroups(JSON.parse(roomItems));
-        }else {
-            //重新获取群组
-            getChatGroups();
-        }
+         getChatGroups();
     }else{
         getMyFriend();
     }

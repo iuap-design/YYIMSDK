@@ -839,6 +839,7 @@ body {
 }
 
 #total-contact-content>div>p {
+    min-width: 200px;
     line-height: 49px;
     padding-left: 20px;
     border-bottom: 1px solid #e4e4e4;
@@ -878,6 +879,7 @@ ul.hmyfriend>li {
     width: 25%;
     float: left;
     padding-left: 0px;
+    min-width: 150px;
     line-height: 60px;
     text-align: center;
     display: inline-block;
@@ -906,6 +908,7 @@ ul.hmyfriend>li>span {
     list-style: none;
     height: 60px;
     cursor: pointer;
+    min-width: 200px;
 }
 
 .hmygrouplist>li:active {
@@ -962,4 +965,19 @@ ul.hmyfriend>li>span {
 
 .chat-txt-send.chat-txt>p {
     text-align: right;
+}
+.myFriend-noPhoto{
+    width: 40px;
+    height: 40px;
+    line-height: 40px;
+    color: white;
+    border-radius: 40px;
+    display: inline-block;
+    text-align: center;
+}
+.myFriend-noPhoto.myFriend-noPhoto-big{
+    width:100%;
+    height:100%;
+    line-height: 76px;
+    font-size: 24px;
 }

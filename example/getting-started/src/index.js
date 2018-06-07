@@ -6,8 +6,9 @@ import getRecentDigset from './js/api/getRecentDigset';
 
 //渲染历史聊天记录
 import renderHistoryMessage from './js/render/renderHistoryMessage';
-
+import {userLogin,tokenLogin} from '../src/js/common/userLogin';
 import { $own_avatar } from './js/common/jqelements';
+import { getColor,getNameLastTwo } from './js/common/common';
 
 //初始化SDK，正式环境
 // YYIMChat.initSDK({
@@ -35,7 +36,11 @@ YYIMChat.initSDK({
     clientMark: 'web', //client mark 'web' or 'pc'
     apiKey: "85de79b9f7e34c37a99accaddb256990"
 });
-
+//临时自动登录的
+if(localStorage.getItem('tokenMessage')){
+    setTimeout(tokenLogin(JSON.parse(localStorage.getItem('tokenMessage'))),1000);
+    
+}
 //初始化回调方法
 YYIMChat.init({
     onOpened: function() {
@@ -46,7 +51,14 @@ YYIMChat.init({
         // 获取自己信息
         YYIMChat.getVCard({
             success: function (res) {
-                if(res.photo)$own_avatar.find('img').attr('src',YYIMChat.getFileUrl(res.photo));
+                if(res.photo){
+                    $own_avatar.find('img').attr('src',YYIMChat.getFileUrl(res.photo));
+                }else{
+                    let photoMsg = `
+                    <div class="myFriend-noPhoto" style="background:${getColor(res.nickname)||getColor(res.id)}">${getNameLastTwo(res.nickname) || getNameLastTwo(res.id)}</div>
+                    `;
+                    $own_avatar.html(photoMsg);
+                }
                 //保存自己的信息
                 localStorage.setItem('currentuserinfo', JSON.stringify(res));
             }
