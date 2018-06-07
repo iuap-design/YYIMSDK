@@ -60,7 +60,10 @@ if(localStorage.getItem('currentuserinfo')){
 $login_btn.click(function () {
     let username = $login_username.val();
     let password = $login_pass.val();
-    if(/^[a-z][a-z_0-9]*$/.test(username)){
+    // if(/^[a-z][a-z_0-9]*$/.test(username)){
+    //     userLogin(username, password);
+    // }
+    if( username){
         userLogin(username, password);
     }
 });

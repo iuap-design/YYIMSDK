@@ -33,27 +33,32 @@ export default (username, password) => {
     // });
     //测试环境
     $.ajax({
-        url: 'http://172.20.15.60/sysadmin/rest/yonyou/im_pre/token',
+        url: 'http://172.20.15.66:8080/app-server/rest/demo/login',
         type: 'POST',
         dataType: 'json',
         headers: {"Content-Type": "application/json"},
         data: JSON.stringify({
-            "username":username,
-            "clientId":"b26ba51058eee9db4f88a7a2b1bd1b06",
-            "clientSecret":"CC9A71E0C2528EDB1652DFB18ECE8DDF"
+            "mobile":username,
+            "password":password,
         }),
         success: function (result) {
-            let clientIdentify = "pc" + String(new Date().getTime());
-            $yyim_iogin.hide();
-            $yyim_box.show();
-            //登陆YYIMSDK
-            YYIMChat.login({
-                "username": username,
-                "token": result.token,
-                "expiration": result.expiration,
-                "appType": 4,
-                "identify": clientIdentify
-            });
+            if(result.result == "failed"){
+                alert(result.errMsg);
+                return
+            }else{
+                let clientIdentify = "pc" + String(new Date().getTime());
+                $yyim_iogin.hide();
+                $yyim_box.show();
+                //登陆YYIMSDK
+                YYIMChat.login({
+                    "username": username,
+                    "token": result.token,
+                    "expiration": result.expiration,
+                    "appType": 4,
+                    "identify": clientIdentify
+                });
+            }
+           
         },
         error: function (arg) {
             console.log(arg);
