@@ -51,6 +51,10 @@ export default (msg) => {
      
     //如果msg存在，说明我正在发送消息或者我接收到了别人的消息
     if (msg) {
+        //暂时将小友的消息过滤掉
+        if(msg.type=="chat"&&msg.to == "xiaoyou_ai_bot_pre"){
+            return;
+        }
         let isfromme;
         if (chattype === 'chat') {
             msgfromid = chattype === 'chat' ? msg.from : msg.from.roster;

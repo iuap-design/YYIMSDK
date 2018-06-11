@@ -32,6 +32,13 @@ export default () => {
                         i--;
                     }
                 }
+                //暂时将小友类型消息删除
+                for (var i = 0; i < result.list.length; i++) {
+                    if (result.list[i].type == "chat"&&result.list[i].id=='xiaoyou_ai_bot_pre') {
+                        result.list.splice(i, 1);
+                        i--;
+                    }
+                }
                 result.list.forEach(function (e, i) {
                     // //显示公众号
                     // if(e.type == 'pubaccount'){
