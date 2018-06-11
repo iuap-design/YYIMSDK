@@ -27,7 +27,48 @@ export default (sessionVersion, id, type) => {
                  }else if(chat.type == "groupchat"){
                     chatId = chat.from.roster;
                  }
-             YYIMChat.getVCard({
+                 //处理别的端给web发消息
+            if(historychats.length>0&&historychats[0].from ==historychats[0].to){
+                //保存自己的信息
+                let nickName,nickPhoto;
+                if(localStorage.getItem('currentuserinfo')){
+                   nickName=JSON.parse(localStorage.getItem('currentuserinfo')).nickname;
+                   if(JSON.parse(localStorage.getItem('currentuserinfo')).photo){
+                        nickPhoto = JSON.parse(localStorage.getItem('currentuserinfo')).photo
+                   }
+                }
+                
+                if(chat.resource == "web-v2.6"){
+                    historychatsData.push({
+                        data: chat.data,
+                        dateline:chat.dateline,
+                        from:chat.from,
+                        id:chat.id,
+                        sessionVersion:chat.sessionVersion,
+                        to:chat.to,
+                        type:chat.type,
+                        photo:  nickPhoto,
+                        nickname: nickName,
+                    });
+                }else{
+                    historychatsData.push({
+                        data: chat.data,
+                        dateline:chat.dateline,
+                        from:"mobile",
+                        id:chat.id,
+                        sessionVersion:chat.sessionVersion,
+                        to:chat.to,
+                        type:chat.type,
+                        photo: "mobile",
+                        nickname: "mobile",
+                    });
+                }
+            //把聊天记录缓存到本地
+            localStorage.setItem('historychats', JSON.stringify(historychatsData));
+            renderHistoryMessage();
+             
+            }else{
+                YYIMChat.getVCard({
                     id: chatId,
                     success: function(res){
                         //整理最近联系人列表到一个新数组
@@ -61,6 +102,8 @@ export default (sessionVersion, id, type) => {
                         console.log(err);
                     }
                 });
+            }
+            
             });
             $chat_box.show();
             historychats.reverse();

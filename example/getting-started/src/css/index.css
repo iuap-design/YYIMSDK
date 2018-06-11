@@ -988,3 +988,12 @@ ul.hmyfriend>li>span {
     line-height: 76px;
     font-size: 24px;
 }
+.history-noPhoto{
+    width: 100%;
+    background: #6495ed;
+    height: 100%;
+    color: white;
+    font-size: 14px;
+    line-height: 30px;
+    text-align: center
+}
