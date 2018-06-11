@@ -173,7 +173,7 @@ $hmyfriend.on('click','li',function(){
     //获取历史聊天信息
     getHistoryMessage( "19", $(this).attr('data-id'), $(this).attr('data-type'));
     //处理摘要显示
-    let nowDigest = JSON.parse(localStorage.getItem('recentdigset'));
+    let nowDigest = JSON.parse(localStorage.getItem('recentdigset')||"[]");
     let hasHistory = false;
     console.log('用户ID'+$(this).attr('data-id'));
     let chatId = $(this).attr('data-id');
@@ -222,7 +222,7 @@ $hmygrouplist.on('click','li',function(){
      //获取历史聊天信息
      getHistoryMessage( "19", $(this).attr('data-id'), $(this).attr('data-type'));
     // //处理摘要显示
-     let nowDigest = JSON.parse(localStorage.getItem('recentdigset'));
+     let nowDigest = JSON.parse(localStorage.getItem('recentdigset')||"[]");
      let hasHistory = false;
      console.log('用户ID'+$(this).attr('data-id'));
      let chatId = $(this).attr('data-id');

@@ -51,7 +51,7 @@ export const renderRecentDigset = (digsets) => {
                 digStr += `<li class="${targetuserid && targetuserid === res.id ? 'active' : ''}" data-sessionVersion="${res.sessionVersion}" data-id="${res.id}" data-type="${res.type}" data-nickname="${res.nickname || res.id}" data-from="${res.lastMessage?res.lastMessage.from:""}" data-baowen="${res.lastMessage?res.lastMessage.id:''}">
                 <i data-id="${res.id}" data-type="${res.type}" class="close">×</i>
                 <div class="avatar">
-                    <img src="${YYIMChat.getFileUrl(res.photo)}" alt="">
+                    <img src="${res.photo=="mobile"?"../../imgs/file_assistant.png":YYIMChat.getFileUrl(res.photo)}" alt="">
                 </div>
                 <div class="detail">
                     <h3 class="name cuttxt">${res.nickname || res.id}</h3>

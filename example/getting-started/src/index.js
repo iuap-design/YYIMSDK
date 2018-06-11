@@ -52,7 +52,10 @@ YYIMChat.init({
         YYIMChat.getVCard({
             success: function (res) {
                 if(res.photo){
-                    $own_avatar.find('img').attr('src',YYIMChat.getFileUrl(res.photo));
+                    let photoMsg = `
+                     <img src=${YYIMChat.getFileUrl(res.photo)} />
+                    `;
+                    $own_avatar.html(photoMsg);
                 }else{
                     let photoMsg = `
                     <div class="myFriend-noPhoto" style="background:${getColor(res.nickname)||getColor(res.id)}">${getNameLastTwo(res.nickname) || getNameLastTwo(res.id)}</div>

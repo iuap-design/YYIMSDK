@@ -86,17 +86,35 @@ export default () => {
                         YYIMChat.getVCard({
                             id: e.id,
                             success: function (res) {
-                                //整理最近联系人列表到一个新数组
-                                recentDigset.push({
-                                    id: res.id,
-                                    readedVersion: e.readedVersion,
-                                    sessionVersion: e.sessionVersion,
-                                    type: e.type,
-                                    photo: res.photo || '',
-                                    nickname: res.nickname || res.name,
-                                    lastMessage: e.lastMessage,
-                                    lastContactTime: e.lastContactTime
-                                });
+                                //如果是自己的账号手机端发送
+                                let fromId =  JSON.parse(localStorage.getItem("tokenMessage"));
+                                if(fromId){
+                                   if(fromId.username == res.id){
+                                        recentDigset.push({
+                                            id: res.id,
+                                            readedVersion: e.readedVersion,
+                                            sessionVersion: e.sessionVersion,
+                                            type: e.type,
+                                            photo: 'mobile',
+                                            nickname: "文件传输助手",
+                                            lastMessage: e.lastMessage,
+                                            lastContactTime: e.lastContactTime
+                                        });
+                                   }  
+                                }else{
+                                    //整理最近联系人列表到一个新数组
+                                    recentDigset.push({
+                                        id: res.id,
+                                        readedVersion: e.readedVersion,
+                                        sessionVersion: e.sessionVersion,
+                                        type: e.type,
+                                        photo: res.photo || '',
+                                        nickname: res.nickname || res.name,
+                                        lastMessage: e.lastMessage,
+                                        lastContactTime: e.lastContactTime
+                                    });
+                                }
+                                
                                 digestChatNum++;
                                 if (digestChatNum + digestGroupchatNum + pubaccountNum == result.list.length) {
                                     //把最近联系人列表保存到本地
