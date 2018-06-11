@@ -55,16 +55,21 @@ export default (msg) => {
         if(msg.type=="chat"&&msg.to == "xiaoyou_ai_bot_pre"){
             return;
         }
+       
         let isfromme;
-        if (chattype === 'chat') {
-            msgfromid = chattype === 'chat' ? msg.from : msg.from.roster;
-            isfromme = myid === msgfromid;
-        } else {
-            msgfromid = msg.from.room;
-            let sendMsgId = msg.from.roster;
-            isfromme = myid === sendMsgId;
+        //其他端发消息处理
+        if(msg.resource){
+            msgfromid = msg.from;
         }
         if (isfromme) { //消息是我发给别人的
+            if (chattype === 'chat') {
+                msgfromid = chattype === 'chat' ? msg.from : msg.from.roster;
+                isfromme = myid === msgfromid;
+            } else {
+                msgfromid = msg.from.room;
+                let sendMsgId = msg.from.roster;
+                isfromme = myid === sendMsgId;
+            }
             recentDigset.forEach(function (digest, i) {
                 if (digest.id === targetuserid) {
                     recentDigset[i].lastContactTime = msg.data.dateline;
@@ -94,8 +99,17 @@ export default (msg) => {
             //修改后保存
             localStorage.setItem('historychats', JSON.stringify(historychats));
         } else { //消息来自于他人给我发的
+            let chattype = msg.type;
+            if (chattype === 'chat') {
+                msgfromid = chattype === 'chat' ? msg.from : msg.from.roster;
+                isfromme = myid === msgfromid;
+            } else {
+                msgfromid = msg.from.room;
+                let sendMsgId = msg.from.roster;
+                isfromme = myid === sendMsgId;
+            }
             let isdigset = false; //判断对方在不在我的最近联系人里
-            let chattype = localStorage.getItem('chattype');
+          //  let chattype = localStorage.getItem('chattype');
             if(chattype == "groupchat"){
                 if(msg.from.room == targetuserid){
 
