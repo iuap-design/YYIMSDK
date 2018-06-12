@@ -82,58 +82,56 @@ export default () => {
 
                     //目前测试只显示个人聊天,和群组
                     if (e.type == 'chat') {
-                        //通过id获取个人信息
-                        YYIMChat.getVCard({
-                            id: e.id,
-                            success: function (res) {
-                                //如果是自己的账号手机端发送
-                                let fromId =  JSON.parse(localStorage.getItem("tokenMessage"));
-                                if(fromId){
-                                   if(fromId.username == res.id){
+                        if(e.lastMessage&&e.lastMessage.from == e.lastMessage.to){
+                            recentDigset.push({
+                                id: e.id,
+                                readedVersion: e.readedVersion,
+                                sessionVersion: e.sessionVersion,
+                                type: e.type,
+                                photo: 'mobile',
+                                nickname: "文件传输助手",
+                                lastMessage: e.lastMessage,
+                                lastContactTime: e.lastContactTime
+                            });
+                            digestChatNum++;
+                        }else{
+                            YYIMChat.getVCard({
+                                id: e.id,
+                                success: function (res) {
+                                        //整理最近联系人列表到一个新数组
                                         recentDigset.push({
                                             id: res.id,
                                             readedVersion: e.readedVersion,
                                             sessionVersion: e.sessionVersion,
                                             type: e.type,
-                                            photo: 'mobile',
-                                            nickname: "文件传输助手",
+                                            photo: res.photo || '',
+                                            nickname: res.nickname || res.name,
                                             lastMessage: e.lastMessage,
                                             lastContactTime: e.lastContactTime
                                         });
-                                   }  
-                                }else{
-                                    //整理最近联系人列表到一个新数组
-                                    recentDigset.push({
-                                        id: res.id,
-                                        readedVersion: e.readedVersion,
-                                        sessionVersion: e.sessionVersion,
-                                        type: e.type,
-                                        photo: res.photo || '',
-                                        nickname: res.nickname || res.name,
-                                        lastMessage: e.lastMessage,
-                                        lastContactTime: e.lastContactTime
-                                    });
+                                    
+                                    digestChatNum++;
+                                    if (digestChatNum + digestGroupchatNum + pubaccountNum == result.list.length) {
+                                        //把最近联系人列表保存到本地
+                                        localStorage.setItem('recentdigset', JSON.stringify(recentDigset));
+                                        renderRecentDigset(recentDigset);
+                                    }
+    
+    
+                                },
+                                error: function (err) {
+                                    digestChatNum++;
+                                    if (digestChatNum + digestGroupchatNum + pubaccountNum == result.list.length) {
+                                        //把最近联系人列表保存到本地
+                                        localStorage.setItem('recentdigset', JSON.stringify(recentDigset));
+                                        renderRecentDigset(recentDigset);
+                                    }
+                                    console.log(err);
                                 }
-                                
-                                digestChatNum++;
-                                if (digestChatNum + digestGroupchatNum + pubaccountNum == result.list.length) {
-                                    //把最近联系人列表保存到本地
-                                    localStorage.setItem('recentdigset', JSON.stringify(recentDigset));
-                                    renderRecentDigset(recentDigset);
-                                }
-
-
-                            },
-                            error: function (err) {
-                                digestChatNum++;
-                                if (digestChatNum + digestGroupchatNum + pubaccountNum == result.list.length) {
-                                    //把最近联系人列表保存到本地
-                                    localStorage.setItem('recentdigset', JSON.stringify(recentDigset));
-                                    renderRecentDigset(recentDigset);
-                                }
-                                console.log(err);
-                            }
-                        });
+                            });
+                        }
+                        //通过id获取个人信息
+                       
                     } else if (e.type == 'groupchat') {
                         YYIMChat.getChatGroupInfo({
                             id: e.id,

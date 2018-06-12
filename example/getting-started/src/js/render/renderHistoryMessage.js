@@ -58,9 +58,13 @@ export default (msg) => {
         }
        
         let isfromme;
-        //其他端发消息处理
-        if(msg.resource){
-            msgfromid = msg.from;
+        if (chattype === 'chat') {
+            msgfromid = chattype === 'chat' ? msg.from : msg.from.roster;
+            isfromme = myid === msgfromid;
+        } else {
+            msgfromid = msg.from.room;
+            let sendMsgId = msg.from.roster;
+            isfromme = myid === sendMsgId;
         }
         if (isfromme) { //消息是我发给别人的
             if (chattype === 'chat') {
