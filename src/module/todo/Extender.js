@@ -2,7 +2,8 @@ import { YYIMManager } from '../../core/manager';
 import {
     getTodoDigset,
     getHistoryTodo,
-    sendToDoReceipts
+    sendToDoReceipts,
+    sendToDoReadedReceipts
 } from './Manager';
 
 /**
@@ -22,6 +23,24 @@ YYIMManager.prototype.getTodoDigset = function(arg) {
  */
 YYIMManager.prototype.sendToDoReceipts = function(arg) {
     sendToDoReceipts(arg);
+};
+
+
+/**
+ * 发送代办已读回执 rongqb 20180504
+ * @param {Object} arg
+ */
+YYIMManager.prototype.sendToDoReadedReceipts = function(arg) {
+    if (arg &&
+        arg.qz_id &&
+        arg.appId &&
+        arg.businessKey &&
+        (arg.accessToken || arg.sessionId)) {
+
+        sendToDoReadedReceipts(arg);
+    } else {
+        arg && arg.error && arg.error();
+    }
 };
 
 /**

@@ -17,35 +17,35 @@ function getChatGroups(arg) {
 		type: 'get',
 		dataType: 'json',
 		cache: false,
-		success: function(chatGroupList) {
-			if(!!chatGroupList){
+		success: function (chatGroupList) {
+			if (!!chatGroupList) {
 				chatGroupList.roomItems = chatGroupList.roomItems || [];
 				chatGroupList.roomNames = chatGroupList.roomNames || [];
 				chatGroupList.leftRooms = chatGroupList.leftRooms || [];
-				
+
 				var i = chatGroupList.roomItems.length || 0;
-				while(i--) {
+				while (i--) {
 					chatGroupList.roomItems[i] = handleChatGroup(chatGroupList.roomItems[i]);
 				}
-				
+
 				var j = chatGroupList.roomNames.length || 0;
-				while(j--){
+				while (j--) {
 					chatGroupList.roomNames[j] = YYIMChat.getJIDUtil().getID(chatGroupList.roomNames[j]);
 				}
-				
+
 				var z = chatGroupList.leftRooms.length || 0;
-				while(z--){
+				while (z--) {
 					chatGroupList.leftRooms[z] = YYIMChat.getJIDUtil().getID(chatGroupList.leftRooms[z]);
 				}
 			}
 			arg.success && arg.success(chatGroupList || {});
 			arg = null;
 		},
-		error: function(xhr) {
+		error: function (xhr) {
 			try {
 				arg.error && arg.error(JSON.parse(xhr.responseText));
 				arg = null;
-			} catch(e) {
+			} catch (e) {
 				arg.error && arg.error();
 				arg = null;
 			}
@@ -70,10 +70,10 @@ function queryChatGroup(arg) {
 		size: YYIMCommonUtil.isNumber(arg.size) ? arg.size : 20,
 		search: arg.keyword
 	};
-	YYIMChat.getConnection().send(new JumpPacket(iqBody, OPCODE.QUERY_CHATGROUP.SEND), function(queryResult, _arg) {
+	YYIMChat.getConnection().send(new JumpPacket(iqBody, OPCODE.QUERY_CHATGROUP.SEND), function (queryResult, _arg) {
 		var items = queryResult.items || [],
 			i = items.length;
-		while(i--) {
+		while (i--) {
 			var item = items[i];
 			items[i].id = YYIMChat.getJIDUtil().getID(item.jid);
 			items[i].name = items[i].name || items[i].id;
@@ -97,16 +97,16 @@ function queryChatGroup(arg) {
  */
 function joinChatGroup(arg) {
 	var presenceBody = {
-		to : arg.jid + "/" + YYIMChat.getUserNode()
+		to: arg.jid + "/" + YYIMChat.getUserNode()
 	};
-	
-	YYIMChat.getConnection().send(new JumpPacket(presenceBody, OPCODE.CHATGROUP.SEND), function(joinResult, _arg) {
-		if(joinResult && joinResult.code == '40301'){
+
+	YYIMChat.getConnection().send(new JumpPacket(presenceBody, OPCODE.CHATGROUP.SEND), function (joinResult, _arg) {
+		if (joinResult && joinResult.code == '40301') {
 			_arg.error && _arg.error({
-				code : joinResult.code,
-				message : joinResult.message
+				code: joinResult.code,
+				message: joinResult.message
 			});
-		}else if(joinResult){
+		} else if (joinResult) {
 			joinResult.id = YYIMChat.getJIDUtil().getID(joinResult.from);
 			_arg.success && _arg.success(joinResult);
 		}
@@ -123,23 +123,23 @@ function joinChatGroup(arg) {
  * error : function
  * }
  */
-function getChatGroupInfo(arg){
+function getChatGroupInfo(arg) {
 	var config = YYIMChat.getConfig();
 	jQuery.ajax({
 		url: config.SERVLET.REST_USER_SERVLET + config.MULTI_TENANCY.ETP_KEY + '/' + config.MULTI_TENANCY.APP_KEY + '/' + YYIMChat.getUserID() + '/room/info?membersLimit=' + arg.membersLimit + '&mucId=' + arg.jid + '&token=' + YYIMChat.getToken(),
 		type: 'get',
 		dataType: 'json',
 		cache: false,
-		success: function(result) {
+		success: function (result) {
 			var group = handleChatGroup(result);
 			arg.success && arg.success(group);
 			arg = null;
 		},
-		error: function(xhr) {
+		error: function (xhr) {
 			try {
 				arg.error && arg.error(JSON.parse(xhr.responseText));
 				arg = null;
-			} catch(e) {
+			} catch (e) {
 				arg.error && arg.error();
 				arg = null;
 			}
@@ -159,14 +159,14 @@ function getChatGroupInfo(arg){
  */
 function createChatGroup(arg) {
 	var iqBody = {
-		id:  Math.uuid(),
+		id: Math.uuid(),
 		to: arg.to,
 		naturalLanguageName: arg.name,
 		from: YYIMChat.getUserBareJID(),
 		invitees: arg.members
 	};
 
-	YYIMChat.getConnection().send(new JumpPacket(iqBody, OPCODE.CREATE_GROUP.SEND), function(result, _arg) {
+	YYIMChat.getConnection().send(new JumpPacket(iqBody, OPCODE.CREATE_GROUP.SEND), function (result, _arg) {
 		_arg.complete && _arg.complete();
 		_arg.success && _arg.success(handleChatGroup(result));
 	}, arg);
@@ -184,13 +184,13 @@ function createChatGroup(arg) {
  */
 function transferChatGroup(arg) {
 	var iqBody = {
-		id:  Math.uuid(),
+		id: Math.uuid(),
 		to: arg.to,
 		from: YYIMChat.getUserBareJID(),
 		newOwner: arg.newOwner
 	};
 
-	YYIMChat.getConnection().send(new JumpPacket(iqBody, OPCODE.TRANSFER_GROUP.SEND), function(result, _arg) {
+	YYIMChat.getConnection().send(new JumpPacket(iqBody, OPCODE.TRANSFER_GROUP.SEND), function (result, _arg) {
 		_arg.complete && _arg.complete();
 		_arg.success && _arg.success(transferChatGroupOwner(result));
 	}, arg);
@@ -203,12 +203,12 @@ function transferChatGroup(arg) {
  */
 function dismissChatGroup(arg) {
 	var iqBody = {
-		id:  Math.uuid(),
+		id: Math.uuid(),
 		to: arg.to,
 		from: YYIMChat.getUserBareJID()
 	};
 
-	YYIMChat.getConnection().send(new JumpPacket(iqBody, OPCODE.DISMISS_GROUP.SEND), function(result, _arg) {
+	YYIMChat.getConnection().send(new JumpPacket(iqBody, OPCODE.DISMISS_GROUP.SEND), function (result, _arg) {
 		_arg.complete && _arg.complete();
 		_arg.success && _arg.success({
 			id: result.id,
@@ -230,13 +230,13 @@ function dismissChatGroup(arg) {
  */
 function inviteGroupMember(arg) {
 	var iqBody = {
-		id:  Math.uuid(),
+		id: Math.uuid(),
 		to: arg.to,
 		from: YYIMChat.getUserBareJID(),
 		invitees: arg.members
 	};
 
-	YYIMChat.getConnection().send(new JumpPacket(iqBody, OPCODE.INVITE_GROUP_MEMBER.SEND), function(result, _arg) {
+	YYIMChat.getConnection().send(new JumpPacket(iqBody, OPCODE.INVITE_GROUP_MEMBER.SEND), function (result, _arg) {
 		_arg.complete && _arg.complete();
 		_arg.success && _arg.success(handleChatGroup(result));
 	}, arg);
@@ -254,13 +254,13 @@ function inviteGroupMember(arg) {
  */
 function modifyChatGroupInfo(arg) {
 	var iqBody = {
-		id:  Math.uuid(),
+		id: Math.uuid(),
 		naturalLanguageName: arg.name,
 		from: YYIMChat.getUserBareJID(),
 		to: arg.to
 	};
 
-	YYIMChat.getConnection().send(new JumpPacket(iqBody, OPCODE.MODIFY_GROUP_INFO.SEND), function(result, _arg) {
+	YYIMChat.getConnection().send(new JumpPacket(iqBody, OPCODE.MODIFY_GROUP_INFO.SEND), function (result, _arg) {
 		_arg.complete && _arg.complete();
 		_arg.success && _arg.success(handleChatGroup(result));
 	}, arg);
@@ -278,13 +278,13 @@ function modifyChatGroupInfo(arg) {
  */
 function kickGroupMember(arg) {
 	var iqBody = {
-		id:  Math.uuid(),
+		id: Math.uuid(),
 		member: arg.member,
 		from: YYIMChat.getUserBareJID(),
 		to: arg.to
 	};
 
-	YYIMChat.getConnection().send(new JumpPacket(iqBody, OPCODE.KICK_GROUP_MEMBER.SEND), function(result, _arg) {
+	YYIMChat.getConnection().send(new JumpPacket(iqBody, OPCODE.KICK_GROUP_MEMBER.SEND), function (result, _arg) {
 		_arg.complete && _arg.complete();
 		_arg.success && _arg.success(handleChatGroup(result));
 	}, arg);
@@ -301,12 +301,12 @@ function kickGroupMember(arg) {
  */
 function exitChatGroup(arg) {
 	var iqBody = {
-		id:  Math.uuid(),
+		id: Math.uuid(),
 		from: YYIMChat.getUserBareJID(),
 		to: arg.to
 	};
 
-	YYIMChat.getConnection().send(new JumpPacket(iqBody, OPCODE.EXIT_GROUP.SEND), function(result, _arg) {
+	YYIMChat.getConnection().send(new JumpPacket(iqBody, OPCODE.EXIT_GROUP.SEND), function (result, _arg) {
 		_arg.complete && _arg.complete();
 		_arg.success && _arg.success({
 			from: YYIMChat.getJIDUtil().getID(result.from),
@@ -320,17 +320,53 @@ function exitChatGroup(arg) {
  * 群组信息返回处理函数
  */
 function handleChatGroup(result) {
-	if(!result) {
+	if (!result) {
 		return;
 	}
 
+	// 06.22  合并
+	if (result.owners) {
+		for (var x in result.owners) {
+			if (result.owners.hasOwnProperty(x)) {
+				result.owners[x] = YYIMChat.getJIDUtil().getID(result.owners[x]);
+			}
+		}
+	}
+
+	if (result.operhand) {
+		for (var x in result.operhand) {
+			if (result.operhand.hasOwnProperty(x)) {
+				result.operhand[x] = YYIMChat.getJIDUtil().getID(result.operhand[x]);
+			}
+		}
+	}
+
+
 	var j = result.members.length;
 	var members = [];
-	while(j--) {
+	while (j--) {
 		var member = result.members[j];
 		member.id = YYIMChat.getJIDUtil().getID(member.jid);
 		members.push(member);
 	}
+
+	//0622 合并 
+	if (result.whiteList) {
+		for (var x in result.whiteList) {
+			if (result.whiteList.hasOwnProperty(x)) {
+				result.whiteList[x] = YYIMChat.getJIDUtil().getID(result.whiteList[x]);
+			}
+		}
+	}
+
+	if (result.blackList) {
+		for (var x in result.blackList) {
+			if (result.blackList.hasOwnProperty(x)) {
+				result.blackList[x] = YYIMChat.getJIDUtil().getID(result.blackList[x]);
+			}
+		}
+	}
+	
 	var chatGroup = {
 		id: YYIMChat.getJIDUtil().getID(result.from || result.jid),
 		name: result.naturalLanguageName || result.roomname || result.name,
@@ -344,7 +380,9 @@ function handleChatGroup(result) {
 		creater: YYIMChat.getJIDUtil().getID(result.operator),
 		members: members,
 		owners: result.owners,
-		tag: result.tag
+		tag: result.tag,
+		whiteList: result.whiteList,
+		blackList: result.blackList
 	};
 	return chatGroup;
 }
@@ -353,13 +391,13 @@ function handleChatGroup(result) {
  * 群组转让返回处理函数 rongqb 20160106
  */
 function transferChatGroupOwner(result) {
-	if(!result) {
+	if (!result) {
 		return;
 	}
 
 	var j = result.memberItems.length;
 	var members = [];
-	while(j--) {
+	while (j--) {
 		var member = result.memberItems[j];
 		member.id = YYIMChat.getJIDUtil().getID(member.jid);
 		members.push(member);
@@ -378,13 +416,13 @@ function transferChatGroupOwner(result) {
  */
 function collectChatGroup(arg) {
 	var iqBody = {
-		id:  Math.uuid(),
+		id: Math.uuid(),
 		from: YYIMChat.getUserBareJID(),
 		to: arg.to,
 		type: arg.type
 	};
 
-	YYIMChat.getConnection().send(new JumpPacket(iqBody, OPCODE.COLLECT_GROUP.SEND), function(result, _arg) {
+	YYIMChat.getConnection().send(new JumpPacket(iqBody, OPCODE.COLLECT_GROUP.SEND), function (result, _arg) {
 		_arg.complete && _arg.complete();
 		_arg.success && _arg.success({
 			from: YYIMChat.getJIDUtil().getID(_arg.to),
@@ -415,7 +453,7 @@ function getSharedFiles(arg) {
 	var type = ([contacts.CHAT_TYPE.CHAT, contacts.CHAT_TYPE.GROUP_CHAT, contacts.CHAT_TYPE.PUB_ACCOUNT].indexOf(arg.type) > -1) ? arg.type : contacts.CHAT_TYPE.CHAT;
 
 	var url = config.SERVLET.REST_USER_SERVLET + config.MULTI_TENANCY.ETP_KEY + '/' + config.MULTI_TENANCY.APP_KEY + '/shareattachment/persional/attachment/' + YYIMChat.getUserID() + '/' + arg.id;
-	if(type == contacts.CHAT_TYPE.GROUP_CHAT) {
+	if (type == contacts.CHAT_TYPE.GROUP_CHAT) {
 		url = config.SERVLET.REST_USER_SERVLET + config.MULTI_TENANCY.ETP_KEY + '/' + config.MULTI_TENANCY.APP_KEY + '/shareattachment/room/attachment/' + arg.id + '/' + YYIMChat.getUserID();
 	}
 
@@ -430,15 +468,15 @@ function getSharedFiles(arg) {
 		type: 'get',
 		dataType: 'json',
 		cache: false,
-		success: function(data) {
+		success: function (data) {
 			var items = data.list || [];
 			i = items.length;
-			while(i--) {
+			while (i--) {
 				var item = items[i];
 				item.id = item.packetId;
 				item.creator = YYIMChat.getJIDUtil().getID(item.creator);
 				item.owner = [];
-				if(type == YYIMChat.getConstants().CHAT_TYPE.GROUP_CHAT) {
+				if (type == YYIMChat.getConstants().CHAT_TYPE.GROUP_CHAT) {
 					item.owner.push({
 						id: YYIMChat.getJIDUtil().getID(item.ownerId),
 						type: type
@@ -450,21 +488,21 @@ function getSharedFiles(arg) {
 					item.owner.push({
 						id: temp[0],
 						type: type
-					},{
-						id: temp[1],
-						type: type
-					});
+					}, {
+							id: temp[1],
+							type: type
+						});
 				}
 				delete item.ownerId;
 			}
 			arg.success && arg.success(data);
 			arg = null;
 		},
-		error: function(xhr) {
+		error: function (xhr) {
 			try {
 				arg.error && arg.error(JSON.parse(xhr.responseText));
 				arg = null;
-			} catch(e) {
+			} catch (e) {
 				arg.error && arg.error();
 				arg = null;
 			}
@@ -487,21 +525,21 @@ function getGroupMembers(arg) {
 		type: 'get',
 		dataType: 'json',
 		cache: false,
-		success: function(result){
-			if(result && result.length){
+		success: function (result) {
+			if (result && result.length) {
 				var index = result.length;
-				while(index--){
+				while (index--) {
 					result[index].id = YYIMChat.getJIDUtil().getID(result[index].jid);
 				}
 			}
 			arg.success && arg.success(result || []);
 			arg = null;
 		},
-		error: function(){
+		error: function () {
 			try {
 				arg.error && arg.error(JSON.parse(xhr.responseText));
 				arg = null;
-			} catch(e) {
+			} catch (e) {
 				arg.error && arg.error();
 				arg = null;
 			}
@@ -509,41 +547,41 @@ function getGroupMembers(arg) {
 	});
 }
 
-function monitor(){
+function monitor() {
 	/**
 	 * 群信息更新 rongqb 20151119
 	 * resource:2.1
 	 */
-	YYIMChat.getConnection().registerHandler(OPCODE.ON_GROUP_UPDATE.KEY, function(packet) {
+	YYIMChat.getConnection().registerHandler(OPCODE.ON_GROUP_UPDATE.KEY, function (packet) {
 		var chatgroup = handleChatGroup(packet);
-		if(chatgroup){
-			YYIMChat.onGroupUpdate(chatgroup);			
+		if (chatgroup) {
+			YYIMChat.onGroupUpdate(chatgroup);
 		}
 	});
-	
+
 	/**
 	 * 群组转让 rongqb 20160106
 	 * resource:2.3
 	 */
-	YYIMChat.getConnection().registerHandler(OPCODE.ON_GROUP_TRANSFER.KEY, function(packet) {
+	YYIMChat.getConnection().registerHandler(OPCODE.ON_GROUP_TRANSFER.KEY, function (packet) {
 		var chatgroup = transferChatGroupOwner(packet);
-		if(chatgroup){
-			YYIMChat.onTransferGroupOwner(chatgroup);			
+		if (chatgroup) {
+			YYIMChat.onTransferGroupOwner(chatgroup);
 		}
 	});
-	
+
 	/**
 	 * 被群组踢了 rongqb 20151119
 	 * resource:2.1
 	 */
-	YYIMChat.getConnection().registerHandler(OPCODE.KICKED_GROUP.KEY, function(packet) {
+	YYIMChat.getConnection().registerHandler(OPCODE.KICKED_GROUP.KEY, function (packet) {
 		var result = {
-			id : packet.id,
-			from : YYIMChat.getJIDUtil().getID(packet.from),
-			to : YYIMChat.getJIDUtil().getID(packet.to)
+			id: packet.id,
+			from: YYIMChat.getJIDUtil().getID(packet.from),
+			to: YYIMChat.getJIDUtil().getID(packet.to)
 		};
-		if(result){
-			YYIMChat.onKickedOutGroup(result);			
+		if (result) {
+			YYIMChat.onKickedOutGroup(result);
 		}
 	});
 }

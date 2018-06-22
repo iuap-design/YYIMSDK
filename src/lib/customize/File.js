@@ -22,12 +22,18 @@ IMFile.prototype.build = function(arg){
 	if(arg.location){
 		this.location = arg.location || this.location;
 	}
+
+	if(arg.attachId || arg.path){
+		this.attachId = arg.attachId || arg.path || this.attachId || '';
+	}
 	
 	if(arg.id){
 		this.id = arg.id || this.id;
 	}
-	
-	this.fid = arg.fid || 0;
+
+	if(arg.fid){
+		this.fid = arg.fid || 0;
+	}
 	
 	if(arg.original === 0
 	|| arg.original === 1){

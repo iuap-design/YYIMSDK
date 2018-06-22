@@ -1,6 +1,22 @@
 import { YYIMManager } from '../../core/manager';
 import { FileUpload } from './FileUpload';
 import './YYIMUploader';
+/**
+ * 设置上传配置 rongqb 20160816
+ */
+YYIMManager.prototype.setUploadOption = function(arg) {
+	FileUpload.setUploadOption({
+			browse_button: arg.browse_button,
+			options: arg.options
+	});
+};
+
+/**
+* 销毁上传按钮 rongqb 20160816
+*/
+YYIMManager.prototype.destroyUpload = function(browse_button) {
+	FileUpload.getInstance().destroy(browse_button);
+};
 
 /**
  * 手动开始上传 rongqb 20160816

@@ -1,10 +1,12 @@
 import { YYIMManager, YYIMChat } from '../../core/manager';
 import {
-    monitor,
+	monitor,
 	sendMessage,
 	getHistoryMessage,
 	revokeMessage,
-	sendReceiptsPacket
+	sendReceiptsPacket,
+	getMessageStatRead,
+	revokeMessageByOther
 } from './Manager';
 
 YYIMChat.setBackhander({
@@ -12,10 +14,10 @@ YYIMChat.setBackhander({
 		'messageMonitor': monitor
 	},
 	'initCallback': {
-		'message':  function(options){
-			YYIMChat.onReceipts = options.onReceipts || function(){}; //回执
-			YYIMChat.onMessage = options.onMessage || function(){}; //消息回调
-			YYIMChat.onTransparentMessage = options.onTransparentMessage || function(){}; //透传消息
+		'message': function (options) {
+			YYIMChat.onReceipts = options.onReceipts || function () { }; //回执
+			YYIMChat.onMessage = options.onMessage || function () { }; //消息回调
+			YYIMChat.onTransparentMessage = options.onTransparentMessage || function () { }; //透传消息
 		}
 	}
 });
@@ -35,18 +37,62 @@ YYIMChat.setBackhander({
  *  error:function
  * }
  */
-YYIMManager.prototype.getHistoryMessage = function(arg){
+YYIMManager.prototype.getHistoryMessage = function (arg) {
 	arg = arg || {};
 
-	if(!YYIMUtil['isWhateType'](arg.start,'Number')){
+	if (!YYIMUtil['isWhateType'](arg.start, 'Number')) {
 		arg.start = 0;
 	}
 
-	if(!YYIMUtil['isWhateType'](arg.size,'Number')){
+	if (!YYIMUtil['isWhateType'](arg.size, 'Number')) {
 		arg.size = 100;
 	}
 
 	getHistoryMessage(arg);
+};
+
+// 0622 合并
+/**
+ *  获取群组@消息已读状态 20180510
+ * @param 
+ * arg {
+ * 	id: String,
+ *  startVersion: number, //默认为0
+ *  endVersion: number
+ * } 
+ */
+YYIMManager.prototype.getMessageStatRead = function(arg) {
+	arg = arg || {};
+	arg.startVersion = arg.startVersion || 0;
+	if (arg &&
+			arg.id &&
+			typeof arg.startVersion == 'number' &&
+			typeof arg.endVersion == 'number' &&
+			arg.startVersion >= 0 &&
+			arg.endVersion > arg.startVersion) {
+
+			getMessageStatRead(arg);
+	} else {
+			arg && arg.error && arg.error();
+	}
+};
+
+/**
+ * 群成员撤销消息 rongqb 20180507
+ * arg {
+ * 	id: String, //消息id
+ *  to: String, //消息的另一方,待定
+ *  sender: String, //发送者id
+ *  success: function,
+ *  error: function
+ * }
+ */
+YYIMManager.prototype.revokeMessageByOther = function(arg) {
+	if (arg && arg.id && arg.to && arg.sender) {
+			revokeMessageByOther(arg);
+	} else {
+			arg && arg.error && arg.error();
+	}
 };
 
 /**
@@ -58,8 +104,8 @@ YYIMManager.prototype.getHistoryMessage = function(arg){
  *   sessionVersion: String
  * }
  */
-YYIMManager.prototype.sendReadedReceiptsPacket = function(arg){
-	if(arg && arg.id){
+YYIMManager.prototype.sendReadedReceiptsPacket = function (arg) {
+	if (arg && arg.id) {
 		arg.state = 2;
 		sendReceiptsPacket(arg);
 	}
@@ -75,8 +121,8 @@ YYIMManager.prototype.sendReadedReceiptsPacket = function(arg){
  * success:function //成功回调函数
  * }
  */
-YYIMManager.prototype.sendTextMessage = function(arg){
-	arg.content = arg.msg  || arg.content;
+YYIMManager.prototype.sendTextMessage = function (arg) {
+	arg.content = arg.msg || arg.content;
 	arg.contentType = YYIMChat.getConstants().MESSAGE_CONTENT_TYPE.TEXT;
 	this.sendMessage(arg);
 };
@@ -101,33 +147,33 @@ YYIMManager.prototype.sendTextMessage = function(arg){
  * progress: function
  * }
  */
-YYIMManager.prototype.sendPic = function(arg){
+YYIMManager.prototype.sendPic = function (arg) {
 	arg = arg || {};
-	if(YYIMUtil['isWhateType'](arg.chatInfo,'Function')){
-		this.uploader(jQuery('#' + arg.fileInputId)[0] || arg.fileInputId,{
+	if (YYIMUtil['isWhateType'](arg.chatInfo, 'Function')) {
+		this.uploader(jQuery('#' + arg.fileInputId)[0] || arg.fileInputId, {
 			drop_element: arg.drop_element,
 			chatInfo: arg.chatInfo,
 			fileFiltered: arg.fileFiltered,
 			beforeUpload: arg.beforeUpload,
 			mediaType: 1, //1:image ,2: file,3:doc
-			success: function(result){
+			success: function (result) {
 				sendMessage({
-					id : result.chatInfo.messageId || Math.uuid(),
+					id: result.chatInfo.messageId || Math.uuid(),
 					spaceId: result.chatInfo.spaceId,
-					body : {
+					body: {
 						extend: result.chatInfo.extend,
-						content : new IMFile({
+						content: new IMFile({
 							id: result.file.id,
 							name: result.file.name,
 							path: result.data && result.data.attachId,
 							size: result.file.size,
 							original: 1
 						}),
-						contentType : YYIMChat.getConstants().MESSAGE_CONTENT_TYPE.IMAGE
+						contentType: YYIMChat.getConstants().MESSAGE_CONTENT_TYPE.IMAGE
 					},
-					to : result.chatInfo.to,
-					type :result.chatInfo.type,
-					success : function(data) {
+					to: result.chatInfo.to,
+					type: result.chatInfo.type,
+					success: function (data) {
 						arg.success && arg.success(data);
 					}
 				});
@@ -136,7 +182,7 @@ YYIMManager.prototype.sendPic = function(arg){
 			error: arg.error,
 			progress: arg.progress
 		});
-	}else{
+	} else {
 		arg && arg.error && arg.error();
 	}
 };
@@ -161,20 +207,20 @@ YYIMManager.prototype.sendPic = function(arg){
  * progress: function
  * }
  */
-YYIMManager.prototype.sendFile = function(arg){
+YYIMManager.prototype.sendFile = function (arg) {
 	var that = this;
 	arg = arg || {};
-	if(YYIMUtil['isWhateType'](arg.chatInfo,'Function')){
-		this.uploader(jQuery('#' + arg.fileInputId)[0] || arg.fileInputId,{
+	if (YYIMUtil['isWhateType'](arg.chatInfo, 'Function')) {
+		this.uploader(jQuery('#' + arg.fileInputId)[0] || arg.fileInputId, {
 			drop_element: arg.drop_element,
 			chatInfo: arg.chatInfo,
 			fileFiltered: arg.fileFiltered,
 			beforeUpload: arg.beforeUpload,
 			mediaType: 3, //1:image ,2: file,3:doc
-			success: function(result){
+			success: function (result) {
 				var mediaType = 3;
 
-				if(YYIMChat.getConfig().UPLOAD.IMAGE_TYPES.test(result.file.name)){
+				if (YYIMChat.getConfig().UPLOAD.IMAGE_TYPES.test(result.file.name)) {
 					mediaType = 1;
 				}
 
@@ -185,16 +231,16 @@ YYIMManager.prototype.sendFile = function(arg){
 					size: result.file.size
 				});
 
-				if(mediaType === 1){
+				if (mediaType === 1) {
 					file.build({
 						original: 1
 					});
 				}
 
-				if(result
-				&& result['data']
-				&& result['data']['data']
-				&& result['data']['data']['fileUrl']){
+				if (result
+					&& result['data']
+					&& result['data']['data']
+					&& result['data']['data']['fileUrl']) {
 					//esn pc 上传
 					file.build({
 						path: result['data']['data']['fileUrl'],
@@ -202,7 +248,7 @@ YYIMManager.prototype.sendFile = function(arg){
 					});
 				}
 
-				if(YYIMUtil['isWhateType'](result['data'],'Array')){
+				if (YYIMUtil['isWhateType'](result['data'], 'Array')) {
 					//esn web 上传
 					file = new IMFile({
 						id: result.file.id,
@@ -214,16 +260,16 @@ YYIMManager.prototype.sendFile = function(arg){
 				}
 
 				sendMessage({
-					id : result.chatInfo.messageId || Math.uuid(),
+					id: result.chatInfo.messageId || Math.uuid(),
 					spaceId: result.chatInfo.spaceId,
-					body : {
+					body: {
 						extend: result.chatInfo.extend,
-						content : file,
-						contentType : (mediaType === 1)? that.getConstants().MESSAGE_CONTENT_TYPE.IMAGE :that.getConstants().MESSAGE_CONTENT_TYPE.FILE
+						content: file,
+						contentType: (mediaType === 1) ? that.getConstants().MESSAGE_CONTENT_TYPE.IMAGE : that.getConstants().MESSAGE_CONTENT_TYPE.FILE
 					},
-					to : result.chatInfo.to,
-					type :result.chatInfo.type,
-					success : function(data) {
+					to: result.chatInfo.to,
+					type: result.chatInfo.type,
+					success: function (data) {
 						arg.success && arg.success(data);
 					}
 				});
@@ -233,7 +279,7 @@ YYIMManager.prototype.sendFile = function(arg){
 			error: arg.error,
 			progress: arg.progress
 		});
-	}else{
+	} else {
 		arg && arg.error && arg.error();
 	}
 };
@@ -253,7 +299,7 @@ YYIMManager.prototype.sendFile = function(arg){
  * success:function //成功回调函数
  * }
  */
-YYIMManager.prototype.sendShareMessage = function(arg){
+YYIMManager.prototype.sendShareMessage = function (arg) {
 	arg.contentType = YYIMChat.getConstants().MESSAGE_CONTENT_TYPE.SHARE;
 	this.sendMessage(arg);
 };
@@ -276,7 +322,7 @@ YYIMManager.prototype.sendShareMessage = function(arg){
  *    complete:function
  * }
  */
-YYIMManager.prototype.sendFormMessage = function(arg) {
+YYIMManager.prototype.sendFormMessage = function (arg) {
 	var that = this;
 	var file = arg.file
 
@@ -293,11 +339,11 @@ YYIMManager.prototype.sendFormMessage = function(arg) {
 	url += '?' + jQuery.param(param);
 
 	jQuery.ajax({
-		xhr: function() {
+		xhr: function () {
 			var xhr = new window.XMLHttpRequest();
 			//Upload progress
-			xhr.upload.addEventListener("progress", function(evt) {
-				if(evt.lengthComputable) {
+			xhr.upload.addEventListener("progress", function (evt) {
+				if (evt.lengthComputable) {
 					var percentComplete = evt.loaded / evt.total;
 					arg.progress && arg.progress({
 						loaded: evt.loaded,
@@ -307,8 +353,8 @@ YYIMManager.prototype.sendFormMessage = function(arg) {
 				}
 			}, false);
 			//Download progress
-			xhr.addEventListener("progress", function(evt) {
-				if(evt.lengthComputable) {
+			xhr.addEventListener("progress", function (evt) {
+				if (evt.lengthComputable) {
 					var percentComplete = evt.loaded / evt.total;
 					arg.progress && arg.progress({
 						loaded: evt.loaded,
@@ -325,8 +371,8 @@ YYIMManager.prototype.sendFormMessage = function(arg) {
 		data: arg.data,
 		processData: false,
 		contentType: false,
-		success: function(result) {
-			if(result && result.attachId) {
+		success: function (result) {
+			if (result && result.attachId) {
 				var CONTENT_TYPE = YYIMChat.getConstants().MESSAGE_CONTENT_TYPE;
 				arg.fileUploaded && arg.fileUploaded(result);
 				that.sendMessage({
@@ -338,7 +384,7 @@ YYIMManager.prototype.sendFormMessage = function(arg) {
 						name: file.name,
 						path: result.attachId,
 						size: file.size,
-						original: (param.mediaType === 1)? 1:null
+						original: (param.mediaType === 1) ? 1 : null
 					}),
 					contentType: (param.mediaType === 1) ? CONTENT_TYPE.IMAGE : CONTENT_TYPE.FILE,
 					success: arg.success,
@@ -365,7 +411,7 @@ YYIMManager.prototype.sendFormMessage = function(arg) {
  * },
  * contentType
  */
-YYIMManager.prototype.sendMessage = function(arg){
+YYIMManager.prototype.sendMessage = function (arg) {
 	arg.id = arg.id || Math.uuid();
 	arg.type = arg.type || YYIMChat.getConstants().CHAT_TYPE.CHAT;
 	arg.body = {
@@ -376,8 +422,8 @@ YYIMManager.prototype.sendMessage = function(arg){
 		sceneParams: arg.sceneParams
 	};
 
-	if(arg.type === YYIMChat.getConstants().CHAT_TYPE.GROUP_CHAT
-	&& YYIMArrayUtil.isArray(arg.atuser)){
+	if (arg.type === YYIMChat.getConstants().CHAT_TYPE.GROUP_CHAT
+		&& YYIMArrayUtil.isArray(arg.atuser)) {
 		arg.body.atuser = arg.atuser;
 	}
 
@@ -395,10 +441,10 @@ YYIMManager.prototype.sendMessage = function(arg){
  *  complete: function
  * }
  */
-YYIMManager.prototype.revokeMessage = function(arg){
-	if(arg && arg.id){
+YYIMManager.prototype.revokeMessage = function (arg) {
+	if (arg && arg.id) {
 		revokeMessage(arg);
-	}else{
+	} else {
 		arg && arg.error && arg.error();
 	}
 };

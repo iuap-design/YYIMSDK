@@ -47,7 +47,7 @@ const ConfigSetting = (() => {
 				mozilla: /mozilla/.test(userAgent) && !/(compatible|webkit)/.test(userAgent)
 			};
 		}
-	
+
 		const isMsielt10 = () => {
 			let browser = getBrowser();
 			if (browser.msie &&
@@ -56,16 +56,16 @@ const ConfigSetting = (() => {
 			}
 			return false;
 		}
-	
-		const getClientMark = () =>{
+
+		const getClientMark = () => {
 			return YY_IM_CLIENT_MARK;
 		}
 
-		if(isMsielt10()){ // add for ie < 10 rongqb 20170412
-			YY_IM_SERVLET_ADDRESS = YY_IM_SERVLET_ADDRESS.replace(/^https?:\/\//,window.location.protocol + '//');
+		if (isMsielt10()) { // add for ie < 10 rongqb 20170412
+			YY_IM_SERVLET_ADDRESS = YY_IM_SERVLET_ADDRESS.replace(/^https?:\/\//, window.location.protocol + '//');
 		}
 
-		if(/https/.test(window.location.protocol) || (options.useHttps === true)){//add for https location rongqb 20170412
+		if (/https/.test(window.location.protocol) || (options.useHttps === true)) {//add for https location rongqb 20170412
 			YY_IM_WSPORT = 5225;
 		}
 
@@ -87,10 +87,10 @@ const ConfigSetting = (() => {
 				MEMBERSLIMIT: 5 //默认最多拉取5个群成员
 			},
 
-            BETCH_MAXLIMIT: {
-                ROSTER: 50, //批量vcard 最大个数
-                PUBACCOUNT: 50
-            },
+			BETCH_MAXLIMIT: {
+				ROSTER: 50, //批量vcard 最大个数
+				PUBACCOUNT: 50
+			},
 
 			INPUT_STATE: {
 				INTERVAL: 2 * 1000
@@ -99,7 +99,10 @@ const ConfigSetting = (() => {
 			UPLOAD: {
 				AUTO_SEND: true, //是否自动上传
 				MULTI_SELECTION: false, //是否可以在文件浏览对话框中选择多个文件
-				PREVENT_DUPLICATES: false, //是否重复上传
+				FILTERS: {
+					MAX_FILE_SIZE: '100mb',
+					PREVENT_DUPLICATES: false, //是否重复上传
+				},
 				PREVIEW_SIZE: { //预览图片的压缩尺寸
 					WIDTH: 100,
 					HEIGHT: 100
@@ -129,23 +132,35 @@ const ConfigSetting = (() => {
 				PHONESMAXLENGTH: 200 //最大被叫字符数
 			},
 
-			SERVLET: {
-				REST_RESOURCE_SERVLET: YY_IM_SERVLET_ADDRESS + 'sysadmin/rest/resource/',
-				REST_VERSION_SERVLET: YY_IM_SERVLET_ADDRESS + 'sysadmin/rest/version/',
-				REST_USER_SERVLET: YY_IM_SERVLET_ADDRESS + 'sysadmin/rest/user/',
-				REST_UPLOAD_SERVLET: YY_IM_SERVLET_ADDRESS + 'im_upload/rest/resource/',
-				REST_DOWNLOAD_SERVLET: YY_IM_SERVLET_ADDRESS + 'im_download/rest/resource/',
-				REST_TRANSFORM_SERVLET: YY_IM_SERVLET_ADDRESS + 'im_download/rest/transform/resource/',
-				REST_SYSTEM_SERVLET: YY_IM_SERVLET_ADDRESS + 'sysadmin/rest/system/',
-				REST_SYSTEM_CUSTOMER_USER: YY_IM_SERVLET_ADDRESS + 'sysadmin/rest/customer/user/',
+			SERVLET: ((ORIGIN) => { //rongqb 20180504
+				try {
+					for (var x in ORIGIN) {
+						if (ORIGIN.hasOwnProperty(x)) {
+							ORIGIN[x] = ORIGIN[x].toString();
+							ORIGIN[x] = ORIGIN[x].replace(/[\\\/]*$/, '/');
+						}
+					}
+				} catch (e) { }
 
-				REST_TODO_USER: TODO_SERVLET_ADDRESS + 'todocenter/user/todo/'
-			},
+				return {
+					REST_RESOURCE_SERVLET: ORIGIN.IM + 'sysadmin/rest/resource/',
+					REST_VERSION_SERVLET: ORIGIN.IM + 'sysadmin/rest/version/',
+					REST_USER_SERVLET: ORIGIN.IM + 'sysadmin/rest/user/',
+					REST_UPLOAD_SERVLET: ORIGIN.IM + 'im_upload/rest/resource/',
+					REST_DOWNLOAD_SERVLET: ORIGIN.IM + 'im_download/rest/resource/',
+					REST_TRANSFORM_SERVLET: ORIGIN.IM + 'im_download/rest/transform/resource/',
+					REST_SYSTEM_SERVLET: ORIGIN.IM + 'sysadmin/rest/system/',
+					REST_SYSTEM_CUSTOMER_USER: ORIGIN.IM + 'sysadmin/rest/customer/user/',
+
+					REST_TODO_USER: ORIGIN.PUBACCOUNT + 'todocenter/user/todo/',
+					REST_TODO_V2: ORIGIN.PUBACCOUNT + 'todocenter/rest/v2/client/items/'
+				};
+			})(ORIGIN),
 
 			SUPPORT: {
 				isWebSocketSupport: (() => {
 					window.WebSocket = window.WebSocket || window.MozWebSocket;
-					if(window.WebSocket) {
+					if (window.WebSocket) {
 						return true;
 					}
 					return false;
@@ -159,12 +174,12 @@ const ConfigSetting = (() => {
 				ALLOW_PLAIN: true,
 				ENABLE_WEBSOCKET: true,
 				ENABLE_LOCAL_CONNECTION: true,
-				USE_HTTPS: (() => {
-					if(/https/.test(window.location.protocol) || (options.useHttps === true)){
+				USE_HTTPS: ((options) => {
+					if (/https/.test(window.location.protocol) || (options.useHttps === true)) {
 						return true;
 					}
 					return false;
-				})(),
+				})(options),
 				SERVER_NAME: YY_IM_DOMAIN,
 				HTTP_BASE: YY_IM_ADDRESS,
 				HTTP_BIND_PORT: YY_IM_HTTPBIND_PORT,
@@ -235,12 +250,11 @@ const ConfigSetting = (() => {
 		};
 
 		YYIMConfiguration.getLocationOrigin = () => {
-			return window.location.origin? window.location.origin: (window.location.protocol + '//'+ window.location.host);
+			return window.location.origin ? window.location.origin : (window.location.protocol + '//' + window.location.host);
 		};
 
 		YYIMConfiguration.getClientMark = getClientMark;
 	}
-
 
 	return { init };
 })();

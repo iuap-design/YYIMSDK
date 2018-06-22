@@ -1,6 +1,6 @@
 import { YYIMManager, YYIMChat } from '../../core/manager';
 import {
-    monitor,
+	monitor,
 	queryChatGroup,
 	getGroupMembers,
 	joinChatGroup,
@@ -22,10 +22,10 @@ YYIMChat.setBackhander({
 		'groupMonitor': monitor
 	},
 	'initCallback': {
-		'group':  function(options){
-			YYIMChat.onGroupUpdate = options.onGroupUpdate || function(){};  //群信息更新
-			YYIMChat.onTransferGroupOwner = options.onTransferGroupOwner || function(){}; // 群主转让
-			YYIMChat.onKickedOutGroup = options.onKickedOutGroup || function(){};   //被群踢出 
+		'group': function (options) {
+			YYIMChat.onGroupUpdate = options.onGroupUpdate || function () { };  //群信息更新
+			YYIMChat.onTransferGroupOwner = options.onTransferGroupOwner || function () { }; // 群主转让
+			YYIMChat.onKickedOutGroup = options.onKickedOutGroup || function () { };   //被群踢出 
 		}
 	}
 });
@@ -39,9 +39,9 @@ YYIMChat.setBackhander({
  * error: function,  	 //失败回调函数
  * }
  */
-YYIMManager.prototype.getChatGroups = function(arg) {
-	arg  = arg || {};
-	arg.startDate = (YYIMUtil['isWhateType'](arg.startDate,'Number') &&  arg.startDate > 0) ? arg.startDate: 0;
+YYIMManager.prototype.getChatGroups = function (arg) {
+	arg = arg || {};
+	arg.startDate = (YYIMUtil['isWhateType'](arg.startDate, 'Number') && arg.startDate > 0) ? arg.startDate : 0;
 	arg.membersLimit = (YYIMCommonUtil.isNumber(arg.membersLimit) && arg.membersLimit > 0) ? arg.membersLimit : YYIMChat.getConfig().GROUP.MEMBERSLIMIT;
 	getChatGroups(arg);
 };
@@ -57,8 +57,9 @@ YYIMManager.prototype.getChatGroups = function(arg) {
  * complete: function
  * }
  */
-YYIMManager.prototype.queryChatGroup = function(arg) {
-	if(YYIMCommonUtil.isStringAndNotEmpty(arg.keyword)) {
+YYIMManager.prototype.queryChatGroup = function (arg) {
+	arg = arg || {};
+	if (YYIMCommonUtil.isStringAndNotEmpty(arg.keyword)) {
 		queryChatGroup(arg);
 	} else {
 		arg && arg.error && arg.error();
@@ -73,8 +74,9 @@ YYIMManager.prototype.queryChatGroup = function(arg) {
  * error:function
  * }
  */
-YYIMManager.prototype.joinChatGroup = function(arg) {
-	if(YYIMCommonUtil.isStringAndNotEmpty(arg.id)) {
+YYIMManager.prototype.joinChatGroup = function (arg) {
+	arg = arg || {};
+	if (YYIMCommonUtil.isStringAndNotEmpty(arg.id)) {
 		joinChatGroup({
 			jid: YYIMChat.getJIDUtil().buildChatGroupJID(YYIMChat.getJIDUtil().getNode(arg.id)),
 			success: arg.success,
@@ -94,8 +96,9 @@ YYIMManager.prototype.joinChatGroup = function(arg) {
  * error : function
  * }
  */
-YYIMManager.prototype.getChatGroupInfo = function(arg) {
-	if(YYIMCommonUtil.isStringAndNotEmpty(arg.id)) {
+YYIMManager.prototype.getChatGroupInfo = function (arg) {
+	arg = arg || {};
+	if (YYIMCommonUtil.isStringAndNotEmpty(arg.id)) {
 		getChatGroupInfo({
 			jid: YYIMChat.getJIDUtil().buildChatGroupJID(YYIMChat.getJIDUtil().getNode(arg.id)),
 			membersLimit: (YYIMCommonUtil.isNumber(arg.membersLimit) && arg.membersLimit > 0) ? arg.membersLimit : YYIMChat.getConfig().GROUP.MEMBERSLIMIT,
@@ -117,11 +120,12 @@ YYIMManager.prototype.getChatGroupInfo = function(arg) {
  *  complete:function
  * }
  */
-YYIMManager.prototype.createChatGroup = function(arg) {
-	if(!(YYIMArrayUtil.isArray(arg.members))) {
+YYIMManager.prototype.createChatGroup = function (arg) {
+	arg = arg || {};
+	if (!(YYIMArrayUtil.isArray(arg.members))) {
 		delete arg.members;
 	}
-	if(arg.members) {
+	if (arg.members) {
 		createChatGroup(arg);
 	} else {
 		arg && arg.error && arg.error();
@@ -138,8 +142,9 @@ YYIMManager.prototype.createChatGroup = function(arg) {
  *  complete:function
  *  }
  */
-YYIMManager.prototype.transferChatGroup = function(arg) {
-	if(arg && typeof(arg.newOwner) == 'string' && arg.to) {
+YYIMManager.prototype.transferChatGroup = function (arg) {
+	arg = arg || {};
+	if (arg && typeof (arg.newOwner) == 'string' && arg.to) {
 		arg.to = YYIMChat.getJIDUtil().buildChatGroupJID(YYIMChat.getJIDUtil().getNode(arg.to));
 		transferChatGroup(arg);
 	} else {
@@ -156,8 +161,9 @@ YYIMManager.prototype.transferChatGroup = function(arg) {
  *  complete:function
  *  }
  */
-YYIMManager.prototype.dismissChatGroup = function(arg) {
-	if(arg && arg.to) {
+YYIMManager.prototype.dismissChatGroup = function (arg) {
+	arg = arg || {};
+	if (arg && arg.to) {
 		arg.to = YYIMChat.getJIDUtil().buildChatGroupJID(YYIMChat.getJIDUtil().getNode(arg.to));
 		dismissChatGroup(arg);
 	} else {
@@ -176,8 +182,9 @@ YYIMManager.prototype.dismissChatGroup = function(arg) {
  *  complete:function
  * }
  */
-YYIMManager.prototype.inviteGroupMember = function(arg) {
-	if(arg.members && YYIMArrayUtil.isArray(arg.members) && arg.members.length && arg.to) {
+YYIMManager.prototype.inviteGroupMember = function (arg) {
+	arg = arg || {};
+	if (arg.members && YYIMArrayUtil.isArray(arg.members) && arg.members.length && arg.to) {
 		arg.to = YYIMChat.getJIDUtil().buildChatGroupJID(YYIMChat.getJIDUtil().getNode(arg.to));
 		inviteGroupMember(arg);
 	} else {
@@ -195,8 +202,9 @@ YYIMManager.prototype.inviteGroupMember = function(arg) {
  * 	complete: function
  * }
  */
-YYIMManager.prototype.modifyChatGroupInfo = function(arg) {
-	if(arg.name && arg.to) {
+YYIMManager.prototype.modifyChatGroupInfo = function (arg) {
+	arg = arg || {};
+	if (arg.name && arg.to) {
 		arg.to = YYIMChat.getJIDUtil().buildChatGroupJID(YYIMChat.getJIDUtil().getNode(arg.to));
 		modifyChatGroupInfo(arg);
 	} else {
@@ -214,8 +222,9 @@ YYIMManager.prototype.modifyChatGroupInfo = function(arg) {
  *  complete: function
  *  }
  */
-YYIMManager.prototype.kickGroupMember = function(arg) {
-	if(arg.member && typeof(arg.member) == 'string' && arg.to) {
+YYIMManager.prototype.kickGroupMember = function (arg) {
+	arg = arg || {};
+	if (arg.member && typeof (arg.member) == 'string' && arg.to) {
 		arg.to = YYIMChat.getJIDUtil().buildChatGroupJID(YYIMChat.getJIDUtil().getNode(arg.to));
 		kickGroupMember(arg);
 	} else {
@@ -232,8 +241,9 @@ YYIMManager.prototype.kickGroupMember = function(arg) {
  *  complete: function
  * }
  */
-YYIMManager.prototype.exitChatGroup = function(arg) {
-	if(arg.to) {
+YYIMManager.prototype.exitChatGroup = function (arg) {
+	arg = arg || {};
+	if (arg.to) {
 		arg.to = YYIMChat.getJIDUtil().buildChatGroupJID(YYIMChat.getJIDUtil().getNode(arg.to));
 		exitChatGroup(arg);
 	} else {
@@ -250,8 +260,9 @@ YYIMManager.prototype.exitChatGroup = function(arg) {
  *  complete: functionf
  * }
  */
-YYIMManager.prototype.collectGroup = function(arg) {
-	if(arg.to) {
+YYIMManager.prototype.collectGroup = function (arg) {
+	arg = arg || {};
+	if (arg.to) {
 		arg.to = YYIMChat.getJIDUtil().buildChatGroupJID(YYIMChat.getJIDUtil().getNode(arg.to));
 		arg.type = this.getConstants().COLLECT_TYPE.ADD;
 		collectChatGroup(arg);
@@ -269,8 +280,9 @@ YYIMManager.prototype.collectGroup = function(arg) {
  *  complete: function
  * }
  */
-YYIMManager.prototype.removeCollectGroup = function(arg) {
-	if(arg.to) {
+YYIMManager.prototype.removeCollectGroup = function (arg) {
+	arg = arg || {};
+	if (arg.to) {
 		arg.to = YYIMChat.getJIDUtil().buildChatGroupJID(YYIMChat.getJIDUtil().getNode(arg.to));
 		arg.type = this.getConstants().COLLECT_TYPE.REMOVE;
 		collectChatGroup(arg);
@@ -292,8 +304,9 @@ YYIMManager.prototype.removeCollectGroup = function(arg) {
  *  error: function
  * }
  */
-YYIMManager.prototype.getSharedFiles = function(arg) {
-	if(arg && arg.id) {
+YYIMManager.prototype.getSharedFiles = function (arg) {
+	arg = arg || {};
+	if (arg && arg.id) {
 		getSharedFiles(arg);
 	} else {
 		arg && arg.error && arg.error();
@@ -308,9 +321,9 @@ YYIMManager.prototype.getSharedFiles = function(arg) {
  *  error: function
  * }
  */
-YYIMManager.prototype.getGroupMembers = function(arg) {
-	if(arg && arg.id) {
-		if(YYIMCommonUtil.isStringAndNotEmpty(arg.id)) {
+YYIMManager.prototype.getGroupMembers = function (arg) {
+	if (arg && arg.id) {
+		if (YYIMCommonUtil.isStringAndNotEmpty(arg.id)) {
 			getGroupMembers(arg);
 		}
 	} else {
