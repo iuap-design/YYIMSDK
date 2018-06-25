@@ -171,12 +171,18 @@ IMFile.prototype.build = function(arg){
 	if(arg.location){
 		this.location = arg.location || this.location;
 	}
+
+	if(arg.attachId || arg.path){
+		this.attachId = arg.attachId || arg.path || this.attachId || '';
+	}
 	
 	if(arg.id){
 		this.id = arg.id || this.id;
 	}
-	
-	this.fid = arg.fid || 0;
+
+	if(arg.fid){
+		this.fid = arg.fid || 0;
+	}
 	
 	if(arg.original === 0
 	|| arg.original === 1){
@@ -1095,7 +1101,7 @@ var YYIMUtil = {
  * 正则表达式
  */
 var YYIMRegExp = {
-	mobile: /^1[3578][0-9]{9}$/, //手机号
+	mobile: /^[1][3578][0-9]{9}$/, //手机号
 	phone: /((\d{11})|^((\d{7,8})|(\d{4}|\d{3})-(\d{7,8})|(\d{4}|\d{3})-(\d{7,8})-(\d{4}|\d{3}|\d{2}|\d{1})|(\d{7,8})-(\d{4}|\d{3}|\d{2}|\d{1}))$)/ //手机和座机两种格式	
 };
 /**
@@ -1822,6 +1828,1110 @@ if (window.XMLSerializer &&
                                     return (new XMLSerializer()).serializeToString(this);
                                   });
  }
+
+/* Copyright (c) 1998 - 2007, Paul Johnston & Contributors
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * Redistributions of source code must retain the above copyright
+ * notice, this list of conditions and the following
+ * disclaimer. Redistributions in binary form must reproduce the above
+ * copyright notice, this list of conditions and the following
+ * disclaimer in the documentation and/or other materials provided
+ * with the distribution.
+ *
+ * Neither the name of the author nor the names of its contributors
+ * may be used to endorse or promote products derived from this
+ * software without specific prior written permission.
+ *
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+ * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
+ * OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ */
+
+/**
+ * @fileoverview Collection of MD5 and SHA1 hashing and encoding
+ * methods.
+ * @author Stefan Strigler steve@zeank.in-berlin.de
+ */
+
+
+/*
+ * A JavaScript implementation of the Secure Hash Algorithm, SHA-1, as defined
+ * in FIPS 180-1
+ * Version 2.2 Copyright Paul Johnston 2000 - 2009.
+ * Other contributors: Greg Holt, Andrew Kepert, Ydnar, Lostinet
+ * Distributed under the BSD License
+ * See http://pajhome.org.uk/crypt/md5 for details.
+ */
+
+/*
+ * Configurable variables. You may need to tweak these to be compatible with
+ * the server-side, but the defaults work in most cases.
+ */
+var hexcase = 0;  /* hex output format. 0 - lowercase; 1 - uppercase        */
+var b64pad  = "="; /* base-64 pad character. "=" for strict RFC compliance   */
+
+/*
+ * These are the functions you'll usually want to call
+ * They take string arguments and return either hex or base-64 encoded strings
+ */
+function hex_sha1(s)    { return rstr2hex(rstr_sha1(str2rstr_utf8(s))); }
+function b64_sha1(s)    { return rstr2b64(rstr_sha1(str2rstr_utf8(s))); }
+function any_sha1(s, e) { return rstr2any(rstr_sha1(str2rstr_utf8(s)), e); }
+function hex_hmac_sha1(k, d)
+  { return rstr2hex(rstr_hmac_sha1(str2rstr_utf8(k), str2rstr_utf8(d))); }
+function b64_hmac_sha1(k, d)
+  { return rstr2b64(rstr_hmac_sha1(str2rstr_utf8(k), str2rstr_utf8(d))); }
+function any_hmac_sha1(k, d, e)
+  { return rstr2any(rstr_hmac_sha1(str2rstr_utf8(k), str2rstr_utf8(d)), e); }
+
+/*
+ * Perform a simple self-test to see if the VM is working
+ */
+function sha1_vm_test()
+{
+  return hex_sha1("abc").toLowerCase() == "a9993e364706816aba3e25717850c26c9cd0d89d";
+}
+
+/*
+ * Calculate the SHA1 of a raw string
+ */
+function rstr_sha1(s)
+{
+  return binb2rstr(binb_sha1(rstr2binb(s), s.length * 8));
+}
+
+/*
+ * Calculate the HMAC-SHA1 of a key and some data (raw strings)
+ */
+function rstr_hmac_sha1(key, data)
+{
+  var bkey = rstr2binb(key);
+  if(bkey.length > 16) bkey = binb_sha1(bkey, key.length * 8);
+
+  var ipad = Array(16), opad = Array(16);
+  for(var i = 0; i < 16; i++)
+  {
+    ipad[i] = bkey[i] ^ 0x36363636;
+    opad[i] = bkey[i] ^ 0x5C5C5C5C;
+  }
+
+  var hash = binb_sha1(ipad.concat(rstr2binb(data)), 512 + data.length * 8);
+  return binb2rstr(binb_sha1(opad.concat(hash), 512 + 160));
+}
+
+/*
+ * Convert a raw string to an array of big-endian words
+ * Characters >255 have their high-byte silently ignored.
+ */
+function rstr2binb(input)
+{
+  var output = Array(input.length >> 2);
+  for(var i = 0; i < output.length; i++)
+    output[i] = 0;
+  for(var i = 0; i < input.length * 8; i += 8)
+    output[i>>5] |= (input.charCodeAt(i / 8) & 0xFF) << (24 - i % 32);
+  return output;
+}
+
+/*
+ * Convert an array of big-endian words to a string
+ */
+function binb2rstr(input)
+{
+  var output = "";
+  for(var i = 0; i < input.length * 32; i += 8)
+    output += String.fromCharCode((input[i>>5] >>> (24 - i % 32)) & 0xFF);
+  return output;
+}
+
+/*
+ * Calculate the SHA-1 of an array of big-endian words, and a bit length
+ */
+function binb_sha1(x, len)
+{
+  /* append padding */
+  x[len >> 5] |= 0x80 << (24 - len % 32);
+  x[((len + 64 >> 9) << 4) + 15] = len;
+
+  var w = Array(80);
+  var a =  1732584193;
+  var b = -271733879;
+  var c = -1732584194;
+  var d =  271733878;
+  var e = -1009589776;
+
+  for(var i = 0; i < x.length; i += 16)
+  {
+    var olda = a;
+    var oldb = b;
+    var oldc = c;
+    var oldd = d;
+    var olde = e;
+
+    for(var j = 0; j < 80; j++)
+    {
+      if(j < 16) w[j] = x[i + j];
+      else w[j] = bit_rol(w[j-3] ^ w[j-8] ^ w[j-14] ^ w[j-16], 1);
+      var t = safe_add(safe_add(bit_rol(a, 5), sha1_ft(j, b, c, d)),
+                       safe_add(safe_add(e, w[j]), sha1_kt(j)));
+      e = d;
+      d = c;
+      c = bit_rol(b, 30);
+      b = a;
+      a = t;
+    }
+
+    a = safe_add(a, olda);
+    b = safe_add(b, oldb);
+    c = safe_add(c, oldc);
+    d = safe_add(d, oldd);
+    e = safe_add(e, olde);
+  }
+  return Array(a, b, c, d, e);
+
+}
+
+/*
+ * Perform the appropriate triplet combination function for the current
+ * iteration
+ */
+function sha1_ft(t, b, c, d)
+{
+  if(t < 20) return (b & c) | ((~b) & d);
+  if(t < 40) return b ^ c ^ d;
+  if(t < 60) return (b & c) | (b & d) | (c & d);
+  return b ^ c ^ d;
+}
+
+/*
+ * Determine the appropriate additive constant for the current iteration
+ */
+function sha1_kt(t)
+{
+  return (t < 20) ?  1518500249 : (t < 40) ?  1859775393 :
+         (t < 60) ? -1894007588 : -899497514;
+}
+
+
+/*
+ * A JavaScript implementation of the RSA Data Security, Inc. MD5 Message
+ * Digest Algorithm, as defined in RFC 1321.
+ * Version 2.2 Copyright (C) Paul Johnston 1999 - 2009
+ * Other contributors: Greg Holt, Andrew Kepert, Ydnar, Lostinet
+ * Distributed under the BSD License
+ * See http://pajhome.org.uk/crypt/md5 for more info.
+ */
+
+/*
+ * These are the functions you'll usually want to call
+ * They take string arguments and return either hex or base-64 encoded strings
+ */
+function hex_md5(s)    { return rstr2hex(rstr_md5(str2rstr_utf8(s))); }
+function b64_md5(s)    { return rstr2b64(rstr_md5(str2rstr_utf8(s))); }
+function any_md5(s, e) { return rstr2any(rstr_md5(str2rstr_utf8(s)), e); }
+function hex_hmac_md5(k, d)
+  { return rstr2hex(rstr_hmac_md5(str2rstr_utf8(k), str2rstr_utf8(d))); }
+function b64_hmac_md5(k, d)
+  { return rstr2b64(rstr_hmac_md5(str2rstr_utf8(k), str2rstr_utf8(d))); }
+function any_hmac_md5(k, d, e)
+  { return rstr2any(rstr_hmac_md5(str2rstr_utf8(k), str2rstr_utf8(d)), e); }
+
+/*
+ * Perform a simple self-test to see if the VM is working
+ */
+function md5_vm_test()
+{
+  return hex_md5("abc").toLowerCase() == "900150983cd24fb0d6963f7d28e17f72";
+}
+
+/*
+ * Calculate the MD5 of a raw string
+ */
+function rstr_md5(s)
+{
+  return binl2rstr(binl_md5(rstr2binl(s), s.length * 8));
+}
+
+/*
+ * Calculate the HMAC-MD5, of a key and some data (raw strings)
+ */
+function rstr_hmac_md5(key, data)
+{
+  var bkey = rstr2binl(key);
+  if(bkey.length > 16) bkey = binl_md5(bkey, key.length * 8);
+
+  var ipad = Array(16), opad = Array(16);
+  for(var i = 0; i < 16; i++)
+  {
+    ipad[i] = bkey[i] ^ 0x36363636;
+    opad[i] = bkey[i] ^ 0x5C5C5C5C;
+  }
+
+  var hash = binl_md5(ipad.concat(rstr2binl(data)), 512 + data.length * 8);
+  return binl2rstr(binl_md5(opad.concat(hash), 512 + 128));
+}
+
+/*
+ * Convert a raw string to a hex string
+ */
+function rstr2hex(input)
+{
+  try { hexcase } catch(e) { hexcase=0; }
+  var hex_tab = hexcase ? "0123456789ABCDEF" : "0123456789abcdef";
+  var output = "";
+  var x;
+  for(var i = 0; i < input.length; i++)
+  {
+    x = input.charCodeAt(i);
+    output += hex_tab.charAt((x >>> 4) & 0x0F)
+           +  hex_tab.charAt( x        & 0x0F);
+  }
+  return output;
+}
+
+/*
+ * Convert a raw string to a base-64 string
+ */
+function rstr2b64(input)
+{
+  try { b64pad } catch(e) { b64pad=''; }
+  var tab = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+  var output = "";
+  var len = input.length;
+  for(var i = 0; i < len; i += 3)
+  {
+    var triplet = (input.charCodeAt(i) << 16)
+                | (i + 1 < len ? input.charCodeAt(i+1) << 8 : 0)
+                | (i + 2 < len ? input.charCodeAt(i+2)      : 0);
+    for(var j = 0; j < 4; j++)
+    {
+      if(i * 8 + j * 6 > input.length * 8) output += b64pad;
+      else output += tab.charAt((triplet >>> 6*(3-j)) & 0x3F);
+    }
+  }
+  return output;
+}
+
+/*
+ * Convert a array to a base-64 string
+ */
+function arr2b64(input)
+{
+  try { b64pad } catch(e) { b64pad=''; }
+  var tab = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+  var output = "";
+  var len = input.length;
+  for(var i = 0; i < len; i += 3)
+  {
+    var triplet = (input[i] << 16)
+                | (i + 1 < len ? input[i+1] << 8 : 0)
+                | (i + 2 < len ? input[i+2]      : 0);
+    for(var j = 0; j < 4; j++)
+    {
+      if(i * 8 + j * 6 > input.length * 8) output += b64pad;
+      else output += tab.charAt((triplet >>> 6*(3-j)) & 0x3F);
+    }
+  }
+  return output;
+}
+
+/*
+ * Convert a raw string to an arbitrary string encoding
+ */
+function rstr2any(input, encoding)
+{
+  var divisor = encoding.length;
+  var i, j, q, x, quotient;
+
+  /* Convert to an array of 16-bit big-endian values, forming the dividend */
+  var dividend = Array(Math.ceil(input.length / 2));
+  for(i = 0; i < dividend.length; i++)
+  {
+    dividend[i] = (input.charCodeAt(i * 2) << 8) | input.charCodeAt(i * 2 + 1);
+  }
+
+  /*
+   * Repeatedly perform a long division. The binary array forms the dividend,
+   * the length of the encoding is the divisor. Once computed, the quotient
+   * forms the dividend for the next step. All remainders are stored for later
+   * use.
+   */
+  var full_length = Math.ceil(input.length * 8 /
+                                    (Math.log(encoding.length) / Math.log(2)));
+  var remainders = Array(full_length);
+  for(j = 0; j < full_length; j++)
+  {
+    quotient = Array();
+    x = 0;
+    for(i = 0; i < dividend.length; i++)
+    {
+      x = (x << 16) + dividend[i];
+      q = Math.floor(x / divisor);
+      x -= q * divisor;
+      if(quotient.length > 0 || q > 0)
+        quotient[quotient.length] = q;
+    }
+    remainders[j] = x;
+    dividend = quotient;
+  }
+
+  /* Convert the remainders to the output string */
+  var output = "";
+  for(i = remainders.length - 1; i >= 0; i--)
+    output += encoding.charAt(remainders[i]);
+
+  return output;
+}
+
+/*
+ * Encode a string as utf-8.
+ * For efficiency, this assumes the input is valid utf-16.
+ */
+function str2rstr_utf8(input)
+{
+  var output = "";
+  var i = -1;
+  var x, y;
+
+  while(++i < input.length)
+  {
+    /* Decode utf-16 surrogate pairs */
+    x = input.charCodeAt(i);
+    y = i + 1 < input.length ? input.charCodeAt(i + 1) : 0;
+    if(0xD800 <= x && x <= 0xDBFF && 0xDC00 <= y && y <= 0xDFFF)
+    {
+      x = 0x10000 + ((x & 0x03FF) << 10) + (y & 0x03FF);
+      i++;
+    }
+
+    /* Encode output as utf-8 */
+    if(x <= 0x7F)
+      output += String.fromCharCode(x);
+    else if(x <= 0x7FF)
+      output += String.fromCharCode(0xC0 | ((x >>> 6 ) & 0x1F),
+                                    0x80 | ( x         & 0x3F));
+    else if(x <= 0xFFFF)
+      output += String.fromCharCode(0xE0 | ((x >>> 12) & 0x0F),
+                                    0x80 | ((x >>> 6 ) & 0x3F),
+                                    0x80 | ( x         & 0x3F));
+    else if(x <= 0x1FFFFF)
+      output += String.fromCharCode(0xF0 | ((x >>> 18) & 0x07),
+                                    0x80 | ((x >>> 12) & 0x3F),
+                                    0x80 | ((x >>> 6 ) & 0x3F),
+                                    0x80 | ( x         & 0x3F));
+  }
+  return output;
+}
+
+/*
+ * Encode a string as utf-16
+ */
+function str2rstr_utf16le(input)
+{
+  var output = "";
+  for(var i = 0; i < input.length; i++)
+    output += String.fromCharCode( input.charCodeAt(i)        & 0xFF,
+                                  (input.charCodeAt(i) >>> 8) & 0xFF);
+  return output;
+}
+
+function str2rstr_utf16be(input)
+{
+  var output = "";
+  for(var i = 0; i < input.length; i++)
+    output += String.fromCharCode((input.charCodeAt(i) >>> 8) & 0xFF,
+                                   input.charCodeAt(i)        & 0xFF);
+  return output;
+}
+
+/*
+ * Convert a raw string to an array of little-endian words
+ * Characters >255 have their high-byte silently ignored.
+ */
+function rstr2binl(input)
+{
+  var output = Array(input.length >> 2);
+  for(var i = 0; i < output.length; i++)
+    output[i] = 0;
+  for(var i = 0; i < input.length * 8; i += 8)
+    output[i>>5] |= (input.charCodeAt(i / 8) & 0xFF) << (i%32);
+  return output;
+}
+
+/*
+ * Convert an array of little-endian words to a string
+ */
+function binl2rstr(input)
+{
+  var output = "";
+  for(var i = 0; i < input.length * 32; i += 8)
+    output += String.fromCharCode((input[i>>5] >>> (i % 32)) & 0xFF);
+  return output;
+}
+
+/*
+ * Calculate the MD5 of an array of little-endian words, and a bit length.
+ */
+function binl_md5(x, len)
+{
+  /* append padding */
+  x[len >> 5] |= 0x80 << ((len) % 32);
+  x[(((len + 64) >>> 9) << 4) + 14] = len;
+
+  var a =  1732584193;
+  var b = -271733879;
+  var c = -1732584194;
+  var d =  271733878;
+
+  for(var i = 0; i < x.length; i += 16)
+  {
+    var olda = a;
+    var oldb = b;
+    var oldc = c;
+    var oldd = d;
+
+    a = md5_ff(a, b, c, d, x[i+ 0], 7 , -680876936);
+    d = md5_ff(d, a, b, c, x[i+ 1], 12, -389564586);
+    c = md5_ff(c, d, a, b, x[i+ 2], 17,  606105819);
+    b = md5_ff(b, c, d, a, x[i+ 3], 22, -1044525330);
+    a = md5_ff(a, b, c, d, x[i+ 4], 7 , -176418897);
+    d = md5_ff(d, a, b, c, x[i+ 5], 12,  1200080426);
+    c = md5_ff(c, d, a, b, x[i+ 6], 17, -1473231341);
+    b = md5_ff(b, c, d, a, x[i+ 7], 22, -45705983);
+    a = md5_ff(a, b, c, d, x[i+ 8], 7 ,  1770035416);
+    d = md5_ff(d, a, b, c, x[i+ 9], 12, -1958414417);
+    c = md5_ff(c, d, a, b, x[i+10], 17, -42063);
+    b = md5_ff(b, c, d, a, x[i+11], 22, -1990404162);
+    a = md5_ff(a, b, c, d, x[i+12], 7 ,  1804603682);
+    d = md5_ff(d, a, b, c, x[i+13], 12, -40341101);
+    c = md5_ff(c, d, a, b, x[i+14], 17, -1502002290);
+    b = md5_ff(b, c, d, a, x[i+15], 22,  1236535329);
+
+    a = md5_gg(a, b, c, d, x[i+ 1], 5 , -165796510);
+    d = md5_gg(d, a, b, c, x[i+ 6], 9 , -1069501632);
+    c = md5_gg(c, d, a, b, x[i+11], 14,  643717713);
+    b = md5_gg(b, c, d, a, x[i+ 0], 20, -373897302);
+    a = md5_gg(a, b, c, d, x[i+ 5], 5 , -701558691);
+    d = md5_gg(d, a, b, c, x[i+10], 9 ,  38016083);
+    c = md5_gg(c, d, a, b, x[i+15], 14, -660478335);
+    b = md5_gg(b, c, d, a, x[i+ 4], 20, -405537848);
+    a = md5_gg(a, b, c, d, x[i+ 9], 5 ,  568446438);
+    d = md5_gg(d, a, b, c, x[i+14], 9 , -1019803690);
+    c = md5_gg(c, d, a, b, x[i+ 3], 14, -187363961);
+    b = md5_gg(b, c, d, a, x[i+ 8], 20,  1163531501);
+    a = md5_gg(a, b, c, d, x[i+13], 5 , -1444681467);
+    d = md5_gg(d, a, b, c, x[i+ 2], 9 , -51403784);
+    c = md5_gg(c, d, a, b, x[i+ 7], 14,  1735328473);
+    b = md5_gg(b, c, d, a, x[i+12], 20, -1926607734);
+
+    a = md5_hh(a, b, c, d, x[i+ 5], 4 , -378558);
+    d = md5_hh(d, a, b, c, x[i+ 8], 11, -2022574463);
+    c = md5_hh(c, d, a, b, x[i+11], 16,  1839030562);
+    b = md5_hh(b, c, d, a, x[i+14], 23, -35309556);
+    a = md5_hh(a, b, c, d, x[i+ 1], 4 , -1530992060);
+    d = md5_hh(d, a, b, c, x[i+ 4], 11,  1272893353);
+    c = md5_hh(c, d, a, b, x[i+ 7], 16, -155497632);
+    b = md5_hh(b, c, d, a, x[i+10], 23, -1094730640);
+    a = md5_hh(a, b, c, d, x[i+13], 4 ,  681279174);
+    d = md5_hh(d, a, b, c, x[i+ 0], 11, -358537222);
+    c = md5_hh(c, d, a, b, x[i+ 3], 16, -722521979);
+    b = md5_hh(b, c, d, a, x[i+ 6], 23,  76029189);
+    a = md5_hh(a, b, c, d, x[i+ 9], 4 , -640364487);
+    d = md5_hh(d, a, b, c, x[i+12], 11, -421815835);
+    c = md5_hh(c, d, a, b, x[i+15], 16,  530742520);
+    b = md5_hh(b, c, d, a, x[i+ 2], 23, -995338651);
+
+    a = md5_ii(a, b, c, d, x[i+ 0], 6 , -198630844);
+    d = md5_ii(d, a, b, c, x[i+ 7], 10,  1126891415);
+    c = md5_ii(c, d, a, b, x[i+14], 15, -1416354905);
+    b = md5_ii(b, c, d, a, x[i+ 5], 21, -57434055);
+    a = md5_ii(a, b, c, d, x[i+12], 6 ,  1700485571);
+    d = md5_ii(d, a, b, c, x[i+ 3], 10, -1894986606);
+    c = md5_ii(c, d, a, b, x[i+10], 15, -1051523);
+    b = md5_ii(b, c, d, a, x[i+ 1], 21, -2054922799);
+    a = md5_ii(a, b, c, d, x[i+ 8], 6 ,  1873313359);
+    d = md5_ii(d, a, b, c, x[i+15], 10, -30611744);
+    c = md5_ii(c, d, a, b, x[i+ 6], 15, -1560198380);
+    b = md5_ii(b, c, d, a, x[i+13], 21,  1309151649);
+    a = md5_ii(a, b, c, d, x[i+ 4], 6 , -145523070);
+    d = md5_ii(d, a, b, c, x[i+11], 10, -1120210379);
+    c = md5_ii(c, d, a, b, x[i+ 2], 15,  718787259);
+    b = md5_ii(b, c, d, a, x[i+ 9], 21, -343485551);
+
+    a = safe_add(a, olda);
+    b = safe_add(b, oldb);
+    c = safe_add(c, oldc);
+    d = safe_add(d, oldd);
+  }
+  return Array(a, b, c, d);
+}
+
+/*
+ * These functions implement the four basic operations the algorithm uses.
+ */
+function md5_cmn(q, a, b, x, s, t)
+{
+  return safe_add(bit_rol(safe_add(safe_add(a, q), safe_add(x, t)), s),b);
+}
+function md5_ff(a, b, c, d, x, s, t)
+{
+  return md5_cmn((b & c) | ((~b) & d), a, b, x, s, t);
+}
+function md5_gg(a, b, c, d, x, s, t)
+{
+  return md5_cmn((b & d) | (c & (~d)), a, b, x, s, t);
+}
+function md5_hh(a, b, c, d, x, s, t)
+{
+  return md5_cmn(b ^ c ^ d, a, b, x, s, t);
+}
+function md5_ii(a, b, c, d, x, s, t)
+{
+  return md5_cmn(c ^ (b | (~d)), a, b, x, s, t);
+}
+
+/*
+ * Add integers, wrapping at 2^32. This uses 16-bit operations internally
+ * to work around bugs in some JS interpreters.
+ */
+function safe_add(x, y)
+{
+  var lsw = (x & 0xFFFF) + (y & 0xFFFF);
+  var msw = (x >> 16) + (y >> 16) + (lsw >> 16);
+  return (msw << 16) | (lsw & 0xFFFF);
+}
+
+/*
+ * Bitwise rotate a 32-bit number to the left.
+ */
+function bit_rol(num, cnt)
+{
+  return (num << cnt) | (num >>> (32 - cnt));
+}
+
+
+/* #############################################################################
+   UTF-8 Decoder and Encoder
+   base64 Encoder and Decoder
+   written by Tobias Kieslich, justdreams
+   Contact: tobias@justdreams.de				http://www.justdreams.de/
+   ############################################################################# */
+
+// returns an array of byterepresenting dezimal numbers which represent the
+// plaintext in an UTF-8 encoded version. Expects a string.
+// This function includes an exception management for those nasty browsers like
+// NN401, which returns negative decimal numbers for chars>128. I hate it!!
+// This handling is unfortunately limited to the user's charset. Anyway, it works
+// in most of the cases! Special signs with an unicode>256 return numbers, which
+// can not be converted to the actual unicode and so not to the valid utf-8
+// representation. Anyway, this function does always return values which can not
+// misinterpretd by RC4 or base64 en- or decoding, because every value is >0 and
+// <255!!
+// Arrays are faster and easier to handle in b64 encoding or encrypting....
+function utf8t2d(t)
+{
+  t = t.replace(/\r\n/g,"\n");
+  var d=new Array; var test=String.fromCharCode(237);
+  if (test.charCodeAt(0) < 0)
+    for(var n=0; n<t.length; n++)
+      {
+        var c=t.charCodeAt(n);
+        if (c>0)
+          d[d.length]= c;
+        else {
+          d[d.length]= (((256+c)>>6)|192);
+          d[d.length]= (((256+c)&63)|128);}
+      }
+  else
+    for(var n=0; n<t.length; n++)
+      {
+        var c=t.charCodeAt(n);
+        // all the signs of asci => 1byte
+        if (c<128)
+          d[d.length]= c;
+        // all the signs between 127 and 2047 => 2byte
+        else if((c>127) && (c<2048)) {
+          d[d.length]= ((c>>6)|192);
+          d[d.length]= ((c&63)|128);}
+        // all the signs between 2048 and 66536 => 3byte
+        else {
+          d[d.length]= ((c>>12)|224);
+          d[d.length]= (((c>>6)&63)|128);
+          d[d.length]= ((c&63)|128);}
+      }
+  return d;
+}
+
+// returns plaintext from an array of bytesrepresenting dezimal numbers, which
+// represent an UTF-8 encoded text; browser which does not understand unicode
+// like NN401 will show "?"-signs instead
+// expects an array of byterepresenting decimals; returns a string
+function utf8d2t(d)
+{
+  var r=new Array; var i=0;
+  while(i<d.length)
+    {
+      if (d[i]<128) {
+        r[r.length]= String.fromCharCode(d[i]); i++;}
+      else if((d[i]>191) && (d[i]<224)) {
+        r[r.length]= String.fromCharCode(((d[i]&31)<<6) | (d[i+1]&63)); i+=2;}
+      else {
+        r[r.length]= String.fromCharCode(((d[i]&15)<<12) | ((d[i+1]&63)<<6) | (d[i+2]&63)); i+=3;}
+    }
+  return r.join("");
+}
+
+// included in <body onload="b64arrays"> it creates two arrays which makes base64
+// en- and decoding faster
+// this speed is noticeable especially when coding larger texts (>5k or so)
+function b64arrays() {
+  var b64s='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+  b64 = new Array();f64 =new Array();
+  for (var i=0; i<b64s.length ;i++) {
+    b64[i] = b64s.charAt(i);
+    f64[b64s.charAt(i)] = i;
+  }
+}
+
+// creates a base64 encoded text out of an array of byerepresenting dezimals
+// it is really base64 :) this makes serversided handling easier
+// expects an array; returns a string
+function b64d2t(d) {
+  var r=new Array; var i=0; var dl=d.length;
+  // this is for the padding
+  if ((dl%3) == 1) {
+    d[d.length] = 0; d[d.length] = 0;}
+  if ((dl%3) == 2)
+    d[d.length] = 0;
+  // from here conversion
+  while (i<d.length)
+    {
+      r[r.length] = b64[d[i]>>2];
+      r[r.length] = b64[((d[i]&3)<<4) | (d[i+1]>>4)];
+      r[r.length] = b64[((d[i+1]&15)<<2) | (d[i+2]>>6)];
+      r[r.length] = b64[d[i+2]&63];
+      i+=3;
+    }
+  // this is again for the padding
+  if ((dl%3) == 1)
+    r[r.length-1] = r[r.length-2] = "=";
+  if ((dl%3) == 2)
+    r[r.length-1] = "=";
+  // we join the array to return a textstring
+  var t=r.join("");
+  return t;
+}
+
+// returns array of byterepresenting numbers created of an base64 encoded text
+// it is still the slowest function in this modul; I hope I can make it faster
+// expects string; returns an array
+function b64t2d(t) {
+  var d=new Array; var i=0;
+  // here we fix this CRLF sequenz created by MS-OS; arrrgh!!!
+  t=t.replace(/\n|\r/g,""); t=t.replace(/=/g,"");
+  while (i<t.length)
+    {
+      d[d.length] = (f64[t.charAt(i)]<<2) | (f64[t.charAt(i+1)]>>4);
+      d[d.length] = (((f64[t.charAt(i+1)]&15)<<4) | (f64[t.charAt(i+2)]>>2));
+      d[d.length] = (((f64[t.charAt(i+2)]&3)<<6) | (f64[t.charAt(i+3)]));
+      i+=4;
+    }
+  if (t.length%4 == 2)
+    d = d.slice(0, d.length-2);
+  if (t.length%4 == 3)
+    d = d.slice(0, d.length-1);
+  return d;
+}
+
+if (typeof(atob) == 'undefined' || typeof(btoa) == 'undefined')
+  b64arrays();
+
+if (typeof(atob) == 'undefined') {
+  b64decode = function(s) {
+    return utf8d2t(b64t2d(s));
+  };
+  b64decode_bin = function(s) {
+    var dec = b64t2d(s);
+    var ret = '';
+    for(var i = 0; i < dec.length; i++) {
+      ret += String.fromCharCode(dec[i]);
+    }
+    return ret;
+  };
+} else {
+  b64decode = function(s) {
+    return decodeURIComponent(escape(atob(s)));
+  };
+  b64decode_bin = atob;
+}
+
+if (typeof(btoa) == 'undefined') {
+  b64encode = function(s) {
+    return b64d2t(utf8t2d(s));
+  };
+} else {
+  b64encode = function(s) {
+    return btoa(unescape(encodeURIComponent(s)));
+  };
+}
+
+(function() {
+    var ieXDRToXHR;
+
+    var browser = (function() {
+        var userAgent = navigator.userAgent.toLowerCase();
+        // Figure out what browser is being used 
+        return {
+            version: (userAgent.match(/.+(?:rv|it|ra|ie)[\/: ]([\d.]+)/) || [])[1],
+            webkit: /webkit/.test(userAgent),
+            opera: /opera/.test(userAgent),
+            msie: /msie/.test(userAgent) && !/opera/.test(userAgent),
+            mozilla: /mozilla/.test(userAgent) && !/(compatible|webkit)/.test(userAgent)
+        };
+    })();
+
+    var isWebsocketSupport = (function() {
+        window.WebSocket = window.WebSocket || window.MozWebSocket;
+        if (window.WebSocket) {
+            return true;
+        }
+        return false;
+    })();
+
+    if (window.XDomainRequest &&
+        browser.msie &&
+        parseInt(browser.version) <= 8) {
+
+        ieXDRToXHR = function(window) {
+            "use strict";
+            var XHR = window.XMLHttpRequest;
+
+            window.XMLHttpRequest = function() {
+                this.onreadystatechange = Object;
+
+                this.xhr = null;
+                this.xdr = null;
+
+                this.readyState = 0;
+                this.status = '';
+                this.statusText = null;
+                this.responseText = null;
+
+                this.getResponseHeader = null;
+                this.getAllResponseHeaders = null;
+
+                this.setRequestHeader = null;
+
+                this.abort = null;
+                this.send = null;
+                this.isxdr = false;
+
+                // static binding
+                var self = this;
+
+                self.xdrLoadedBinded = function() {
+                    self.xdrLoaded();
+                };
+                self.xdrErrorBinded = function() {
+                    self.xdrError();
+                };
+                self.xdrProgressBinded = function() {
+                    self.xdrProgress();
+                };
+                self.xhrReadyStateChangedBinded = function() {
+                    self.xhrReadyStateChanged();
+                };
+            };
+
+            XMLHttpRequest.prototype.open = function(method, url, asynch, user, pwd) {
+                //improve CORS deteciton (chat.example.net exemple.net), remove hardcoded http-bind
+                var parser = document.createElement('a');
+                parser.href = url;
+                if (!!parser.hostname && parser.hostname != document.domain) {
+                    if (this.xdr === null) {
+                        this.xdr = new window.XDomainRequest();
+                    }
+
+                    this.isxdr = true;
+                    this.setXDRActive();
+                    this.xdr.open(method, url);
+                } else {
+                    if (this.xhr === null) {
+                        this.xhr = new XHR();
+                    }
+
+                    this.isxdr = false;
+                    this.setXHRActive();
+                    this.xhr.open(method, url, asynch, user, pwd);
+                }
+            };
+
+            XMLHttpRequest.prototype.xdrGetResponseHeader = function(name) {
+                if (name === 'Content-Type' && this.xdr.contentType > '') {
+                    return this.xdr.contentType;
+                }
+
+                return '';
+            };
+
+            XMLHttpRequest.prototype.xdrGetAllResponseHeaders = function() {
+                return (this.xdr.contentType > '') ? 'Content-Type: ' + this.xdr.contentType : '';
+            };
+
+            XMLHttpRequest.prototype.xdrSetRequestHeader = function(name, value) {
+                //throw new Error('Request headers not supported');
+            };
+
+            XMLHttpRequest.prototype.xdrLoaded = function() {
+                if (this.onreadystatechange !== null) {
+                    this.readyState = 4;
+                    this.status = 200;
+                    this.statusText = 'OK';
+                    this.responseText = this.xdr.responseText;
+                    if (window.ActiveXObject) {
+                        var doc = new ActiveXObject('Microsoft.XMLDOM');
+                        doc.async = 'false';
+                        doc.loadXML(this.responseText);
+                        this.responseXML = doc;
+                    }
+                    this.onreadystatechange();
+                }
+            };
+
+            XMLHttpRequest.prototype.xdrError = function() {
+                if (this.onreadystatechange !== null) {
+                    this.readyState = 4;
+                    this.status = 0;
+                    this.statusText = '';
+                    // ???
+                    this.responseText = '';
+                    this.onreadystatechange();
+                }
+            };
+
+            XMLHttpRequest.prototype.xdrProgress = function() {
+                if (this.onreadystatechange !== null && this.status !== 3) {
+                    this.readyState = 3;
+                    this.status = 3;
+                    this.statusText = '';
+                    this.onreadystatechange();
+                }
+            };
+
+            XMLHttpRequest.prototype.finalXDRRequest = function() {
+                var xdr = this.xdr;
+                delete xdr.onload;
+                delete xdr.onerror;
+                delete xdr.onprogress;
+            };
+
+            XMLHttpRequest.prototype.sendXDR = function(data) {
+                var xdr = this.xdr;
+
+                xdr.onload = this.xdrLoadedBinded;
+                xdr.onerror = this.xdr.ontimeout = this.xdrErrorBinded;
+                xdr.onprogress = this.xdrProgressBinded;
+                this.responseText = null;
+
+                this.xdr.send(data);
+            };
+
+            XMLHttpRequest.prototype.abortXDR = function() {
+                this.finalXDRRequest();
+                this.xdr.abort();
+            };
+
+            XMLHttpRequest.prototype.setXDRActive = function() {
+                this.send = this.sendXDR;
+                this.abort = this.abortXDR;
+                this.getResponseHeader = this.xdrGetResponseHeader;
+                this.getAllResponseHeaders = this.xdrGetAllResponseHeaders;
+                this.setRequestHeader = this.xdrSetRequestHeader;
+            };
+
+            XMLHttpRequest.prototype.xhrGetResponseHeader = function(name) {
+                return this.xhr.getResponseHeader(name);
+            };
+
+            XMLHttpRequest.prototype.xhrGetAllResponseHeaders = function() {
+                return this.xhr.getAllResponseHeaders();
+            };
+
+            XMLHttpRequest.prototype.xhrSetRequestHeader = function(name, value) {
+                return this.xhr.setRequestHeader(name, value);
+            };
+
+            XMLHttpRequest.prototype.xhrReadyStateChanged = function() {
+                if (this.onreadystatechange !== null && this.readyState !== this.xhr.readyState) {
+                    var xhr = this.xhr;
+
+                    this.readyState = xhr.readyState;
+                    if (this.readyState === 4) {
+                        this.status = xhr.status;
+                        this.statusText = xhr.statusText;
+                        this.responseText = xhr.responseText;
+                        this.responseXML = xhr.responseXML;
+                    }
+
+                    this.onreadystatechange();
+                }
+            };
+
+            XMLHttpRequest.prototype.finalXHRRequest = function() {
+                delete this.xhr.onreadystatechange;
+            };
+            XMLHttpRequest.prototype.abortXHR = function() {
+                this.finalXHRRequest();
+                this.xhr.abort();
+            };
+            XMLHttpRequest.prototype.sendXHR = function(data) {
+                this.xhr.onreadystatechange = this.xhrReadyStateChangedBinded;
+
+                this.xhr.send(data);
+            };
+            XMLHttpRequest.prototype.setXHRActive = function() {
+                this.send = this.sendXHR;
+                this.abort = this.abortXHR;
+                this.getResponseHeader = this.xhrGetResponseHeader;
+                this.getAllResponseHeaders = this.xhrGetAllResponseHeaders;
+                this.setRequestHeader = this.xhrSetRequestHeader;
+            };
+        };
+
+        if (!isWebsocketSupport) {
+            ieXDRToXHR && ieXDRToXHR(window) && (ieXDRToXHR = null);
+        }
+    }
+})();
+/**
+ * @fileoverview Collection of functions to make live easier
+ * @author Stefan Strigler
+ */
+
+/**
+ * Convert special chars to HTML entities
+ * @addon
+ * @return The string with chars encoded for HTML
+ * @type String
+ */
+String.prototype.htmlEnc = function() {
+  if(!this)
+    return this;
+
+  var str = this.replace(/&/g,"&amp;");
+  str = str.replace(/</g,"&lt;");
+  str = str.replace(/>/g,"&gt;");
+  str = str.replace(/\"/g,"&quot;");
+  str = str.replace(/\n/g,"<br />");
+  return str;
+};
+
+/**
+ * Convert HTML entities to special chars
+ * @addon
+ * @return The normal string
+ * @type String
+ */
+String.prototype.revertHtmlEnc = function() {
+  if(!this)
+    return this;
+
+  var str = this.replace(/&amp;/gi,'&');
+  str = str.replace(/&lt;/gi,'<');
+  str = str.replace(/&gt;/gi,'>');
+  str = str.replace(/&quot;/gi,'\"');
+  str = str.replace(/<br( )?(\/)?>/gi,'\n');
+  return str;
+};
+
+/**
+ * Converts from jabber timestamps to JavaScript Date objects
+ * @addon
+ * @param {String} ts A string representing a jabber datetime timestamp as
+ * defined by {@link http://www.xmpp.org/extensions/xep-0082.html XEP-0082}
+ * @return A javascript Date object corresponding to the jabber DateTime given
+ * @type Date
+ */
+Date.jab2date = function(ts) {
+  var date = new Date(Date.UTC(ts.substr(0,4),ts.substr(5,2)-1,ts.substr(8,2),ts.substr(11,2),ts.substr(14,2),ts.substr(17,2)));
+  if (ts.substr(ts.length-6,1) != 'Z') { // there's an offset
+    var offset = new Date();
+    offset.setTime(0);
+    offset.setUTCHours(ts.substr(ts.length-5,2));
+    offset.setUTCMinutes(ts.substr(ts.length-2,2));
+    if (ts.substr(ts.length-6,1) == '+')
+      date.setTime(date.getTime() - offset.getTime());
+    else if (ts.substr(ts.length-6,1) == '-')
+      date.setTime(date.getTime() + offset.getTime());
+  }
+  return date;
+};
+
+/**
+ * Takes a timestamp in the form of 2004-08-13T12:07:04+02:00 as argument
+ * and converts it to some sort of humane readable format
+ * @addon
+ */
+Date.hrTime = function(ts) {
+  return Date.jab2date(ts).toLocaleString();
+};
+
+/**
+ * somewhat opposit to {@link #hrTime}
+ * expects a javascript Date object as parameter and returns a jabber
+ * date string conforming to
+ * {@link http://www.xmpp.org/extensions/xep-0082.html XEP-0082}
+ * @see #hrTime
+ * @return The corresponding jabber DateTime string
+ * @type String
+ */
+Date.prototype.jabberDate = function() {
+  var padZero = function(i) {
+    if (i < 10) return "0" + i;
+    return i;
+  };
+
+  var jDate = this.getUTCFullYear() + "-";
+  jDate += padZero(this.getUTCMonth()+1) + "-";
+  jDate += padZero(this.getUTCDate()) + "T";
+  jDate += padZero(this.getUTCHours()) + ":";
+  jDate += padZero(this.getUTCMinutes()) + ":";
+  jDate += padZero(this.getUTCSeconds()) + "Z";
+
+  return jDate;
+};
+
+/**
+ * Determines the maximum of two given numbers
+ * @addon
+ * @param {Number} A a number
+ * @param {Number} B another number
+ * @return the maximum of A and B
+ * @type Number
+ */
+Number.max = function(A, B) {
+  return (A > B)? A : B;
+};
+
+Number.min = function(A, B) {
+  return (A < B)? A : B;
+};
 
 /**
  * @fileoverview Magic dependency loading. Taken from script.aculo.us
@@ -7178,1112 +8288,6 @@ JSJaCWebSocketConnection.prototype._parseUint8Array = function(opcodeArr, bodyAr
 		} catch(e) {}
 	}
 };
-/* Copyright (c) 1998 - 2007, Paul Johnston & Contributors
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- *
- * Redistributions of source code must retain the above copyright
- * notice, this list of conditions and the following
- * disclaimer. Redistributions in binary form must reproduce the above
- * copyright notice, this list of conditions and the following
- * disclaimer in the documentation and/or other materials provided
- * with the distribution.
- *
- * Neither the name of the author nor the names of its contributors
- * may be used to endorse or promote products derived from this
- * software without specific prior written permission.
- *
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
- * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
- * OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- */
-
-/**
- * @fileoverview Collection of MD5 and SHA1 hashing and encoding
- * methods.
- * @author Stefan Strigler steve@zeank.in-berlin.de
- */
-
-
-/*
- * A JavaScript implementation of the Secure Hash Algorithm, SHA-1, as defined
- * in FIPS 180-1
- * Version 2.2 Copyright Paul Johnston 2000 - 2009.
- * Other contributors: Greg Holt, Andrew Kepert, Ydnar, Lostinet
- * Distributed under the BSD License
- * See http://pajhome.org.uk/crypt/md5 for details.
- */
-
-/*
- * Configurable variables. You may need to tweak these to be compatible with
- * the server-side, but the defaults work in most cases.
- */
-var hexcase = 0;  /* hex output format. 0 - lowercase; 1 - uppercase        */
-var b64pad  = "="; /* base-64 pad character. "=" for strict RFC compliance   */
-
-/*
- * These are the functions you'll usually want to call
- * They take string arguments and return either hex or base-64 encoded strings
- */
-function hex_sha1(s)    { return rstr2hex(rstr_sha1(str2rstr_utf8(s))); }
-function b64_sha1(s)    { return rstr2b64(rstr_sha1(str2rstr_utf8(s))); }
-function any_sha1(s, e) { return rstr2any(rstr_sha1(str2rstr_utf8(s)), e); }
-function hex_hmac_sha1(k, d)
-  { return rstr2hex(rstr_hmac_sha1(str2rstr_utf8(k), str2rstr_utf8(d))); }
-function b64_hmac_sha1(k, d)
-  { return rstr2b64(rstr_hmac_sha1(str2rstr_utf8(k), str2rstr_utf8(d))); }
-function any_hmac_sha1(k, d, e)
-  { return rstr2any(rstr_hmac_sha1(str2rstr_utf8(k), str2rstr_utf8(d)), e); }
-
-/*
- * Perform a simple self-test to see if the VM is working
- */
-function sha1_vm_test()
-{
-  return hex_sha1("abc").toLowerCase() == "a9993e364706816aba3e25717850c26c9cd0d89d";
-}
-
-/*
- * Calculate the SHA1 of a raw string
- */
-function rstr_sha1(s)
-{
-  return binb2rstr(binb_sha1(rstr2binb(s), s.length * 8));
-}
-
-/*
- * Calculate the HMAC-SHA1 of a key and some data (raw strings)
- */
-function rstr_hmac_sha1(key, data)
-{
-  var bkey = rstr2binb(key);
-  if(bkey.length > 16) bkey = binb_sha1(bkey, key.length * 8);
-
-  var ipad = Array(16), opad = Array(16);
-  for(var i = 0; i < 16; i++)
-  {
-    ipad[i] = bkey[i] ^ 0x36363636;
-    opad[i] = bkey[i] ^ 0x5C5C5C5C;
-  }
-
-  var hash = binb_sha1(ipad.concat(rstr2binb(data)), 512 + data.length * 8);
-  return binb2rstr(binb_sha1(opad.concat(hash), 512 + 160));
-}
-
-/*
- * Convert a raw string to an array of big-endian words
- * Characters >255 have their high-byte silently ignored.
- */
-function rstr2binb(input)
-{
-  var output = Array(input.length >> 2);
-  for(var i = 0; i < output.length; i++)
-    output[i] = 0;
-  for(var i = 0; i < input.length * 8; i += 8)
-    output[i>>5] |= (input.charCodeAt(i / 8) & 0xFF) << (24 - i % 32);
-  return output;
-}
-
-/*
- * Convert an array of big-endian words to a string
- */
-function binb2rstr(input)
-{
-  var output = "";
-  for(var i = 0; i < input.length * 32; i += 8)
-    output += String.fromCharCode((input[i>>5] >>> (24 - i % 32)) & 0xFF);
-  return output;
-}
-
-/*
- * Calculate the SHA-1 of an array of big-endian words, and a bit length
- */
-function binb_sha1(x, len)
-{
-  /* append padding */
-  x[len >> 5] |= 0x80 << (24 - len % 32);
-  x[((len + 64 >> 9) << 4) + 15] = len;
-
-  var w = Array(80);
-  var a =  1732584193;
-  var b = -271733879;
-  var c = -1732584194;
-  var d =  271733878;
-  var e = -1009589776;
-
-  for(var i = 0; i < x.length; i += 16)
-  {
-    var olda = a;
-    var oldb = b;
-    var oldc = c;
-    var oldd = d;
-    var olde = e;
-
-    for(var j = 0; j < 80; j++)
-    {
-      if(j < 16) w[j] = x[i + j];
-      else w[j] = bit_rol(w[j-3] ^ w[j-8] ^ w[j-14] ^ w[j-16], 1);
-      var t = safe_add(safe_add(bit_rol(a, 5), sha1_ft(j, b, c, d)),
-                       safe_add(safe_add(e, w[j]), sha1_kt(j)));
-      e = d;
-      d = c;
-      c = bit_rol(b, 30);
-      b = a;
-      a = t;
-    }
-
-    a = safe_add(a, olda);
-    b = safe_add(b, oldb);
-    c = safe_add(c, oldc);
-    d = safe_add(d, oldd);
-    e = safe_add(e, olde);
-  }
-  return Array(a, b, c, d, e);
-
-}
-
-/*
- * Perform the appropriate triplet combination function for the current
- * iteration
- */
-function sha1_ft(t, b, c, d)
-{
-  if(t < 20) return (b & c) | ((~b) & d);
-  if(t < 40) return b ^ c ^ d;
-  if(t < 60) return (b & c) | (b & d) | (c & d);
-  return b ^ c ^ d;
-}
-
-/*
- * Determine the appropriate additive constant for the current iteration
- */
-function sha1_kt(t)
-{
-  return (t < 20) ?  1518500249 : (t < 40) ?  1859775393 :
-         (t < 60) ? -1894007588 : -899497514;
-}
-
-
-/*
- * A JavaScript implementation of the RSA Data Security, Inc. MD5 Message
- * Digest Algorithm, as defined in RFC 1321.
- * Version 2.2 Copyright (C) Paul Johnston 1999 - 2009
- * Other contributors: Greg Holt, Andrew Kepert, Ydnar, Lostinet
- * Distributed under the BSD License
- * See http://pajhome.org.uk/crypt/md5 for more info.
- */
-
-/*
- * These are the functions you'll usually want to call
- * They take string arguments and return either hex or base-64 encoded strings
- */
-function hex_md5(s)    { return rstr2hex(rstr_md5(str2rstr_utf8(s))); }
-function b64_md5(s)    { return rstr2b64(rstr_md5(str2rstr_utf8(s))); }
-function any_md5(s, e) { return rstr2any(rstr_md5(str2rstr_utf8(s)), e); }
-function hex_hmac_md5(k, d)
-  { return rstr2hex(rstr_hmac_md5(str2rstr_utf8(k), str2rstr_utf8(d))); }
-function b64_hmac_md5(k, d)
-  { return rstr2b64(rstr_hmac_md5(str2rstr_utf8(k), str2rstr_utf8(d))); }
-function any_hmac_md5(k, d, e)
-  { return rstr2any(rstr_hmac_md5(str2rstr_utf8(k), str2rstr_utf8(d)), e); }
-
-/*
- * Perform a simple self-test to see if the VM is working
- */
-function md5_vm_test()
-{
-  return hex_md5("abc").toLowerCase() == "900150983cd24fb0d6963f7d28e17f72";
-}
-
-/*
- * Calculate the MD5 of a raw string
- */
-function rstr_md5(s)
-{
-  return binl2rstr(binl_md5(rstr2binl(s), s.length * 8));
-}
-
-/*
- * Calculate the HMAC-MD5, of a key and some data (raw strings)
- */
-function rstr_hmac_md5(key, data)
-{
-  var bkey = rstr2binl(key);
-  if(bkey.length > 16) bkey = binl_md5(bkey, key.length * 8);
-
-  var ipad = Array(16), opad = Array(16);
-  for(var i = 0; i < 16; i++)
-  {
-    ipad[i] = bkey[i] ^ 0x36363636;
-    opad[i] = bkey[i] ^ 0x5C5C5C5C;
-  }
-
-  var hash = binl_md5(ipad.concat(rstr2binl(data)), 512 + data.length * 8);
-  return binl2rstr(binl_md5(opad.concat(hash), 512 + 128));
-}
-
-/*
- * Convert a raw string to a hex string
- */
-function rstr2hex(input)
-{
-  try { hexcase } catch(e) { hexcase=0; }
-  var hex_tab = hexcase ? "0123456789ABCDEF" : "0123456789abcdef";
-  var output = "";
-  var x;
-  for(var i = 0; i < input.length; i++)
-  {
-    x = input.charCodeAt(i);
-    output += hex_tab.charAt((x >>> 4) & 0x0F)
-           +  hex_tab.charAt( x        & 0x0F);
-  }
-  return output;
-}
-
-/*
- * Convert a raw string to a base-64 string
- */
-function rstr2b64(input)
-{
-  try { b64pad } catch(e) { b64pad=''; }
-  var tab = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-  var output = "";
-  var len = input.length;
-  for(var i = 0; i < len; i += 3)
-  {
-    var triplet = (input.charCodeAt(i) << 16)
-                | (i + 1 < len ? input.charCodeAt(i+1) << 8 : 0)
-                | (i + 2 < len ? input.charCodeAt(i+2)      : 0);
-    for(var j = 0; j < 4; j++)
-    {
-      if(i * 8 + j * 6 > input.length * 8) output += b64pad;
-      else output += tab.charAt((triplet >>> 6*(3-j)) & 0x3F);
-    }
-  }
-  return output;
-}
-
-/*
- * Convert a array to a base-64 string
- */
-function arr2b64(input)
-{
-  try { b64pad } catch(e) { b64pad=''; }
-  var tab = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-  var output = "";
-  var len = input.length;
-  for(var i = 0; i < len; i += 3)
-  {
-    var triplet = (input[i] << 16)
-                | (i + 1 < len ? input[i+1] << 8 : 0)
-                | (i + 2 < len ? input[i+2]      : 0);
-    for(var j = 0; j < 4; j++)
-    {
-      if(i * 8 + j * 6 > input.length * 8) output += b64pad;
-      else output += tab.charAt((triplet >>> 6*(3-j)) & 0x3F);
-    }
-  }
-  return output;
-}
-
-/*
- * Convert a raw string to an arbitrary string encoding
- */
-function rstr2any(input, encoding)
-{
-  var divisor = encoding.length;
-  var i, j, q, x, quotient;
-
-  /* Convert to an array of 16-bit big-endian values, forming the dividend */
-  var dividend = Array(Math.ceil(input.length / 2));
-  for(i = 0; i < dividend.length; i++)
-  {
-    dividend[i] = (input.charCodeAt(i * 2) << 8) | input.charCodeAt(i * 2 + 1);
-  }
-
-  /*
-   * Repeatedly perform a long division. The binary array forms the dividend,
-   * the length of the encoding is the divisor. Once computed, the quotient
-   * forms the dividend for the next step. All remainders are stored for later
-   * use.
-   */
-  var full_length = Math.ceil(input.length * 8 /
-                                    (Math.log(encoding.length) / Math.log(2)));
-  var remainders = Array(full_length);
-  for(j = 0; j < full_length; j++)
-  {
-    quotient = Array();
-    x = 0;
-    for(i = 0; i < dividend.length; i++)
-    {
-      x = (x << 16) + dividend[i];
-      q = Math.floor(x / divisor);
-      x -= q * divisor;
-      if(quotient.length > 0 || q > 0)
-        quotient[quotient.length] = q;
-    }
-    remainders[j] = x;
-    dividend = quotient;
-  }
-
-  /* Convert the remainders to the output string */
-  var output = "";
-  for(i = remainders.length - 1; i >= 0; i--)
-    output += encoding.charAt(remainders[i]);
-
-  return output;
-}
-
-/*
- * Encode a string as utf-8.
- * For efficiency, this assumes the input is valid utf-16.
- */
-function str2rstr_utf8(input)
-{
-  var output = "";
-  var i = -1;
-  var x, y;
-
-  while(++i < input.length)
-  {
-    /* Decode utf-16 surrogate pairs */
-    x = input.charCodeAt(i);
-    y = i + 1 < input.length ? input.charCodeAt(i + 1) : 0;
-    if(0xD800 <= x && x <= 0xDBFF && 0xDC00 <= y && y <= 0xDFFF)
-    {
-      x = 0x10000 + ((x & 0x03FF) << 10) + (y & 0x03FF);
-      i++;
-    }
-
-    /* Encode output as utf-8 */
-    if(x <= 0x7F)
-      output += String.fromCharCode(x);
-    else if(x <= 0x7FF)
-      output += String.fromCharCode(0xC0 | ((x >>> 6 ) & 0x1F),
-                                    0x80 | ( x         & 0x3F));
-    else if(x <= 0xFFFF)
-      output += String.fromCharCode(0xE0 | ((x >>> 12) & 0x0F),
-                                    0x80 | ((x >>> 6 ) & 0x3F),
-                                    0x80 | ( x         & 0x3F));
-    else if(x <= 0x1FFFFF)
-      output += String.fromCharCode(0xF0 | ((x >>> 18) & 0x07),
-                                    0x80 | ((x >>> 12) & 0x3F),
-                                    0x80 | ((x >>> 6 ) & 0x3F),
-                                    0x80 | ( x         & 0x3F));
-  }
-  return output;
-}
-
-/*
- * Encode a string as utf-16
- */
-function str2rstr_utf16le(input)
-{
-  var output = "";
-  for(var i = 0; i < input.length; i++)
-    output += String.fromCharCode( input.charCodeAt(i)        & 0xFF,
-                                  (input.charCodeAt(i) >>> 8) & 0xFF);
-  return output;
-}
-
-function str2rstr_utf16be(input)
-{
-  var output = "";
-  for(var i = 0; i < input.length; i++)
-    output += String.fromCharCode((input.charCodeAt(i) >>> 8) & 0xFF,
-                                   input.charCodeAt(i)        & 0xFF);
-  return output;
-}
-
-/*
- * Convert a raw string to an array of little-endian words
- * Characters >255 have their high-byte silently ignored.
- */
-function rstr2binl(input)
-{
-  var output = Array(input.length >> 2);
-  for(var i = 0; i < output.length; i++)
-    output[i] = 0;
-  for(var i = 0; i < input.length * 8; i += 8)
-    output[i>>5] |= (input.charCodeAt(i / 8) & 0xFF) << (i%32);
-  return output;
-}
-
-/*
- * Convert an array of little-endian words to a string
- */
-function binl2rstr(input)
-{
-  var output = "";
-  for(var i = 0; i < input.length * 32; i += 8)
-    output += String.fromCharCode((input[i>>5] >>> (i % 32)) & 0xFF);
-  return output;
-}
-
-/*
- * Calculate the MD5 of an array of little-endian words, and a bit length.
- */
-function binl_md5(x, len)
-{
-  /* append padding */
-  x[len >> 5] |= 0x80 << ((len) % 32);
-  x[(((len + 64) >>> 9) << 4) + 14] = len;
-
-  var a =  1732584193;
-  var b = -271733879;
-  var c = -1732584194;
-  var d =  271733878;
-
-  for(var i = 0; i < x.length; i += 16)
-  {
-    var olda = a;
-    var oldb = b;
-    var oldc = c;
-    var oldd = d;
-
-    a = md5_ff(a, b, c, d, x[i+ 0], 7 , -680876936);
-    d = md5_ff(d, a, b, c, x[i+ 1], 12, -389564586);
-    c = md5_ff(c, d, a, b, x[i+ 2], 17,  606105819);
-    b = md5_ff(b, c, d, a, x[i+ 3], 22, -1044525330);
-    a = md5_ff(a, b, c, d, x[i+ 4], 7 , -176418897);
-    d = md5_ff(d, a, b, c, x[i+ 5], 12,  1200080426);
-    c = md5_ff(c, d, a, b, x[i+ 6], 17, -1473231341);
-    b = md5_ff(b, c, d, a, x[i+ 7], 22, -45705983);
-    a = md5_ff(a, b, c, d, x[i+ 8], 7 ,  1770035416);
-    d = md5_ff(d, a, b, c, x[i+ 9], 12, -1958414417);
-    c = md5_ff(c, d, a, b, x[i+10], 17, -42063);
-    b = md5_ff(b, c, d, a, x[i+11], 22, -1990404162);
-    a = md5_ff(a, b, c, d, x[i+12], 7 ,  1804603682);
-    d = md5_ff(d, a, b, c, x[i+13], 12, -40341101);
-    c = md5_ff(c, d, a, b, x[i+14], 17, -1502002290);
-    b = md5_ff(b, c, d, a, x[i+15], 22,  1236535329);
-
-    a = md5_gg(a, b, c, d, x[i+ 1], 5 , -165796510);
-    d = md5_gg(d, a, b, c, x[i+ 6], 9 , -1069501632);
-    c = md5_gg(c, d, a, b, x[i+11], 14,  643717713);
-    b = md5_gg(b, c, d, a, x[i+ 0], 20, -373897302);
-    a = md5_gg(a, b, c, d, x[i+ 5], 5 , -701558691);
-    d = md5_gg(d, a, b, c, x[i+10], 9 ,  38016083);
-    c = md5_gg(c, d, a, b, x[i+15], 14, -660478335);
-    b = md5_gg(b, c, d, a, x[i+ 4], 20, -405537848);
-    a = md5_gg(a, b, c, d, x[i+ 9], 5 ,  568446438);
-    d = md5_gg(d, a, b, c, x[i+14], 9 , -1019803690);
-    c = md5_gg(c, d, a, b, x[i+ 3], 14, -187363961);
-    b = md5_gg(b, c, d, a, x[i+ 8], 20,  1163531501);
-    a = md5_gg(a, b, c, d, x[i+13], 5 , -1444681467);
-    d = md5_gg(d, a, b, c, x[i+ 2], 9 , -51403784);
-    c = md5_gg(c, d, a, b, x[i+ 7], 14,  1735328473);
-    b = md5_gg(b, c, d, a, x[i+12], 20, -1926607734);
-
-    a = md5_hh(a, b, c, d, x[i+ 5], 4 , -378558);
-    d = md5_hh(d, a, b, c, x[i+ 8], 11, -2022574463);
-    c = md5_hh(c, d, a, b, x[i+11], 16,  1839030562);
-    b = md5_hh(b, c, d, a, x[i+14], 23, -35309556);
-    a = md5_hh(a, b, c, d, x[i+ 1], 4 , -1530992060);
-    d = md5_hh(d, a, b, c, x[i+ 4], 11,  1272893353);
-    c = md5_hh(c, d, a, b, x[i+ 7], 16, -155497632);
-    b = md5_hh(b, c, d, a, x[i+10], 23, -1094730640);
-    a = md5_hh(a, b, c, d, x[i+13], 4 ,  681279174);
-    d = md5_hh(d, a, b, c, x[i+ 0], 11, -358537222);
-    c = md5_hh(c, d, a, b, x[i+ 3], 16, -722521979);
-    b = md5_hh(b, c, d, a, x[i+ 6], 23,  76029189);
-    a = md5_hh(a, b, c, d, x[i+ 9], 4 , -640364487);
-    d = md5_hh(d, a, b, c, x[i+12], 11, -421815835);
-    c = md5_hh(c, d, a, b, x[i+15], 16,  530742520);
-    b = md5_hh(b, c, d, a, x[i+ 2], 23, -995338651);
-
-    a = md5_ii(a, b, c, d, x[i+ 0], 6 , -198630844);
-    d = md5_ii(d, a, b, c, x[i+ 7], 10,  1126891415);
-    c = md5_ii(c, d, a, b, x[i+14], 15, -1416354905);
-    b = md5_ii(b, c, d, a, x[i+ 5], 21, -57434055);
-    a = md5_ii(a, b, c, d, x[i+12], 6 ,  1700485571);
-    d = md5_ii(d, a, b, c, x[i+ 3], 10, -1894986606);
-    c = md5_ii(c, d, a, b, x[i+10], 15, -1051523);
-    b = md5_ii(b, c, d, a, x[i+ 1], 21, -2054922799);
-    a = md5_ii(a, b, c, d, x[i+ 8], 6 ,  1873313359);
-    d = md5_ii(d, a, b, c, x[i+15], 10, -30611744);
-    c = md5_ii(c, d, a, b, x[i+ 6], 15, -1560198380);
-    b = md5_ii(b, c, d, a, x[i+13], 21,  1309151649);
-    a = md5_ii(a, b, c, d, x[i+ 4], 6 , -145523070);
-    d = md5_ii(d, a, b, c, x[i+11], 10, -1120210379);
-    c = md5_ii(c, d, a, b, x[i+ 2], 15,  718787259);
-    b = md5_ii(b, c, d, a, x[i+ 9], 21, -343485551);
-
-    a = safe_add(a, olda);
-    b = safe_add(b, oldb);
-    c = safe_add(c, oldc);
-    d = safe_add(d, oldd);
-  }
-  return Array(a, b, c, d);
-}
-
-/*
- * These functions implement the four basic operations the algorithm uses.
- */
-function md5_cmn(q, a, b, x, s, t)
-{
-  return safe_add(bit_rol(safe_add(safe_add(a, q), safe_add(x, t)), s),b);
-}
-function md5_ff(a, b, c, d, x, s, t)
-{
-  return md5_cmn((b & c) | ((~b) & d), a, b, x, s, t);
-}
-function md5_gg(a, b, c, d, x, s, t)
-{
-  return md5_cmn((b & d) | (c & (~d)), a, b, x, s, t);
-}
-function md5_hh(a, b, c, d, x, s, t)
-{
-  return md5_cmn(b ^ c ^ d, a, b, x, s, t);
-}
-function md5_ii(a, b, c, d, x, s, t)
-{
-  return md5_cmn(c ^ (b | (~d)), a, b, x, s, t);
-}
-
-/*
- * Add integers, wrapping at 2^32. This uses 16-bit operations internally
- * to work around bugs in some JS interpreters.
- */
-function safe_add(x, y)
-{
-  var lsw = (x & 0xFFFF) + (y & 0xFFFF);
-  var msw = (x >> 16) + (y >> 16) + (lsw >> 16);
-  return (msw << 16) | (lsw & 0xFFFF);
-}
-
-/*
- * Bitwise rotate a 32-bit number to the left.
- */
-function bit_rol(num, cnt)
-{
-  return (num << cnt) | (num >>> (32 - cnt));
-}
-
-
-/* #############################################################################
-   UTF-8 Decoder and Encoder
-   base64 Encoder and Decoder
-   written by Tobias Kieslich, justdreams
-   Contact: tobias@justdreams.de				http://www.justdreams.de/
-   ############################################################################# */
-
-// returns an array of byterepresenting dezimal numbers which represent the
-// plaintext in an UTF-8 encoded version. Expects a string.
-// This function includes an exception management for those nasty browsers like
-// NN401, which returns negative decimal numbers for chars>128. I hate it!!
-// This handling is unfortunately limited to the user's charset. Anyway, it works
-// in most of the cases! Special signs with an unicode>256 return numbers, which
-// can not be converted to the actual unicode and so not to the valid utf-8
-// representation. Anyway, this function does always return values which can not
-// misinterpretd by RC4 or base64 en- or decoding, because every value is >0 and
-// <255!!
-// Arrays are faster and easier to handle in b64 encoding or encrypting....
-function utf8t2d(t)
-{
-  t = t.replace(/\r\n/g,"\n");
-  var d=new Array; var test=String.fromCharCode(237);
-  if (test.charCodeAt(0) < 0)
-    for(var n=0; n<t.length; n++)
-      {
-        var c=t.charCodeAt(n);
-        if (c>0)
-          d[d.length]= c;
-        else {
-          d[d.length]= (((256+c)>>6)|192);
-          d[d.length]= (((256+c)&63)|128);}
-      }
-  else
-    for(var n=0; n<t.length; n++)
-      {
-        var c=t.charCodeAt(n);
-        // all the signs of asci => 1byte
-        if (c<128)
-          d[d.length]= c;
-        // all the signs between 127 and 2047 => 2byte
-        else if((c>127) && (c<2048)) {
-          d[d.length]= ((c>>6)|192);
-          d[d.length]= ((c&63)|128);}
-        // all the signs between 2048 and 66536 => 3byte
-        else {
-          d[d.length]= ((c>>12)|224);
-          d[d.length]= (((c>>6)&63)|128);
-          d[d.length]= ((c&63)|128);}
-      }
-  return d;
-}
-
-// returns plaintext from an array of bytesrepresenting dezimal numbers, which
-// represent an UTF-8 encoded text; browser which does not understand unicode
-// like NN401 will show "?"-signs instead
-// expects an array of byterepresenting decimals; returns a string
-function utf8d2t(d)
-{
-  var r=new Array; var i=0;
-  while(i<d.length)
-    {
-      if (d[i]<128) {
-        r[r.length]= String.fromCharCode(d[i]); i++;}
-      else if((d[i]>191) && (d[i]<224)) {
-        r[r.length]= String.fromCharCode(((d[i]&31)<<6) | (d[i+1]&63)); i+=2;}
-      else {
-        r[r.length]= String.fromCharCode(((d[i]&15)<<12) | ((d[i+1]&63)<<6) | (d[i+2]&63)); i+=3;}
-    }
-  return r.join("");
-}
-
-// included in <body onload="b64arrays"> it creates two arrays which makes base64
-// en- and decoding faster
-// this speed is noticeable especially when coding larger texts (>5k or so)
-function b64arrays() {
-  var b64s='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
-  b64 = new Array();f64 =new Array();
-  for (var i=0; i<b64s.length ;i++) {
-    b64[i] = b64s.charAt(i);
-    f64[b64s.charAt(i)] = i;
-  }
-}
-
-// creates a base64 encoded text out of an array of byerepresenting dezimals
-// it is really base64 :) this makes serversided handling easier
-// expects an array; returns a string
-function b64d2t(d) {
-  var r=new Array; var i=0; var dl=d.length;
-  // this is for the padding
-  if ((dl%3) == 1) {
-    d[d.length] = 0; d[d.length] = 0;}
-  if ((dl%3) == 2)
-    d[d.length] = 0;
-  // from here conversion
-  while (i<d.length)
-    {
-      r[r.length] = b64[d[i]>>2];
-      r[r.length] = b64[((d[i]&3)<<4) | (d[i+1]>>4)];
-      r[r.length] = b64[((d[i+1]&15)<<2) | (d[i+2]>>6)];
-      r[r.length] = b64[d[i+2]&63];
-      i+=3;
-    }
-  // this is again for the padding
-  if ((dl%3) == 1)
-    r[r.length-1] = r[r.length-2] = "=";
-  if ((dl%3) == 2)
-    r[r.length-1] = "=";
-  // we join the array to return a textstring
-  var t=r.join("");
-  return t;
-}
-
-// returns array of byterepresenting numbers created of an base64 encoded text
-// it is still the slowest function in this modul; I hope I can make it faster
-// expects string; returns an array
-function b64t2d(t) {
-  var d=new Array; var i=0;
-  // here we fix this CRLF sequenz created by MS-OS; arrrgh!!!
-  t=t.replace(/\n|\r/g,""); t=t.replace(/=/g,"");
-  while (i<t.length)
-    {
-      d[d.length] = (f64[t.charAt(i)]<<2) | (f64[t.charAt(i+1)]>>4);
-      d[d.length] = (((f64[t.charAt(i+1)]&15)<<4) | (f64[t.charAt(i+2)]>>2));
-      d[d.length] = (((f64[t.charAt(i+2)]&3)<<6) | (f64[t.charAt(i+3)]));
-      i+=4;
-    }
-  if (t.length%4 == 2)
-    d = d.slice(0, d.length-2);
-  if (t.length%4 == 3)
-    d = d.slice(0, d.length-1);
-  return d;
-}
-
-if (typeof(atob) == 'undefined' || typeof(btoa) == 'undefined')
-  b64arrays();
-
-if (typeof(atob) == 'undefined') {
-  b64decode = function(s) {
-    return utf8d2t(b64t2d(s));
-  };
-  b64decode_bin = function(s) {
-    var dec = b64t2d(s);
-    var ret = '';
-    for(var i = 0; i < dec.length; i++) {
-      ret += String.fromCharCode(dec[i]);
-    }
-    return ret;
-  };
-} else {
-  b64decode = function(s) {
-    return decodeURIComponent(escape(atob(s)));
-  };
-  b64decode_bin = atob;
-}
-
-if (typeof(btoa) == 'undefined') {
-  b64encode = function(s) {
-    return b64d2t(utf8t2d(s));
-  };
-} else {
-  b64encode = function(s) {
-    return btoa(unescape(encodeURIComponent(s)));
-  };
-}
-
-function createXHR() {
-	var xhr;
-	if (typeof ActiveXObject != 'undefined') {
-		var aVersions = [ "Microsoft.XMLHTTP", "Msxml2.XMLHttp.6.0",
-		                  "Msxml2.XMLHttp.5.0", "Msxml2.XMLHttp.4.0",
-		                  "Msxml2.XMLHttp.3.0" ];
-		for (var i = 0; i < aVersions.length; i++) {
-			try {
-				xhr = new ActiveXObject(aVersions[i]);
-			} catch (e) {
-			}
-		}
-	} else if (typeof XMLHttpRequest != 'undefined') {
-		xhr = new XMLHttpRequest();
-	}
-	return xhr;
-}
-
-if (window.XDomainRequest) {
-    window.ieXDRToXHR = function(window) {
-        "use strict";
-        var XHR = window.XMLHttpRequest;
-
-        window.XMLHttpRequest = function() {
-            this.onreadystatechange = Object;
-
-            this.xhr = null;
-            this.xdr = null;
-
-            this.readyState = 0;
-            this.status = '';
-            this.statusText = null;
-            this.responseText = null;
-
-            this.getResponseHeader = null;
-            this.getAllResponseHeaders = null;
-
-            this.setRequestHeader = null;
-
-            this.abort = null;
-            this.send = null;
-            this.isxdr = false;
-
-            // static binding
-            var self = this;
-
-            self.xdrLoadedBinded = function() {
-                self.xdrLoaded();
-            };
-            self.xdrErrorBinded = function() {
-                self.xdrError();
-            };
-            self.xdrProgressBinded = function() {
-                self.xdrProgress();
-            };
-            self.xhrReadyStateChangedBinded = function() {
-                self.xhrReadyStateChanged();
-            };
-        };
-
-        XMLHttpRequest.prototype.open = function(method, url, asynch, user, pwd) {
-            //improve CORS deteciton (chat.example.net exemple.net), remove hardcoded http-bind
-            var parser = document.createElement('a');
-            parser.href = url;
-            if (!!parser.hostname && parser.hostname!=document.domain) {
-                if (this.xdr === null){
-                    this.xdr = new window.XDomainRequest();
-                }
-
-                this.isxdr = true;
-                this.setXDRActive();
-                this.xdr.open(method, url);
-            } else {
-                if (this.xhr === null){
-                    this.xhr = new XHR();
-                }
-
-                this.isxdr = false;
-                this.setXHRActive();
-                this.xhr.open(method, url, asynch, user, pwd);
-            }
-        };
-
-        XMLHttpRequest.prototype.xdrGetResponseHeader = function(name) {
-            if (name === 'Content-Type' && this.xdr.contentType > ''){
-                return this.xdr.contentType;
-            }
-
-            return '';
-        };
-        
-        XMLHttpRequest.prototype.xdrGetAllResponseHeaders = function() {
-            return (this.xdr.contentType > '') ? 'Content-Type: ' + this.xdr.contentType : '';
-        };
-        
-        XMLHttpRequest.prototype.xdrSetRequestHeader = function(name, value) {
-            //throw new Error('Request headers not supported');
-        };
-        
-        XMLHttpRequest.prototype.xdrLoaded = function() {
-            if (this.onreadystatechange !== null) {
-                this.readyState = 4;
-                this.status = 200;
-                this.statusText = 'OK';
-                this.responseText = this.xdr.responseText;
-                if (window.ActiveXObject){
-                    var doc = new ActiveXObject('Microsoft.XMLDOM');
-                    doc.async='false';
-                    doc.loadXML(this.responseText);
-                    this.responseXML = doc;
-                }
-                this.onreadystatechange();
-            }
-        };
-        
-        XMLHttpRequest.prototype.xdrError = function() {
-            if (this.onreadystatechange !== null) {
-                this.readyState = 4;
-                this.status = 0;
-                this.statusText = '';
-                // ???
-                this.responseText = '';
-                this.onreadystatechange();
-            }
-        };
-        
-        XMLHttpRequest.prototype.xdrProgress = function() {
-            if (this.onreadystatechange !== null && this.status !== 3) {
-                this.readyState = 3;
-                this.status = 3;
-                this.statusText = '';
-                this.onreadystatechange();
-            }
-        };
-        
-        XMLHttpRequest.prototype.finalXDRRequest = function() {
-            var xdr = this.xdr;
-            delete xdr.onload;
-            delete xdr.onerror;
-            delete xdr.onprogress;
-        };
-        
-        XMLHttpRequest.prototype.sendXDR = function(data) {
-            var xdr = this.xdr;
-
-            xdr.onload = this.xdrLoadedBinded;
-            xdr.onerror = this.xdr.ontimeout = this.xdrErrorBinded;
-            xdr.onprogress = this.xdrProgressBinded;
-            this.responseText = null;
-
-            this.xdr.send(data);
-        };
-        
-        XMLHttpRequest.prototype.abortXDR = function() {
-            this.finalXDRRequest();
-            this.xdr.abort();
-        };
-        
-        XMLHttpRequest.prototype.setXDRActive = function() {
-            this.send = this.sendXDR;
-            this.abort = this.abortXDR;
-            this.getResponseHeader = this.xdrGetResponseHeader;
-            this.getAllResponseHeaders = this.xdrGetAllResponseHeaders;
-            this.setRequestHeader = this.xdrSetRequestHeader;
-        };
-
-        XMLHttpRequest.prototype.xhrGetResponseHeader = function(name) {
-            return this.xhr.getResponseHeader(name);
-        };
-        
-        XMLHttpRequest.prototype.xhrGetAllResponseHeaders = function() {
-            return this.xhr.getAllResponseHeaders();
-        };
-        
-        XMLHttpRequest.prototype.xhrSetRequestHeader = function(name, value) {
-            return this.xhr.setRequestHeader(name, value);
-        };
-        
-        XMLHttpRequest.prototype.xhrReadyStateChanged = function() {
-            if (this.onreadystatechange !== null && this.readyState !== this.xhr.readyState) {
-                var xhr = this.xhr;
-
-                this.readyState = xhr.readyState;
-                if (this.readyState === 4) {
-                    this.status = xhr.status;
-                    this.statusText = xhr.statusText;
-                    this.responseText = xhr.responseText;
-                    this.responseXML = xhr.responseXML;
-                }
-
-                this.onreadystatechange();
-            }
-        };
-        
-        XMLHttpRequest.prototype.finalXHRRequest = function() {
-            delete this.xhr.onreadystatechange;
-        };
-        XMLHttpRequest.prototype.abortXHR = function() {
-            this.finalXHRRequest();
-            this.xhr.abort();
-        };
-        XMLHttpRequest.prototype.sendXHR = function(data) {
-            this.xhr.onreadystatechange = this.xhrReadyStateChangedBinded;
-
-            this.xhr.send(data);
-        };
-        XMLHttpRequest.prototype.setXHRActive = function() {
-            this.send = this.sendXHR;
-            this.abort = this.abortXHR;
-            this.getResponseHeader = this.xhrGetResponseHeader;
-            this.getAllResponseHeaders = this.xhrGetAllResponseHeaders;
-            this.setRequestHeader = this.xhrSetRequestHeader;
-        };
-
-        window.ieXDRToXHR = undefined;
-    };
-    var isWebsocketSupport = (function() {
-		var isSafari = navigator.userAgent.indexOf("Safari") > -1 && navigator.userAgent.indexOf("Chrome") < 1 ; //判断是否Safari 
-		if(isSafari)
-			return false;
-		window.WebSocket =window.WebSocket || window.MozWebSocket;
-		if (window.WebSocket) {
-			return true;
-		}
-		return false;
-	})();
-    if(!isWebsocketSupport)
-    	window.ieXDRToXHR(window);
-}
-
-/**
- * @fileoverview Collection of functions to make live easier
- * @author Stefan Strigler
- */
-
-/**
- * Convert special chars to HTML entities
- * @addon
- * @return The string with chars encoded for HTML
- * @type String
- */
-String.prototype.htmlEnc = function() {
-  if(!this)
-    return this;
-
-  var str = this.replace(/&/g,"&amp;");
-  str = str.replace(/</g,"&lt;");
-  str = str.replace(/>/g,"&gt;");
-  str = str.replace(/\"/g,"&quot;");
-  str = str.replace(/\n/g,"<br />");
-  return str;
-};
-
-/**
- * Convert HTML entities to special chars
- * @addon
- * @return The normal string
- * @type String
- */
-String.prototype.revertHtmlEnc = function() {
-  if(!this)
-    return this;
-
-  var str = this.replace(/&amp;/gi,'&');
-  str = str.replace(/&lt;/gi,'<');
-  str = str.replace(/&gt;/gi,'>');
-  str = str.replace(/&quot;/gi,'\"');
-  str = str.replace(/<br( )?(\/)?>/gi,'\n');
-  return str;
-};
-
-/**
- * Converts from jabber timestamps to JavaScript Date objects
- * @addon
- * @param {String} ts A string representing a jabber datetime timestamp as
- * defined by {@link http://www.xmpp.org/extensions/xep-0082.html XEP-0082}
- * @return A javascript Date object corresponding to the jabber DateTime given
- * @type Date
- */
-Date.jab2date = function(ts) {
-  var date = new Date(Date.UTC(ts.substr(0,4),ts.substr(5,2)-1,ts.substr(8,2),ts.substr(11,2),ts.substr(14,2),ts.substr(17,2)));
-  if (ts.substr(ts.length-6,1) != 'Z') { // there's an offset
-    var offset = new Date();
-    offset.setTime(0);
-    offset.setUTCHours(ts.substr(ts.length-5,2));
-    offset.setUTCMinutes(ts.substr(ts.length-2,2));
-    if (ts.substr(ts.length-6,1) == '+')
-      date.setTime(date.getTime() - offset.getTime());
-    else if (ts.substr(ts.length-6,1) == '-')
-      date.setTime(date.getTime() + offset.getTime());
-  }
-  return date;
-};
-
-/**
- * Takes a timestamp in the form of 2004-08-13T12:07:04+02:00 as argument
- * and converts it to some sort of humane readable format
- * @addon
- */
-Date.hrTime = function(ts) {
-  return Date.jab2date(ts).toLocaleString();
-};
-
-/**
- * somewhat opposit to {@link #hrTime}
- * expects a javascript Date object as parameter and returns a jabber
- * date string conforming to
- * {@link http://www.xmpp.org/extensions/xep-0082.html XEP-0082}
- * @see #hrTime
- * @return The corresponding jabber DateTime string
- * @type String
- */
-Date.prototype.jabberDate = function() {
-  var padZero = function(i) {
-    if (i < 10) return "0" + i;
-    return i;
-  };
-
-  var jDate = this.getUTCFullYear() + "-";
-  jDate += padZero(this.getUTCMonth()+1) + "-";
-  jDate += padZero(this.getUTCDate()) + "T";
-  jDate += padZero(this.getUTCHours()) + ":";
-  jDate += padZero(this.getUTCMinutes()) + ":";
-  jDate += padZero(this.getUTCSeconds()) + "Z";
-
-  return jDate;
-};
-
-/**
- * Determines the maximum of two given numbers
- * @addon
- * @param {Number} A a number
- * @param {Number} B another number
- * @return the maximum of A and B
- * @type Number
- */
-Number.max = function(A, B) {
-  return (A > B)? A : B;
-};
-
-Number.min = function(A, B) {
-  return (A < B)? A : B;
-};
-
 /******/ (function(modules) { // webpackBootstrap
 /******/ 	// The module cache
 /******/ 	var installedModules = {};
@@ -8911,7 +8915,9 @@ var ConfigSetting = function () {
 			UPLOAD: {
 				AUTO_SEND: true,
 				MULTI_SELECTION: false,
-				PREVENT_DUPLICATES: false,
+				FILTERS: {
+					MAX_FILE_SIZE: '100mb',
+					PREVENT_DUPLICATES: false },
 				PREVIEW_SIZE: {
 					WIDTH: 100,
 					HEIGHT: 100
@@ -8939,18 +8945,22 @@ var ConfigSetting = function () {
 				KEY: '',
 				PHONESMAXLENGTH: 200 },
 
-			SERVLET: {
-				REST_RESOURCE_SERVLET: YY_IM_SERVLET_ADDRESS + 'sysadmin/rest/resource/',
-				REST_VERSION_SERVLET: YY_IM_SERVLET_ADDRESS + 'sysadmin/rest/version/',
-				REST_USER_SERVLET: YY_IM_SERVLET_ADDRESS + 'sysadmin/rest/user/',
-				REST_UPLOAD_SERVLET: YY_IM_SERVLET_ADDRESS + 'im_upload/rest/resource/',
-				REST_DOWNLOAD_SERVLET: YY_IM_SERVLET_ADDRESS + 'im_download/rest/resource/',
-				REST_TRANSFORM_SERVLET: YY_IM_SERVLET_ADDRESS + 'im_download/rest/transform/resource/',
-				REST_SYSTEM_SERVLET: YY_IM_SERVLET_ADDRESS + 'sysadmin/rest/system/',
-				REST_SYSTEM_CUSTOMER_USER: YY_IM_SERVLET_ADDRESS + 'sysadmin/rest/customer/user/',
+			SERVLET: function () {
 
-				REST_TODO_USER: TODO_SERVLET_ADDRESS + 'todocenter/user/todo/'
-			},
+				return {
+					REST_RESOURCE_SERVLET: YY_IM_SERVLET_ADDRESS + 'sysadmin/rest/resource/',
+					REST_VERSION_SERVLET: YY_IM_SERVLET_ADDRESS + 'sysadmin/rest/version/',
+					REST_USER_SERVLET: YY_IM_SERVLET_ADDRESS + 'sysadmin/rest/user/',
+					REST_UPLOAD_SERVLET: YY_IM_SERVLET_ADDRESS + 'im_upload/rest/resource/',
+					REST_DOWNLOAD_SERVLET: YY_IM_SERVLET_ADDRESS + 'im_download/rest/resource/',
+					REST_TRANSFORM_SERVLET: YY_IM_SERVLET_ADDRESS + 'im_download/rest/transform/resource/',
+					REST_SYSTEM_SERVLET: YY_IM_SERVLET_ADDRESS + 'sysadmin/rest/system/',
+					REST_SYSTEM_CUSTOMER_USER: YY_IM_SERVLET_ADDRESS + 'sysadmin/rest/customer/user/',
+
+					REST_TODO_USER: TODO_SERVLET_ADDRESS + 'todocenter/user/todo/',
+					REST_TODO_V2: TODO_SERVLET_ADDRESS + 'todocenter/rest/v2/client/items/'
+				};
+			}(),
 
 			SUPPORT: {
 				isWebSocketSupport: function () {
@@ -8969,12 +8979,12 @@ var ConfigSetting = function () {
 				ALLOW_PLAIN: true,
 				ENABLE_WEBSOCKET: true,
 				ENABLE_LOCAL_CONNECTION: true,
-				USE_HTTPS: function () {
+				USE_HTTPS: function (options) {
 					if (/https/.test(window.location.protocol) || options.useHttps === true) {
 						return true;
 					}
 					return false;
-				}(),
+				}(options),
 				SERVER_NAME: YY_IM_DOMAIN,
 				HTTP_BASE: YY_IM_ADDRESS,
 				HTTP_BIND_PORT: YY_IM_HTTPBIND_PORT,
@@ -9060,7 +9070,7 @@ module.exports = !__webpack_require__(11)(function () {
 /* 6 */
 /***/ (function(module, exports) {
 
-var core = module.exports = { version: '2.5.6' };
+var core = module.exports = { version: '2.5.7' };
 if (typeof __e == 'number') __e = core; // eslint-disable-line no-undef
 
 
@@ -9938,6 +9948,87 @@ FileUpload.prototype.bindEvents = function (uploader, arg) {
 	uploader.bind('Destroy', function (uploader) {
 		arg && arg.Destroy && arg.Destroy(uploader);
 	});
+};
+
+FileUpload.prototype.destroy = function (browse_button) {
+	if (browse_button) {
+		var uploader = uploaders[browse_button];
+		if (uploader) {
+			uploader.destroy();
+			uploaders[browse_button] = null;
+			delete uploaders[browse_button];
+		}
+	} else {
+		for (var x in uploaders) {
+			if (uploaders.hasOwnProperty(x)) {
+				var uploader = uploaders[x];
+				if (uploader) {
+					uploader.destroy();
+				}
+			}
+		}
+		uploaders = null;
+		uploaders = {};
+	}
+};
+
+FileUpload.prototype.setUploadOption = function (arg) {
+	arg = arg || {};
+	if (arg.options) {
+
+		var setFun = function setFun(uploader, options) {
+			try {
+				for (var y in options) {
+					if (options.hasOwnProperty(y)) {
+						try {
+							var setting = uploader.getOption(y);
+							jQuery.extend(setting, options[y]);
+							uploader.setOption(y, setting);
+						} catch (e) {}
+					}
+				}
+			} catch (e) {}
+		};
+		if (arg['browse_button']) {
+			var uploader = uploaders[arg['browse_button']];
+			setFun(uploader, arg.options);
+			jQuery.extend(OPTIONS[arg['browse_button']], arg.options);
+		} else {
+			for (var x in uploaders) {
+				if (uploaders.hasOwnProperty(x)) {
+					var uploader = uploaders[x];
+					setFun(uploader, arg.options);
+				}
+			}
+			jQuery.extend(COMMON_OPTIONS, arg.options);
+		}
+	}
+};
+
+FileUpload.prototype.resumeFile = function (file) {
+	if (file) {
+		var uploader = fileUploaders[file.id || file];
+		if (uploader) {
+			file = uploader.getFile(file.id || file);
+			if (file) {
+				file.status = 1;
+			}
+			uploader.start();
+		}
+	}
+};
+
+FileUpload.prototype.destroyFile = function (file) {
+	if (file) {
+		var uploader = fileUploaders[file.id || file];
+		if (uploader) {
+			file = uploader.getFile(file.id || file);
+			if (file) {
+				uploader.removeFile(file);
+			}
+			delete fileUploaders[file.id || file];
+		}
+	}
 };
 
 exports.FileUpload = FileUpload;
@@ -11302,159 +11393,172 @@ var _manager = __webpack_require__(0);
 var _Manager = __webpack_require__(44);
 
 _manager.YYIMChat.setBackhander({
-  'monitor': {
-    'groupMonitor': _Manager.monitor
-  },
-  'initCallback': {
-    'group': function group(options) {
-      _manager.YYIMChat.onGroupUpdate = options.onGroupUpdate || function () {};
-      _manager.YYIMChat.onTransferGroupOwner = options.onTransferGroupOwner || function () {};
-      _manager.YYIMChat.onKickedOutGroup = options.onKickedOutGroup || function () {};
-    }
-  }
+	'monitor': {
+		'groupMonitor': _Manager.monitor
+	},
+	'initCallback': {
+		'group': function group(options) {
+			_manager.YYIMChat.onGroupUpdate = options.onGroupUpdate || function () {};
+			_manager.YYIMChat.onTransferGroupOwner = options.onTransferGroupOwner || function () {};
+			_manager.YYIMChat.onKickedOutGroup = options.onKickedOutGroup || function () {};
+		}
+	}
 });
 
 _manager.YYIMManager.prototype.getChatGroups = function (arg) {
-  arg = arg || {};
-  arg.startDate = YYIMUtil['isWhateType'](arg.startDate, 'Number') && arg.startDate > 0 ? arg.startDate : 0;
-  arg.membersLimit = YYIMCommonUtil.isNumber(arg.membersLimit) && arg.membersLimit > 0 ? arg.membersLimit : _manager.YYIMChat.getConfig().GROUP.MEMBERSLIMIT;
-  (0, _Manager.getChatGroups)(arg);
+	arg = arg || {};
+	arg.startDate = YYIMUtil['isWhateType'](arg.startDate, 'Number') && arg.startDate > 0 ? arg.startDate : 0;
+	arg.membersLimit = YYIMCommonUtil.isNumber(arg.membersLimit) && arg.membersLimit > 0 ? arg.membersLimit : _manager.YYIMChat.getConfig().GROUP.MEMBERSLIMIT;
+	(0, _Manager.getChatGroups)(arg);
 };
 
 _manager.YYIMManager.prototype.queryChatGroup = function (arg) {
-  if (YYIMCommonUtil.isStringAndNotEmpty(arg.keyword)) {
-    (0, _Manager.queryChatGroup)(arg);
-  } else {
-    arg && arg.error && arg.error();
-  }
+	arg = arg || {};
+	if (YYIMCommonUtil.isStringAndNotEmpty(arg.keyword)) {
+		(0, _Manager.queryChatGroup)(arg);
+	} else {
+		arg && arg.error && arg.error();
+	}
 };
 
 _manager.YYIMManager.prototype.joinChatGroup = function (arg) {
-  if (YYIMCommonUtil.isStringAndNotEmpty(arg.id)) {
-    (0, _Manager.joinChatGroup)({
-      jid: _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.id)),
-      success: arg.success,
-      error: arg.error
-    });
-  } else {
-    arg && arg.error && arg.error();
-  }
+	arg = arg || {};
+	if (YYIMCommonUtil.isStringAndNotEmpty(arg.id)) {
+		(0, _Manager.joinChatGroup)({
+			jid: _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.id)),
+			success: arg.success,
+			error: arg.error
+		});
+	} else {
+		arg && arg.error && arg.error();
+	}
 };
 
 _manager.YYIMManager.prototype.getChatGroupInfo = function (arg) {
-  if (YYIMCommonUtil.isStringAndNotEmpty(arg.id)) {
-    (0, _Manager.getChatGroupInfo)({
-      jid: _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.id)),
-      membersLimit: YYIMCommonUtil.isNumber(arg.membersLimit) && arg.membersLimit > 0 ? arg.membersLimit : _manager.YYIMChat.getConfig().GROUP.MEMBERSLIMIT,
-      success: arg.success,
-      error: arg.error
-    });
-  } else {
-    arg && arg.error && arg.error();
-  }
+	arg = arg || {};
+	if (YYIMCommonUtil.isStringAndNotEmpty(arg.id)) {
+		(0, _Manager.getChatGroupInfo)({
+			jid: _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.id)),
+			membersLimit: YYIMCommonUtil.isNumber(arg.membersLimit) && arg.membersLimit > 0 ? arg.membersLimit : _manager.YYIMChat.getConfig().GROUP.MEMBERSLIMIT,
+			success: arg.success,
+			error: arg.error
+		});
+	} else {
+		arg && arg.error && arg.error();
+	}
 };
 
 _manager.YYIMManager.prototype.createChatGroup = function (arg) {
-  if (!YYIMArrayUtil.isArray(arg.members)) {
-    delete arg.members;
-  }
-  if (arg.members) {
-    (0, _Manager.createChatGroup)(arg);
-  } else {
-    arg && arg.error && arg.error();
-  }
+	arg = arg || {};
+	if (!YYIMArrayUtil.isArray(arg.members)) {
+		delete arg.members;
+	}
+	if (arg.members) {
+		(0, _Manager.createChatGroup)(arg);
+	} else {
+		arg && arg.error && arg.error();
+	}
 };
 
 _manager.YYIMManager.prototype.transferChatGroup = function (arg) {
-  if (arg && typeof arg.newOwner == 'string' && arg.to) {
-    arg.to = _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));
-    (0, _Manager.transferChatGroup)(arg);
-  } else {
-    arg && arg.error && arg.error();
-  }
+	arg = arg || {};
+	if (arg && typeof arg.newOwner == 'string' && arg.to) {
+		arg.to = _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));
+		(0, _Manager.transferChatGroup)(arg);
+	} else {
+		arg && arg.error && arg.error();
+	}
 };
 
 _manager.YYIMManager.prototype.dismissChatGroup = function (arg) {
-  if (arg && arg.to) {
-    arg.to = _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));
-    (0, _Manager.dismissChatGroup)(arg);
-  } else {
-    arg && arg.error && arg.error();
-  }
+	arg = arg || {};
+	if (arg && arg.to) {
+		arg.to = _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));
+		(0, _Manager.dismissChatGroup)(arg);
+	} else {
+		arg && arg.error && arg.error();
+	}
 };
 
 _manager.YYIMManager.prototype.inviteGroupMember = function (arg) {
-  if (arg.members && YYIMArrayUtil.isArray(arg.members) && arg.members.length && arg.to) {
-    arg.to = _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));
-    (0, _Manager.inviteGroupMember)(arg);
-  } else {
-    arg && arg.error && arg.error();
-  }
+	arg = arg || {};
+	if (arg.members && YYIMArrayUtil.isArray(arg.members) && arg.members.length && arg.to) {
+		arg.to = _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));
+		(0, _Manager.inviteGroupMember)(arg);
+	} else {
+		arg && arg.error && arg.error();
+	}
 };
 
 _manager.YYIMManager.prototype.modifyChatGroupInfo = function (arg) {
-  if (arg.name && arg.to) {
-    arg.to = _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));
-    (0, _Manager.modifyChatGroupInfo)(arg);
-  } else {
-    arg && arg.error && arg.error();
-  }
+	arg = arg || {};
+	if (arg.name && arg.to) {
+		arg.to = _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));
+		(0, _Manager.modifyChatGroupInfo)(arg);
+	} else {
+		arg && arg.error && arg.error();
+	}
 };
 
 _manager.YYIMManager.prototype.kickGroupMember = function (arg) {
-  if (arg.member && typeof arg.member == 'string' && arg.to) {
-    arg.to = _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));
-    (0, _Manager.kickGroupMember)(arg);
-  } else {
-    arg && arg.error && arg.error();
-  }
+	arg = arg || {};
+	if (arg.member && typeof arg.member == 'string' && arg.to) {
+		arg.to = _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));
+		(0, _Manager.kickGroupMember)(arg);
+	} else {
+		arg && arg.error && arg.error();
+	}
 };
 
 _manager.YYIMManager.prototype.exitChatGroup = function (arg) {
-  if (arg.to) {
-    arg.to = _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));
-    (0, _Manager.exitChatGroup)(arg);
-  } else {
-    arg && arg.error && arg.error();
-  }
+	arg = arg || {};
+	if (arg.to) {
+		arg.to = _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));
+		(0, _Manager.exitChatGroup)(arg);
+	} else {
+		arg && arg.error && arg.error();
+	}
 };
 
 _manager.YYIMManager.prototype.collectGroup = function (arg) {
-  if (arg.to) {
-    arg.to = _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));
-    arg.type = this.getConstants().COLLECT_TYPE.ADD;
-    (0, _Manager.collectChatGroup)(arg);
-  } else {
-    arg && arg.error && arg.error();
-  }
+	arg = arg || {};
+	if (arg.to) {
+		arg.to = _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));
+		arg.type = this.getConstants().COLLECT_TYPE.ADD;
+		(0, _Manager.collectChatGroup)(arg);
+	} else {
+		arg && arg.error && arg.error();
+	}
 };
 
 _manager.YYIMManager.prototype.removeCollectGroup = function (arg) {
-  if (arg.to) {
-    arg.to = _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));
-    arg.type = this.getConstants().COLLECT_TYPE.REMOVE;
-    (0, _Manager.collectChatGroup)(arg);
-  } else {
-    arg && arg.error && arg.error();
-  }
+	arg = arg || {};
+	if (arg.to) {
+		arg.to = _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));
+		arg.type = this.getConstants().COLLECT_TYPE.REMOVE;
+		(0, _Manager.collectChatGroup)(arg);
+	} else {
+		arg && arg.error && arg.error();
+	}
 };
 
 _manager.YYIMManager.prototype.getSharedFiles = function (arg) {
-  if (arg && arg.id) {
-    (0, _Manager.getSharedFiles)(arg);
-  } else {
-    arg && arg.error && arg.error();
-  }
+	arg = arg || {};
+	if (arg && arg.id) {
+		(0, _Manager.getSharedFiles)(arg);
+	} else {
+		arg && arg.error && arg.error();
+	}
 };
 
 _manager.YYIMManager.prototype.getGroupMembers = function (arg) {
-  if (arg && arg.id) {
-    if (YYIMCommonUtil.isStringAndNotEmpty(arg.id)) {
-      (0, _Manager.getGroupMembers)(arg);
-    }
-  } else {
-    arg && arg.error && arg.error();
-  }
+	if (arg && arg.id) {
+		if (YYIMCommonUtil.isStringAndNotEmpty(arg.id)) {
+			(0, _Manager.getGroupMembers)(arg);
+		}
+	} else {
+		arg && arg.error && arg.error();
+	}
 };
 
 /***/ }),
@@ -11689,6 +11793,22 @@ function handleChatGroup(result) {
 		return;
 	}
 
+	if (result.owners) {
+		for (var x in result.owners) {
+			if (result.owners.hasOwnProperty(x)) {
+				result.owners[x] = _manager.YYIMChat.getJIDUtil().getID(result.owners[x]);
+			}
+		}
+	}
+
+	if (result.operhand) {
+		for (var x in result.operhand) {
+			if (result.operhand.hasOwnProperty(x)) {
+				result.operhand[x] = _manager.YYIMChat.getJIDUtil().getID(result.operhand[x]);
+			}
+		}
+	}
+
 	var j = result.members.length;
 	var members = [];
 	while (j--) {
@@ -11696,6 +11816,23 @@ function handleChatGroup(result) {
 		member.id = _manager.YYIMChat.getJIDUtil().getID(member.jid);
 		members.push(member);
 	}
+
+	if (result.whiteList) {
+		for (var x in result.whiteList) {
+			if (result.whiteList.hasOwnProperty(x)) {
+				result.whiteList[x] = _manager.YYIMChat.getJIDUtil().getID(result.whiteList[x]);
+			}
+		}
+	}
+
+	if (result.blackList) {
+		for (var x in result.blackList) {
+			if (result.blackList.hasOwnProperty(x)) {
+				result.blackList[x] = _manager.YYIMChat.getJIDUtil().getID(result.blackList[x]);
+			}
+		}
+	}
+
 	var chatGroup = {
 		id: _manager.YYIMChat.getJIDUtil().getID(result.from || result.jid),
 		name: result.naturalLanguageName || result.roomname || result.name,
@@ -11709,7 +11846,9 @@ function handleChatGroup(result) {
 		creater: _manager.YYIMChat.getJIDUtil().getID(result.operator),
 		members: members,
 		owners: result.owners,
-		tag: result.tag
+		tag: result.tag,
+		whiteList: result.whiteList,
+		blackList: result.blackList
 	};
 	return chatGroup;
 }
@@ -12055,6 +12194,25 @@ _manager.YYIMManager.prototype.getHistoryMessage = function (arg) {
 	(0, _Manager.getHistoryMessage)(arg);
 };
 
+_manager.YYIMManager.prototype.getMessageStatRead = function (arg) {
+	arg = arg || {};
+	arg.startVersion = arg.startVersion || 0;
+	if (arg && arg.id && typeof arg.startVersion == 'number' && typeof arg.endVersion == 'number' && arg.startVersion >= 0 && arg.endVersion > arg.startVersion) {
+
+		(0, _Manager.getMessageStatRead)(arg);
+	} else {
+		arg && arg.error && arg.error();
+	}
+};
+
+_manager.YYIMManager.prototype.revokeMessageByOther = function (arg) {
+	if (arg && arg.id && arg.to && arg.sender) {
+		(0, _Manager.revokeMessageByOther)(arg);
+	} else {
+		arg && arg.error && arg.error();
+	}
+};
+
 _manager.YYIMManager.prototype.sendReadedReceiptsPacket = function (arg) {
 	if (arg && arg.id) {
 		arg.state = 2;
@@ -12298,7 +12456,7 @@ _manager.YYIMManager.prototype.revokeMessage = function (arg) {
 Object.defineProperty(exports, "__esModule", {
 	value: true
 });
-exports.sendReceiptsPacket = exports.revokeMessage = exports.getHistoryMessage = exports.sendMessage = exports.monitor = undefined;
+exports.revokeMessageByOther = exports.getMessageStatRead = exports.sendReceiptsPacket = exports.revokeMessage = exports.getHistoryMessage = exports.sendMessage = exports.monitor = undefined;
 
 var _stringify = __webpack_require__(1);
 
@@ -12357,6 +12515,10 @@ function monitor() {
 };
 
 function parseTransparentMessage(packet, type) {
+	if (!type) {
+		type = _manager.YYIMChat.getJIDUtil().getChatTypeByJid(packet.mucid || packet.sender || packet.from);
+	}
+
 	if (receivedMsgIds.get(packet.id)) {
 		return;
 	}
@@ -12734,6 +12896,42 @@ function _historyMessageProcessor(data, arg) {
 	});
 };
 
+function getMessageStatRead(arg) {
+	jQuery.ajax({
+		url: _manager.YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + _manager.YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + _manager.YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + _manager.YYIMChat.getUserID() + '/rooms/msgStatRead/' + arg.id,
+		type: 'get',
+		data: {
+			token: _manager.YYIMChat.getToken(),
+			startVersion: arg.startVersion || 0,
+			endVersion: arg.endVersion
+		},
+		dataType: 'json',
+		cache: false,
+		success: function success(result) {
+			if (result && result.list) {
+				for (var x in result.list) {
+					if (result.list.hasOwnProperty(x)) {
+						var item = result.list[x];
+						item.id = item.packetId;
+						delete item.packetId;
+					}
+				}
+			}
+			arg.success && arg.success(result && result.list);
+			arg = null;
+		},
+		error: function error(xhr) {
+			try {
+				arg.error && arg.error(JSON.parse(xhr.responseText));
+				arg = null;
+			} catch (e) {
+				arg.error && arg.error();
+				arg = null;
+			}
+		}
+	});
+}
+
 function revokeMessage(arg) {
 	var url, param;
 	if (arg.type == _manager.YYIMChat.getConstants().CHAT_TYPE.GROUP_CHAT) {
@@ -12776,11 +12974,46 @@ function revokeMessage(arg) {
 	});
 }
 
+function revokeMessageByOther(arg) {
+	var url = _manager.YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + _manager.YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + _manager.YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/revokeservice/' + _manager.YYIMChat.getUserID() + '/groupmessage/' + arg.id;
+
+	var param = {
+		token: _manager.YYIMChat.getToken(),
+		sender: _manager.YYIMChat.getJIDUtil().getNode(arg.sender),
+		mucid: _manager.YYIMChat.getJIDUtil().getNode(arg.to)
+	};
+
+	url += '?' + jQuery.param(param);
+
+	jQuery.ajax({
+		url: url,
+		type: 'put',
+		cache: false,
+		success: function success(data) {
+			arg.success && arg.success({
+				id: arg.id
+			});
+			arg = null;
+		},
+		error: function error(xhr) {
+			try {
+				arg.error && arg.error(JSON.parse(xhr.responseText));
+				arg = null;
+			} catch (e) {
+				arg.error && arg.error();
+				arg = null;
+			}
+		}
+	});
+}
+
 exports.monitor = monitor;
 exports.sendMessage = sendMessage;
 exports.getHistoryMessage = getHistoryMessage;
 exports.revokeMessage = revokeMessage;
 exports.sendReceiptsPacket = sendReceiptsPacket;
+exports.getMessageStatRead = getMessageStatRead;
+exports.revokeMessageByOther = revokeMessageByOther;
 
 /***/ }),
 /* 49 */
@@ -14219,15 +14452,24 @@ var _manager = __webpack_require__(0);
 var _Manager = __webpack_require__(56);
 
 _manager.YYIMManager.prototype.getTodoDigset = function (arg) {
-  (0, _Manager.getTodoDigset)(arg);
+    (0, _Manager.getTodoDigset)(arg);
 };
 
 _manager.YYIMManager.prototype.sendToDoReceipts = function (arg) {
-  (0, _Manager.sendToDoReceipts)(arg);
+    (0, _Manager.sendToDoReceipts)(arg);
+};
+
+_manager.YYIMManager.prototype.sendToDoReadedReceipts = function (arg) {
+    if (arg && arg.qz_id && arg.appId && arg.businessKey && (arg.accessToken || arg.sessionId)) {
+
+        (0, _Manager.sendToDoReadedReceipts)(arg);
+    } else {
+        arg && arg.error && arg.error();
+    }
 };
 
 _manager.YYIMManager.prototype.getHistoryTodo = function (arg) {
-  (0, _Manager.getHistoryTodo)(arg);
+    (0, _Manager.getHistoryTodo)(arg);
 };
 
 /***/ }),
@@ -14240,7 +14482,7 @@ _manager.YYIMManager.prototype.getHistoryTodo = function (arg) {
 Object.defineProperty(exports, "__esModule", {
 	value: true
 });
-exports.sendToDoReceipts = exports.getHistoryTodo = exports.getTodoDigset = undefined;
+exports.sendToDoReadedReceipts = exports.sendToDoReceipts = exports.getHistoryTodo = exports.getTodoDigset = undefined;
 
 var _stringify = __webpack_require__(1);
 
@@ -14261,6 +14503,33 @@ function sendToDoReceipts(arg) {
 		cache: false,
 		processData: false,
 		contentType: "application/json",
+		success: function success() {
+			arg && arg.success && arg.success();
+			arg && (arg = null);
+		},
+		error: function error(xhr) {
+			try {
+				arg && arg.error && arg.error(JSON.parse(xhr.responseText));
+				arg && (arg = null);
+			} catch (e) {
+				arg && arg.error && arg.error();
+				arg && (arg = null);
+			}
+		}
+	});
+}
+
+function sendToDoReadedReceipts(arg) {
+	var url = _manager.YYIMChat.getConfig().SERVLET.REST_TODO_V2 + arg.qz_id + '/' + arg.appId + '/' + _manager.YYIMChat.getUserID() + '/' + arg.businessKey + '/read';
+	if (arg.accessToken) {
+		url += '?accessToken=' + arg.accessToken;
+	} else if (arg.sessionId) {
+		url += '?sessionId=' + arg.sessionId;
+	}
+	jQuery.ajax({
+		url: url,
+		type: 'put',
+		cache: false,
 		success: function success() {
 			arg && arg.success && arg.success();
 			arg && (arg = null);
@@ -14348,6 +14617,7 @@ function getHistoryTodo(arg) {
 exports.getTodoDigset = getTodoDigset;
 exports.getHistoryTodo = getHistoryTodo;
 exports.sendToDoReceipts = sendToDoReceipts;
+exports.sendToDoReadedReceipts = sendToDoReadedReceipts;
 
 /***/ }),
 /* 57 */
@@ -14361,6 +14631,17 @@ var _manager = __webpack_require__(0);
 var _FileUpload = __webpack_require__(15);
 
 __webpack_require__(58);
+
+_manager.YYIMManager.prototype.setUploadOption = function (arg) {
+	_FileUpload.FileUpload.setUploadOption({
+		browse_button: arg.browse_button,
+		options: arg.options
+	});
+};
+
+_manager.YYIMManager.prototype.destroyUpload = function (browse_button) {
+	_FileUpload.FileUpload.getInstance().destroy(browse_button);
+};
 
 _manager.YYIMManager.prototype.startUpload = function (file) {
 	_FileUpload.FileUpload.getInstance().start(file);

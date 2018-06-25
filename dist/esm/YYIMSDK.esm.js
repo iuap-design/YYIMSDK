@@ -625,7 +625,9 @@ var ConfigSetting = function () {
 			UPLOAD: {
 				AUTO_SEND: true,
 				MULTI_SELECTION: false,
-				PREVENT_DUPLICATES: false,
+				FILTERS: {
+					MAX_FILE_SIZE: '100mb',
+					PREVENT_DUPLICATES: false },
 				PREVIEW_SIZE: {
 					WIDTH: 100,
 					HEIGHT: 100
@@ -653,18 +655,22 @@ var ConfigSetting = function () {
 				KEY: '',
 				PHONESMAXLENGTH: 200 },
 
-			SERVLET: {
-				REST_RESOURCE_SERVLET: YY_IM_SERVLET_ADDRESS + 'sysadmin/rest/resource/',
-				REST_VERSION_SERVLET: YY_IM_SERVLET_ADDRESS + 'sysadmin/rest/version/',
-				REST_USER_SERVLET: YY_IM_SERVLET_ADDRESS + 'sysadmin/rest/user/',
-				REST_UPLOAD_SERVLET: YY_IM_SERVLET_ADDRESS + 'im_upload/rest/resource/',
-				REST_DOWNLOAD_SERVLET: YY_IM_SERVLET_ADDRESS + 'im_download/rest/resource/',
-				REST_TRANSFORM_SERVLET: YY_IM_SERVLET_ADDRESS + 'im_download/rest/transform/resource/',
-				REST_SYSTEM_SERVLET: YY_IM_SERVLET_ADDRESS + 'sysadmin/rest/system/',
-				REST_SYSTEM_CUSTOMER_USER: YY_IM_SERVLET_ADDRESS + 'sysadmin/rest/customer/user/',
+			SERVLET: function () {
 
-				REST_TODO_USER: TODO_SERVLET_ADDRESS + 'todocenter/user/todo/'
-			},
+				return {
+					REST_RESOURCE_SERVLET: YY_IM_SERVLET_ADDRESS + 'sysadmin/rest/resource/',
+					REST_VERSION_SERVLET: YY_IM_SERVLET_ADDRESS + 'sysadmin/rest/version/',
+					REST_USER_SERVLET: YY_IM_SERVLET_ADDRESS + 'sysadmin/rest/user/',
+					REST_UPLOAD_SERVLET: YY_IM_SERVLET_ADDRESS + 'im_upload/rest/resource/',
+					REST_DOWNLOAD_SERVLET: YY_IM_SERVLET_ADDRESS + 'im_download/rest/resource/',
+					REST_TRANSFORM_SERVLET: YY_IM_SERVLET_ADDRESS + 'im_download/rest/transform/resource/',
+					REST_SYSTEM_SERVLET: YY_IM_SERVLET_ADDRESS + 'sysadmin/rest/system/',
+					REST_SYSTEM_CUSTOMER_USER: YY_IM_SERVLET_ADDRESS + 'sysadmin/rest/customer/user/',
+
+					REST_TODO_USER: TODO_SERVLET_ADDRESS + 'todocenter/user/todo/',
+					REST_TODO_V2: TODO_SERVLET_ADDRESS + 'todocenter/rest/v2/client/items/'
+				};
+			}(),
 
 			SUPPORT: {
 				isWebSocketSupport: function () {
@@ -683,12 +689,12 @@ var ConfigSetting = function () {
 				ALLOW_PLAIN: true,
 				ENABLE_WEBSOCKET: true,
 				ENABLE_LOCAL_CONNECTION: true,
-				USE_HTTPS: function () {
+				USE_HTTPS: function (options) {
 					if (/https/.test(window.location.protocol) || options.useHttps === true) {
 						return true;
 					}
 					return false;
-				}(),
+				}(options),
 				SERVER_NAME: YY_IM_DOMAIN,
 				HTTP_BASE: YY_IM_ADDRESS,
 				HTTP_BIND_PORT: YY_IM_HTTPBIND_PORT,
@@ -774,7 +780,7 @@ module.exports = !__webpack_require__(11)(function () {
 /* 6 */
 /***/ (function(module, exports) {
 
-var core = module.exports = { version: '2.5.6' };
+var core = module.exports = { version: '2.5.7' };
 if (typeof __e == 'number') __e = core; // eslint-disable-line no-undef
 
 
@@ -1652,6 +1658,87 @@ FileUpload.prototype.bindEvents = function (uploader, arg) {
 	uploader.bind('Destroy', function (uploader) {
 		arg && arg.Destroy && arg.Destroy(uploader);
 	});
+};
+
+FileUpload.prototype.destroy = function (browse_button) {
+	if (browse_button) {
+		var uploader = uploaders[browse_button];
+		if (uploader) {
+			uploader.destroy();
+			uploaders[browse_button] = null;
+			delete uploaders[browse_button];
+		}
+	} else {
+		for (var x in uploaders) {
+			if (uploaders.hasOwnProperty(x)) {
+				var uploader = uploaders[x];
+				if (uploader) {
+					uploader.destroy();
+				}
+			}
+		}
+		uploaders = null;
+		uploaders = {};
+	}
+};
+
+FileUpload.prototype.setUploadOption = function (arg) {
+	arg = arg || {};
+	if (arg.options) {
+
+		var setFun = function setFun(uploader, options) {
+			try {
+				for (var y in options) {
+					if (options.hasOwnProperty(y)) {
+						try {
+							var setting = uploader.getOption(y);
+							jQuery.extend(setting, options[y]);
+							uploader.setOption(y, setting);
+						} catch (e) {}
+					}
+				}
+			} catch (e) {}
+		};
+		if (arg['browse_button']) {
+			var uploader = uploaders[arg['browse_button']];
+			setFun(uploader, arg.options);
+			jQuery.extend(OPTIONS[arg['browse_button']], arg.options);
+		} else {
+			for (var x in uploaders) {
+				if (uploaders.hasOwnProperty(x)) {
+					var uploader = uploaders[x];
+					setFun(uploader, arg.options);
+				}
+			}
+			jQuery.extend(COMMON_OPTIONS, arg.options);
+		}
+	}
+};
+
+FileUpload.prototype.resumeFile = function (file) {
+	if (file) {
+		var uploader = fileUploaders[file.id || file];
+		if (uploader) {
+			file = uploader.getFile(file.id || file);
+			if (file) {
+				file.status = 1;
+			}
+			uploader.start();
+		}
+	}
+};
+
+FileUpload.prototype.destroyFile = function (file) {
+	if (file) {
+		var uploader = fileUploaders[file.id || file];
+		if (uploader) {
+			file = uploader.getFile(file.id || file);
+			if (file) {
+				uploader.removeFile(file);
+			}
+			delete fileUploaders[file.id || file];
+		}
+	}
 };
 
 exports.FileUpload = FileUpload;
@@ -3016,159 +3103,172 @@ var _manager = __webpack_require__(0);
 var _Manager = __webpack_require__(44);
 
 _manager.YYIMChat.setBackhander({
-  'monitor': {
-    'groupMonitor': _Manager.monitor
-  },
-  'initCallback': {
-    'group': function group(options) {
-      _manager.YYIMChat.onGroupUpdate = options.onGroupUpdate || function () {};
-      _manager.YYIMChat.onTransferGroupOwner = options.onTransferGroupOwner || function () {};
-      _manager.YYIMChat.onKickedOutGroup = options.onKickedOutGroup || function () {};
-    }
-  }
+	'monitor': {
+		'groupMonitor': _Manager.monitor
+	},
+	'initCallback': {
+		'group': function group(options) {
+			_manager.YYIMChat.onGroupUpdate = options.onGroupUpdate || function () {};
+			_manager.YYIMChat.onTransferGroupOwner = options.onTransferGroupOwner || function () {};
+			_manager.YYIMChat.onKickedOutGroup = options.onKickedOutGroup || function () {};
+		}
+	}
 });
 
 _manager.YYIMManager.prototype.getChatGroups = function (arg) {
-  arg = arg || {};
-  arg.startDate = YYIMUtil['isWhateType'](arg.startDate, 'Number') && arg.startDate > 0 ? arg.startDate : 0;
-  arg.membersLimit = YYIMCommonUtil.isNumber(arg.membersLimit) && arg.membersLimit > 0 ? arg.membersLimit : _manager.YYIMChat.getConfig().GROUP.MEMBERSLIMIT;
-  (0, _Manager.getChatGroups)(arg);
+	arg = arg || {};
+	arg.startDate = YYIMUtil['isWhateType'](arg.startDate, 'Number') && arg.startDate > 0 ? arg.startDate : 0;
+	arg.membersLimit = YYIMCommonUtil.isNumber(arg.membersLimit) && arg.membersLimit > 0 ? arg.membersLimit : _manager.YYIMChat.getConfig().GROUP.MEMBERSLIMIT;
+	(0, _Manager.getChatGroups)(arg);
 };
 
 _manager.YYIMManager.prototype.queryChatGroup = function (arg) {
-  if (YYIMCommonUtil.isStringAndNotEmpty(arg.keyword)) {
-    (0, _Manager.queryChatGroup)(arg);
-  } else {
-    arg && arg.error && arg.error();
-  }
+	arg = arg || {};
+	if (YYIMCommonUtil.isStringAndNotEmpty(arg.keyword)) {
+		(0, _Manager.queryChatGroup)(arg);
+	} else {
+		arg && arg.error && arg.error();
+	}
 };
 
 _manager.YYIMManager.prototype.joinChatGroup = function (arg) {
-  if (YYIMCommonUtil.isStringAndNotEmpty(arg.id)) {
-    (0, _Manager.joinChatGroup)({
-      jid: _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.id)),
-      success: arg.success,
-      error: arg.error
-    });
-  } else {
-    arg && arg.error && arg.error();
-  }
+	arg = arg || {};
+	if (YYIMCommonUtil.isStringAndNotEmpty(arg.id)) {
+		(0, _Manager.joinChatGroup)({
+			jid: _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.id)),
+			success: arg.success,
+			error: arg.error
+		});
+	} else {
+		arg && arg.error && arg.error();
+	}
 };
 
 _manager.YYIMManager.prototype.getChatGroupInfo = function (arg) {
-  if (YYIMCommonUtil.isStringAndNotEmpty(arg.id)) {
-    (0, _Manager.getChatGroupInfo)({
-      jid: _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.id)),
-      membersLimit: YYIMCommonUtil.isNumber(arg.membersLimit) && arg.membersLimit > 0 ? arg.membersLimit : _manager.YYIMChat.getConfig().GROUP.MEMBERSLIMIT,
-      success: arg.success,
-      error: arg.error
-    });
-  } else {
-    arg && arg.error && arg.error();
-  }
+	arg = arg || {};
+	if (YYIMCommonUtil.isStringAndNotEmpty(arg.id)) {
+		(0, _Manager.getChatGroupInfo)({
+			jid: _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.id)),
+			membersLimit: YYIMCommonUtil.isNumber(arg.membersLimit) && arg.membersLimit > 0 ? arg.membersLimit : _manager.YYIMChat.getConfig().GROUP.MEMBERSLIMIT,
+			success: arg.success,
+			error: arg.error
+		});
+	} else {
+		arg && arg.error && arg.error();
+	}
 };
 
 _manager.YYIMManager.prototype.createChatGroup = function (arg) {
-  if (!YYIMArrayUtil.isArray(arg.members)) {
-    delete arg.members;
-  }
-  if (arg.members) {
-    (0, _Manager.createChatGroup)(arg);
-  } else {
-    arg && arg.error && arg.error();
-  }
+	arg = arg || {};
+	if (!YYIMArrayUtil.isArray(arg.members)) {
+		delete arg.members;
+	}
+	if (arg.members) {
+		(0, _Manager.createChatGroup)(arg);
+	} else {
+		arg && arg.error && arg.error();
+	}
 };
 
 _manager.YYIMManager.prototype.transferChatGroup = function (arg) {
-  if (arg && typeof arg.newOwner == 'string' && arg.to) {
-    arg.to = _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));
-    (0, _Manager.transferChatGroup)(arg);
-  } else {
-    arg && arg.error && arg.error();
-  }
+	arg = arg || {};
+	if (arg && typeof arg.newOwner == 'string' && arg.to) {
+		arg.to = _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));
+		(0, _Manager.transferChatGroup)(arg);
+	} else {
+		arg && arg.error && arg.error();
+	}
 };
 
 _manager.YYIMManager.prototype.dismissChatGroup = function (arg) {
-  if (arg && arg.to) {
-    arg.to = _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));
-    (0, _Manager.dismissChatGroup)(arg);
-  } else {
-    arg && arg.error && arg.error();
-  }
+	arg = arg || {};
+	if (arg && arg.to) {
+		arg.to = _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));
+		(0, _Manager.dismissChatGroup)(arg);
+	} else {
+		arg && arg.error && arg.error();
+	}
 };
 
 _manager.YYIMManager.prototype.inviteGroupMember = function (arg) {
-  if (arg.members && YYIMArrayUtil.isArray(arg.members) && arg.members.length && arg.to) {
-    arg.to = _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));
-    (0, _Manager.inviteGroupMember)(arg);
-  } else {
-    arg && arg.error && arg.error();
-  }
+	arg = arg || {};
+	if (arg.members && YYIMArrayUtil.isArray(arg.members) && arg.members.length && arg.to) {
+		arg.to = _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));
+		(0, _Manager.inviteGroupMember)(arg);
+	} else {
+		arg && arg.error && arg.error();
+	}
 };
 
 _manager.YYIMManager.prototype.modifyChatGroupInfo = function (arg) {
-  if (arg.name && arg.to) {
-    arg.to = _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));
-    (0, _Manager.modifyChatGroupInfo)(arg);
-  } else {
-    arg && arg.error && arg.error();
-  }
+	arg = arg || {};
+	if (arg.name && arg.to) {
+		arg.to = _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));
+		(0, _Manager.modifyChatGroupInfo)(arg);
+	} else {
+		arg && arg.error && arg.error();
+	}
 };
 
 _manager.YYIMManager.prototype.kickGroupMember = function (arg) {
-  if (arg.member && typeof arg.member == 'string' && arg.to) {
-    arg.to = _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));
-    (0, _Manager.kickGroupMember)(arg);
-  } else {
-    arg && arg.error && arg.error();
-  }
+	arg = arg || {};
+	if (arg.member && typeof arg.member == 'string' && arg.to) {
+		arg.to = _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));
+		(0, _Manager.kickGroupMember)(arg);
+	} else {
+		arg && arg.error && arg.error();
+	}
 };
 
 _manager.YYIMManager.prototype.exitChatGroup = function (arg) {
-  if (arg.to) {
-    arg.to = _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));
-    (0, _Manager.exitChatGroup)(arg);
-  } else {
-    arg && arg.error && arg.error();
-  }
+	arg = arg || {};
+	if (arg.to) {
+		arg.to = _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));
+		(0, _Manager.exitChatGroup)(arg);
+	} else {
+		arg && arg.error && arg.error();
+	}
 };
 
 _manager.YYIMManager.prototype.collectGroup = function (arg) {
-  if (arg.to) {
-    arg.to = _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));
-    arg.type = this.getConstants().COLLECT_TYPE.ADD;
-    (0, _Manager.collectChatGroup)(arg);
-  } else {
-    arg && arg.error && arg.error();
-  }
+	arg = arg || {};
+	if (arg.to) {
+		arg.to = _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));
+		arg.type = this.getConstants().COLLECT_TYPE.ADD;
+		(0, _Manager.collectChatGroup)(arg);
+	} else {
+		arg && arg.error && arg.error();
+	}
 };
 
 _manager.YYIMManager.prototype.removeCollectGroup = function (arg) {
-  if (arg.to) {
-    arg.to = _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));
-    arg.type = this.getConstants().COLLECT_TYPE.REMOVE;
-    (0, _Manager.collectChatGroup)(arg);
-  } else {
-    arg && arg.error && arg.error();
-  }
+	arg = arg || {};
+	if (arg.to) {
+		arg.to = _manager.YYIMChat.getJIDUtil().buildChatGroupJID(_manager.YYIMChat.getJIDUtil().getNode(arg.to));
+		arg.type = this.getConstants().COLLECT_TYPE.REMOVE;
+		(0, _Manager.collectChatGroup)(arg);
+	} else {
+		arg && arg.error && arg.error();
+	}
 };
 
 _manager.YYIMManager.prototype.getSharedFiles = function (arg) {
-  if (arg && arg.id) {
-    (0, _Manager.getSharedFiles)(arg);
-  } else {
-    arg && arg.error && arg.error();
-  }
+	arg = arg || {};
+	if (arg && arg.id) {
+		(0, _Manager.getSharedFiles)(arg);
+	} else {
+		arg && arg.error && arg.error();
+	}
 };
 
 _manager.YYIMManager.prototype.getGroupMembers = function (arg) {
-  if (arg && arg.id) {
-    if (YYIMCommonUtil.isStringAndNotEmpty(arg.id)) {
-      (0, _Manager.getGroupMembers)(arg);
-    }
-  } else {
-    arg && arg.error && arg.error();
-  }
+	if (arg && arg.id) {
+		if (YYIMCommonUtil.isStringAndNotEmpty(arg.id)) {
+			(0, _Manager.getGroupMembers)(arg);
+		}
+	} else {
+		arg && arg.error && arg.error();
+	}
 };
 
 /***/ }),
@@ -3403,6 +3503,22 @@ function handleChatGroup(result) {
 		return;
 	}
 
+	if (result.owners) {
+		for (var x in result.owners) {
+			if (result.owners.hasOwnProperty(x)) {
+				result.owners[x] = _manager.YYIMChat.getJIDUtil().getID(result.owners[x]);
+			}
+		}
+	}
+
+	if (result.operhand) {
+		for (var x in result.operhand) {
+			if (result.operhand.hasOwnProperty(x)) {
+				result.operhand[x] = _manager.YYIMChat.getJIDUtil().getID(result.operhand[x]);
+			}
+		}
+	}
+
 	var j = result.members.length;
 	var members = [];
 	while (j--) {
@@ -3410,6 +3526,23 @@ function handleChatGroup(result) {
 		member.id = _manager.YYIMChat.getJIDUtil().getID(member.jid);
 		members.push(member);
 	}
+
+	if (result.whiteList) {
+		for (var x in result.whiteList) {
+			if (result.whiteList.hasOwnProperty(x)) {
+				result.whiteList[x] = _manager.YYIMChat.getJIDUtil().getID(result.whiteList[x]);
+			}
+		}
+	}
+
+	if (result.blackList) {
+		for (var x in result.blackList) {
+			if (result.blackList.hasOwnProperty(x)) {
+				result.blackList[x] = _manager.YYIMChat.getJIDUtil().getID(result.blackList[x]);
+			}
+		}
+	}
+
 	var chatGroup = {
 		id: _manager.YYIMChat.getJIDUtil().getID(result.from || result.jid),
 		name: result.naturalLanguageName || result.roomname || result.name,
@@ -3423,7 +3556,9 @@ function handleChatGroup(result) {
 		creater: _manager.YYIMChat.getJIDUtil().getID(result.operator),
 		members: members,
 		owners: result.owners,
-		tag: result.tag
+		tag: result.tag,
+		whiteList: result.whiteList,
+		blackList: result.blackList
 	};
 	return chatGroup;
 }
@@ -3769,6 +3904,25 @@ _manager.YYIMManager.prototype.getHistoryMessage = function (arg) {
 	(0, _Manager.getHistoryMessage)(arg);
 };
 
+_manager.YYIMManager.prototype.getMessageStatRead = function (arg) {
+	arg = arg || {};
+	arg.startVersion = arg.startVersion || 0;
+	if (arg && arg.id && typeof arg.startVersion == 'number' && typeof arg.endVersion == 'number' && arg.startVersion >= 0 && arg.endVersion > arg.startVersion) {
+
+		(0, _Manager.getMessageStatRead)(arg);
+	} else {
+		arg && arg.error && arg.error();
+	}
+};
+
+_manager.YYIMManager.prototype.revokeMessageByOther = function (arg) {
+	if (arg && arg.id && arg.to && arg.sender) {
+		(0, _Manager.revokeMessageByOther)(arg);
+	} else {
+		arg && arg.error && arg.error();
+	}
+};
+
 _manager.YYIMManager.prototype.sendReadedReceiptsPacket = function (arg) {
 	if (arg && arg.id) {
 		arg.state = 2;
@@ -4012,7 +4166,7 @@ _manager.YYIMManager.prototype.revokeMessage = function (arg) {
 Object.defineProperty(exports, "__esModule", {
 	value: true
 });
-exports.sendReceiptsPacket = exports.revokeMessage = exports.getHistoryMessage = exports.sendMessage = exports.monitor = undefined;
+exports.revokeMessageByOther = exports.getMessageStatRead = exports.sendReceiptsPacket = exports.revokeMessage = exports.getHistoryMessage = exports.sendMessage = exports.monitor = undefined;
 
 var _stringify = __webpack_require__(1);
 
@@ -4071,6 +4225,10 @@ function monitor() {
 };
 
 function parseTransparentMessage(packet, type) {
+	if (!type) {
+		type = _manager.YYIMChat.getJIDUtil().getChatTypeByJid(packet.mucid || packet.sender || packet.from);
+	}
+
 	if (receivedMsgIds.get(packet.id)) {
 		return;
 	}
@@ -4448,6 +4606,42 @@ function _historyMessageProcessor(data, arg) {
 	});
 };
 
+function getMessageStatRead(arg) {
+	jQuery.ajax({
+		url: _manager.YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + _manager.YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + _manager.YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/' + _manager.YYIMChat.getUserID() + '/rooms/msgStatRead/' + arg.id,
+		type: 'get',
+		data: {
+			token: _manager.YYIMChat.getToken(),
+			startVersion: arg.startVersion || 0,
+			endVersion: arg.endVersion
+		},
+		dataType: 'json',
+		cache: false,
+		success: function success(result) {
+			if (result && result.list) {
+				for (var x in result.list) {
+					if (result.list.hasOwnProperty(x)) {
+						var item = result.list[x];
+						item.id = item.packetId;
+						delete item.packetId;
+					}
+				}
+			}
+			arg.success && arg.success(result && result.list);
+			arg = null;
+		},
+		error: function error(xhr) {
+			try {
+				arg.error && arg.error(JSON.parse(xhr.responseText));
+				arg = null;
+			} catch (e) {
+				arg.error && arg.error();
+				arg = null;
+			}
+		}
+	});
+}
+
 function revokeMessage(arg) {
 	var url, param;
 	if (arg.type == _manager.YYIMChat.getConstants().CHAT_TYPE.GROUP_CHAT) {
@@ -4490,11 +4684,46 @@ function revokeMessage(arg) {
 	});
 }
 
+function revokeMessageByOther(arg) {
+	var url = _manager.YYIMChat.getConfig().SERVLET.REST_USER_SERVLET + _manager.YYIMChat.getConfig().MULTI_TENANCY.ETP_KEY + '/' + _manager.YYIMChat.getConfig().MULTI_TENANCY.APP_KEY + '/revokeservice/' + _manager.YYIMChat.getUserID() + '/groupmessage/' + arg.id;
+
+	var param = {
+		token: _manager.YYIMChat.getToken(),
+		sender: _manager.YYIMChat.getJIDUtil().getNode(arg.sender),
+		mucid: _manager.YYIMChat.getJIDUtil().getNode(arg.to)
+	};
+
+	url += '?' + jQuery.param(param);
+
+	jQuery.ajax({
+		url: url,
+		type: 'put',
+		cache: false,
+		success: function success(data) {
+			arg.success && arg.success({
+				id: arg.id
+			});
+			arg = null;
+		},
+		error: function error(xhr) {
+			try {
+				arg.error && arg.error(JSON.parse(xhr.responseText));
+				arg = null;
+			} catch (e) {
+				arg.error && arg.error();
+				arg = null;
+			}
+		}
+	});
+}
+
 exports.monitor = monitor;
 exports.sendMessage = sendMessage;
 exports.getHistoryMessage = getHistoryMessage;
 exports.revokeMessage = revokeMessage;
 exports.sendReceiptsPacket = sendReceiptsPacket;
+exports.getMessageStatRead = getMessageStatRead;
+exports.revokeMessageByOther = revokeMessageByOther;
 
 /***/ }),
 /* 49 */
@@ -5933,15 +6162,24 @@ var _manager = __webpack_require__(0);
 var _Manager = __webpack_require__(56);
 
 _manager.YYIMManager.prototype.getTodoDigset = function (arg) {
-  (0, _Manager.getTodoDigset)(arg);
+    (0, _Manager.getTodoDigset)(arg);
 };
 
 _manager.YYIMManager.prototype.sendToDoReceipts = function (arg) {
-  (0, _Manager.sendToDoReceipts)(arg);
+    (0, _Manager.sendToDoReceipts)(arg);
+};
+
+_manager.YYIMManager.prototype.sendToDoReadedReceipts = function (arg) {
+    if (arg && arg.qz_id && arg.appId && arg.businessKey && (arg.accessToken || arg.sessionId)) {
+
+        (0, _Manager.sendToDoReadedReceipts)(arg);
+    } else {
+        arg && arg.error && arg.error();
+    }
 };
 
 _manager.YYIMManager.prototype.getHistoryTodo = function (arg) {
-  (0, _Manager.getHistoryTodo)(arg);
+    (0, _Manager.getHistoryTodo)(arg);
 };
 
 /***/ }),
@@ -5954,7 +6192,7 @@ _manager.YYIMManager.prototype.getHistoryTodo = function (arg) {
 Object.defineProperty(exports, "__esModule", {
 	value: true
 });
-exports.sendToDoReceipts = exports.getHistoryTodo = exports.getTodoDigset = undefined;
+exports.sendToDoReadedReceipts = exports.sendToDoReceipts = exports.getHistoryTodo = exports.getTodoDigset = undefined;
 
 var _stringify = __webpack_require__(1);
 
@@ -5975,6 +6213,33 @@ function sendToDoReceipts(arg) {
 		cache: false,
 		processData: false,
 		contentType: "application/json",
+		success: function success() {
+			arg && arg.success && arg.success();
+			arg && (arg = null);
+		},
+		error: function error(xhr) {
+			try {
+				arg && arg.error && arg.error(JSON.parse(xhr.responseText));
+				arg && (arg = null);
+			} catch (e) {
+				arg && arg.error && arg.error();
+				arg && (arg = null);
+			}
+		}
+	});
+}
+
+function sendToDoReadedReceipts(arg) {
+	var url = _manager.YYIMChat.getConfig().SERVLET.REST_TODO_V2 + arg.qz_id + '/' + arg.appId + '/' + _manager.YYIMChat.getUserID() + '/' + arg.businessKey + '/read';
+	if (arg.accessToken) {
+		url += '?accessToken=' + arg.accessToken;
+	} else if (arg.sessionId) {
+		url += '?sessionId=' + arg.sessionId;
+	}
+	jQuery.ajax({
+		url: url,
+		type: 'put',
+		cache: false,
 		success: function success() {
 			arg && arg.success && arg.success();
 			arg && (arg = null);
@@ -6062,6 +6327,7 @@ function getHistoryTodo(arg) {
 exports.getTodoDigset = getTodoDigset;
 exports.getHistoryTodo = getHistoryTodo;
 exports.sendToDoReceipts = sendToDoReceipts;
+exports.sendToDoReadedReceipts = sendToDoReadedReceipts;
 
 /***/ }),
 /* 57 */
@@ -6075,6 +6341,17 @@ var _manager = __webpack_require__(0);
 var _FileUpload = __webpack_require__(15);
 
 __webpack_require__(58);
+
+_manager.YYIMManager.prototype.setUploadOption = function (arg) {
+	_FileUpload.FileUpload.setUploadOption({
+		browse_button: arg.browse_button,
+		options: arg.options
+	});
+};
+
+_manager.YYIMManager.prototype.destroyUpload = function (browse_button) {
+	_FileUpload.FileUpload.getInstance().destroy(browse_button);
+};
 
 _manager.YYIMManager.prototype.startUpload = function (file) {
 	_FileUpload.FileUpload.getInstance().start(file);

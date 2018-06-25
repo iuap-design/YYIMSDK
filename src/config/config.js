@@ -132,30 +132,22 @@ const ConfigSetting = (() => {
 				PHONESMAXLENGTH: 200 //最大被叫字符数
 			},
 
-			SERVLET: ((ORIGIN) => { //rongqb 20180504
-				try {
-					for (var x in ORIGIN) {
-						if (ORIGIN.hasOwnProperty(x)) {
-							ORIGIN[x] = ORIGIN[x].toString();
-							ORIGIN[x] = ORIGIN[x].replace(/[\\\/]*$/, '/');
-						}
-					}
-				} catch (e) { }
+			SERVLET: (() => { //rongqb 20180504
 
 				return {
-					REST_RESOURCE_SERVLET: ORIGIN.IM + 'sysadmin/rest/resource/',
-					REST_VERSION_SERVLET: ORIGIN.IM + 'sysadmin/rest/version/',
-					REST_USER_SERVLET: ORIGIN.IM + 'sysadmin/rest/user/',
-					REST_UPLOAD_SERVLET: ORIGIN.IM + 'im_upload/rest/resource/',
-					REST_DOWNLOAD_SERVLET: ORIGIN.IM + 'im_download/rest/resource/',
-					REST_TRANSFORM_SERVLET: ORIGIN.IM + 'im_download/rest/transform/resource/',
-					REST_SYSTEM_SERVLET: ORIGIN.IM + 'sysadmin/rest/system/',
-					REST_SYSTEM_CUSTOMER_USER: ORIGIN.IM + 'sysadmin/rest/customer/user/',
+					REST_RESOURCE_SERVLET: YY_IM_SERVLET_ADDRESS + 'sysadmin/rest/resource/',
+					REST_VERSION_SERVLET: YY_IM_SERVLET_ADDRESS + 'sysadmin/rest/version/',
+					REST_USER_SERVLET: YY_IM_SERVLET_ADDRESS + 'sysadmin/rest/user/',
+					REST_UPLOAD_SERVLET: YY_IM_SERVLET_ADDRESS + 'im_upload/rest/resource/',
+					REST_DOWNLOAD_SERVLET: YY_IM_SERVLET_ADDRESS + 'im_download/rest/resource/',
+					REST_TRANSFORM_SERVLET: YY_IM_SERVLET_ADDRESS + 'im_download/rest/transform/resource/',
+					REST_SYSTEM_SERVLET: YY_IM_SERVLET_ADDRESS + 'sysadmin/rest/system/',
+					REST_SYSTEM_CUSTOMER_USER: YY_IM_SERVLET_ADDRESS + 'sysadmin/rest/customer/user/',
 
-					REST_TODO_USER: ORIGIN.PUBACCOUNT + 'todocenter/user/todo/',
-					REST_TODO_V2: ORIGIN.PUBACCOUNT + 'todocenter/rest/v2/client/items/'
+					REST_TODO_USER: TODO_SERVLET_ADDRESS + 'todocenter/user/todo/',
+					REST_TODO_V2: TODO_SERVLET_ADDRESS + 'todocenter/rest/v2/client/items/'
 				};
-			})(ORIGIN),
+			})(),
 
 			SUPPORT: {
 				isWebSocketSupport: (() => {
