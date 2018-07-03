@@ -125,6 +125,11 @@ $('.yyim-search').on('keydown',function (e) {
 
 //点击最近联系人
 $hcontacts.on('click','li',function () {
+      //如果点击的是当前正在显示的窗口则不处理
+    let newMessageId = localStorage.getItem('targetuserid');
+    if(newMessageId == $(this).attr('data-id')){
+        return;
+    }
     if (isClear($(this).attr('data-id'))) {
         $yyim_editor.val('');
     }
@@ -135,12 +140,13 @@ $hcontacts.on('click','li',function () {
     $j_move.html($(this).attr('data-nickname'));
     //把选择的聊天对方id保存起来,用于给他发送消息
     localStorage.setItem('targetuserid', $(this).attr('data-id'));
+  
     //把选择的聊天对方报文保存,用于给他发消息回执
     localStorage.setItem('baowenId', $(this).attr('data-baowen'));
     //把选择的sessionversion,用于给他发消息回执
     localStorage.setItem('sessionversionId', $(this).attr('data-sessionversion'));
     //保存聊天类型
-    localStorage.setItem('chattype', $(this).attr('data-type'));
+    localStorage.setItem('chattype', $(this).attr('data-type'));//该聊天类型，仅仅代表手动切换聊天时，当前的聊天窗口时单聊还是群聊
     //删除保存的聊天历史
     localStorage.removeItem('historychats');
     //获取历史聊天信息

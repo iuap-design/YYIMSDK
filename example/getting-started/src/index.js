@@ -104,14 +104,15 @@ YYIMChat.init({
         //好友信息更改
     },
     onMessage: function(msg) {
+        renderHistoryMessage(msg);
         //从本地拿取聊天类型
-        let chattype = localStorage.getItem('chattype');
-        if(chattype == 'chat'){   //如果给群组发消息会出发此回调
-            //渲染历史聊天记录
-            renderHistoryMessage(msg);
-        }else if(chattype == "groupchat"){
-            renderHistoryMessage(msg);
-        }
+        // let chattype = localStorage.getItem('chattype');
+        // if(chattype == 'chat'){   //如果给群组发消息会出发此回调
+        //     //渲染历史聊天记录
+        //     renderHistoryMessage(msg);
+        // }else if(chattype == "groupchat"){
+            
+        // }
     },
     onGroupUpdate: function(arg) {
         //群组更新

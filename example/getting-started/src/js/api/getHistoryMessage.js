@@ -28,7 +28,7 @@ export default (sessionVersion, id, type) => {
                     chatId = chat.from.roster;
                  }
                  //处理别的端给web发消息
-            if(historychats.length>0&&historychats[0].from ==historychats[0].to){
+            if(historychats.length>0&&historychats[0].from ==historychats[0].to&&chat.type == "chat"){
                 //保存自己的信息
                 let nickName,nickPhoto;
                 if(localStorage.getItem('currentuserinfo')){
@@ -50,6 +50,7 @@ export default (sessionVersion, id, type) => {
                         photo:  nickPhoto,
                         nickname: nickName,
                     });
+                    historyNumber++;
                 }else{
                     historychatsData.push({
                         data: chat.data,
@@ -62,10 +63,14 @@ export default (sessionVersion, id, type) => {
                         photo: "mobile",
                         nickname: "mobile",
                     });
+                    historyNumber++;
                 }
-            //把聊天记录缓存到本地
-            localStorage.setItem('historychats', JSON.stringify(historychatsData));
-            renderHistoryMessage();
+                if(historyNumber  == historychats.length){
+                    //把聊天记录缓存到本地
+                    localStorage.setItem('historychats', JSON.stringify(historychatsData));
+                    renderHistoryMessage();
+                }
+
              
             }else{
                 YYIMChat.getVCard({
@@ -87,6 +92,7 @@ export default (sessionVersion, id, type) => {
                         if(historyNumber  == historychats.length){
                               //把聊天记录缓存到本地
                             localStorage.setItem('historychats', JSON.stringify(historychatsData));
+                            $chat_box.show();
                             renderHistoryMessage();
                         }
 
@@ -97,6 +103,7 @@ export default (sessionVersion, id, type) => {
                         if(historyNumber  == historychats.length){
                             //把聊天记录缓存到本地
                           localStorage.setItem('historychats', JSON.stringify(historychatsData));
+                          $chat_box.show();
                           renderHistoryMessage();
                       }
                         console.log(err);
@@ -105,11 +112,11 @@ export default (sessionVersion, id, type) => {
             }
             
             });
-            $chat_box.show();
-            historychats.reverse();
+          //  $chat_box.show();
+           // historychats.reverse();
            
             //渲染聊天信息
-            renderHistoryMessage();
+           // renderHistoryMessage();
         }
     });
 };
