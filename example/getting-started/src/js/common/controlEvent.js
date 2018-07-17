@@ -136,7 +136,22 @@ $hcontacts.on('click','li',function () {
     $chats_list.html('');
     $(this).addClass('active');
     $(this).siblings().removeClass('active');
-    $(this).find('.newtip').remove();
+    
+    //处理未读消息
+    if($(this).find('.newtip')[0]){
+        $(this).find('.newtip').remove();
+        let localHistoryMessage = JSON.parse(localStorage.getItem('recentdigset')|| "[]");
+        for(var i=0;i<localHistoryMessage.length;i++ ){
+            if(localHistoryMessage[i].id== $(this).attr('data-id')){
+                    localHistoryMessage[i].readedVersion= localHistoryMessage[i].sessionVersion;
+                     localStorage.setItem('recentdigset', JSON.stringify(localHistoryMessage));
+                    // renderRecentDigset(localHistoryMessage);
+            }
+        }
+    }
+   
+  //  $(this).addClass('active');
+  //  $(this).siblings().removeClass('active');
     $j_move.html($(this).attr('data-nickname'));
     //把选择的聊天对方id保存起来,用于给他发送消息
     localStorage.setItem('targetuserid', $(this).attr('data-id'));
@@ -150,7 +165,7 @@ $hcontacts.on('click','li',function () {
     //删除保存的聊天历史
     localStorage.removeItem('historychats');
     //获取历史聊天信息
-    getHistoryMessage($(this).attr('data-sessionVersion'), $(this).attr('data-id'), $(this).attr('data-type'));
+    getHistoryMessage($(this).attr('data-sessionVersion'), $(this).attr('data-id'), $(this).attr('data-type'),"digestClick");
     //发送已读回执
     YYIMChat.sendReadedReceiptsPacket({
         to:  $(this).attr('data-from'),
@@ -448,9 +463,9 @@ $btn_send.on('click',function () {
                 //渲染历史信息
                 if(chattype == "groupchat"){
                     //渲染历史信息
-                    renderHistoryMessage();
+                  //  renderHistoryMessage('','reciiveMessage');
                 }else{
-                    renderHistoryMessage(msg);
+                    renderHistoryMessage(msg,'sendByselfFromweb');
                 }
             }
         });
@@ -477,9 +492,9 @@ $yyim_editor.on('keydown',function(e){
                     $btn_send.addClass('adit-btn-send-disabled');
                     if(chattype == "groupchat"){
                         //渲染历史信息
-                        renderHistoryMessage();
+                       // renderHistoryMessage();
                     }else{
-                        renderHistoryMessage(msg);
+                        renderHistoryMessage(msg,'sendByselfFromweb');
                     }
     
                 }

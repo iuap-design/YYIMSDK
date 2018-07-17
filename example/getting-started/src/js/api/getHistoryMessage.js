@@ -7,7 +7,7 @@ import {
 //渲染聊天记录
 import renderHistoryMessage from '../render/renderHistoryMessage';
 //获取聊天历史,传入sessionVersion,对方id和type参数
-export default (sessionVersion, id, type) => {
+export default (sessionVersion, id, type,wherefrom) => {
     let start = sessionVersion > 20 ? sessionVersion - 20 : 0;
     //获取历史聊天信息
     YYIMChat.getHistoryMessage({
@@ -68,7 +68,7 @@ export default (sessionVersion, id, type) => {
                 if(historyNumber  == historychats.length){
                     //把聊天记录缓存到本地
                     localStorage.setItem('historychats', JSON.stringify(historychatsData));
-                    renderHistoryMessage();
+                    renderHistoryMessage('',wherefrom);
                 }
 
              
@@ -93,7 +93,7 @@ export default (sessionVersion, id, type) => {
                               //把聊天记录缓存到本地
                             localStorage.setItem('historychats', JSON.stringify(historychatsData));
                             $chat_box.show();
-                            renderHistoryMessage();
+                            renderHistoryMessage('',wherefrom);
                         }
 
                     
@@ -104,7 +104,7 @@ export default (sessionVersion, id, type) => {
                             //把聊天记录缓存到本地
                           localStorage.setItem('historychats', JSON.stringify(historychatsData));
                           $chat_box.show();
-                          renderHistoryMessage();
+                          renderHistoryMessage('',wherefrom);
                       }
                         console.log(err);
                     }

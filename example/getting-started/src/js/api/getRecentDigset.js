@@ -8,12 +8,6 @@ export default () => {
     // 获取最近联系人API
     YYIMChat.getRecentDigset({
         success: function (result) {
-            /* result.list.forEach((e, i) => {
-                if (e.state == "remove") {
-                    result.list.splice(i, 1);
-                    i--;
-                }
-            }); */
             for (let index = 0; index < result.list.length; index++) {
                 if (result.list[index].state == "remove") {
                     result.list.splice(index, 1);
