@@ -320,21 +320,69 @@ export default (msg,wherefrom) => {
                     });
                       //修改历史消息
                 let userVcard = JSON.parse(localStorage.getItem('currentuserinfo') || "{}");
-    
-                historychats.unshift({
-                    data: msg.data,
-                    dateline: msg.dateline,
-                    from: msg.from,
-                    id: msg.id,
-                    sessionVersion: msg.sessionVersion,
-                    to: msg.to,
-                    type: msg.type,
-                    photo: userVcard.photo || '',
-                    nickname: userVcard.nickname || userVcard.id,
-                });
-                localStorage.setItem('historychats', JSON.stringify(historychats));
-                historychats  = historychats.reverse();
-                renderHistoryMessageFinanl(historychats);
+                let sendFromId = msg.from.roster;
+                if(userVcard.id == sendFromId){
+                    historychats.unshift({
+                        data: msg.data,
+                        dateline: msg.dateline,
+                        from: msg.from,
+                        id: msg.id,
+                        sessionVersion: msg.sessionVersion,
+                        to: msg.to,
+                        type: msg.type,
+                        photo: userVcard.photo || '',
+                        nickname: userVcard.nickname || userVcard.id,
+                    });
+                    localStorage.setItem('historychats', JSON.stringify(historychats));
+                    historychats  = historychats.reverse();
+                    renderHistoryMessageFinanl(historychats);
+                }else{
+                    YYIMChat.getVCard({
+                        id: sendFromId,
+                        success: function (res) {
+                            //整理最近联系人列表到一个新数组
+                            historychats.unshift({
+                                data: msg.data,
+                                dateline: msg.dateline,
+                                from: msg.from,
+                                id: msg.id,
+                                sessionVersion: msg.sessionVersion,
+                                to: msg.to,
+                                type: msg.type,
+                                photo: res.photo || '',
+                                nickname: res.nickname || res.id,
+                            });
+                            
+                            //修改后保存
+                            localStorage.setItem('historychats', JSON.stringify(historychats));
+                            let chatsStr = '';
+                            historychats  = historychats.reverse();
+                            renderHistoryMessageFinanl(historychats);
+                            return;
+                        },
+                        error: function (err) {
+                            //把聊天记录缓存到本地
+                            historychats.unshift({
+                                data: msg.data,
+                                dateline: msg.dateline,
+                                from: msg.from,
+                                id: msg.id,
+                                sessionVersion: msg.sessionVersion,
+                                to: msg.to,
+                                type: msg.type,
+                                photo: msg.photo || '',
+                                nickname: msg.from || res.id,
+                            });
+                            
+                            //修改后保存
+                            localStorage.setItem('historychats', JSON.stringify(historychats));
+                            historychats  = historychats.reverse();
+                            renderHistoryMessageFinanl(historychats);
+                            console.log(err);
+                        }
+                    });
+                }
+                
             }else{
                 //不在当前窗口
                 recentDigset.forEach(function (digest, i) {

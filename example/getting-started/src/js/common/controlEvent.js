@@ -371,9 +371,9 @@ $('#uploadPic').on('change', function(){
         success:function(msg){
             //渲染历史信息
             if(type == "chat"){
-                renderHistoryMessage(msg);
+                renderHistoryMessage(msg,'sendByselfFromweb');
             }else{
-                renderHistoryMessage();
+               // renderHistoryMessage();
             }
             
         },
@@ -418,9 +418,9 @@ $('#uploadFile').on('change', function(){
         success:function(msg){
             //渲染历史信息
             if(type == "chat"){
-                renderHistoryMessage(msg);
+                renderHistoryMessage(msg,'sendByselfFromweb');
             }else{
-                renderHistoryMessage();
+               // renderHistoryMessage();
             }
         },
         error: function(err){
