@@ -86,6 +86,11 @@ $('.setting').on('mouseleave', function () {
 });
 //退出登陆
 $hloginout.click(function(){
+     //清空聊天头部名称
+     $j_move.html('');
+     //隐藏聊天框
+     localStorage.clear();
+     $chat_box.hide();
     $yyim_box.hide();
     $yyim_iogin.show();
     YYIMChat.logout();

@@ -33,4 +33,24 @@ const  getNameLastTwo = (str) =>{
         return "";
     }    
 }
-export {isClear,getColor,getNameLastTwo}
+//存缓存
+const saveGroupVcardMessage = (obj) =>{
+        let groupVardMessage = JSON.parse(localStorage.getItem('groupVardMessage')||'{}') ;
+        groupVardMessage[obj.id]=obj;
+        localStorage.setItem('groupVardMessage',JSON.stringify(groupVardMessage));
+        //处理群成员
+        let chatVardMessage = JSON.parse(localStorage.getItem('chatVardMessage')||'{}') ;
+        if(obj.members){
+            for(var i=0;i<obj.members.length;i++){
+                chatVardMessage[obj.members[i].id] = obj.members[i];
+            }
+        }
+        localStorage.setItem('chatVardMessage',JSON.stringify(chatVardMessage));
+}
+//存个人缓存
+const saveChatVcardMessage = (obj) =>{
+        let chatVardMessage = JSON.parse(localStorage.getItem('chatVardMessage')||'{}') ;
+        chatVardMessage[obj.id] = obj;
+        localStorage.setItem('chatVardMessage',JSON.stringify(chatVardMessage));
+}
+export {isClear,getColor,getNameLastTwo,saveGroupVcardMessage,saveChatVcardMessage}

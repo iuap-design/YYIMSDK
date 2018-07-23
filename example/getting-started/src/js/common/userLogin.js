@@ -49,10 +49,11 @@ import { $yyim_iogin, $yyim_box } from './jqelements';
                 let clientIdentify = "pc" + String(new Date().getTime());
                 let  tokenMessage = {
                     'username':username,
+                    'password':password,
                     'token':result.token,
                     'expiration':result.expiration,
                     'appType':4,
-                    "identify": clientIdentify                    
+                    "identify": clientIdentify                   
                 }
                 localStorage.setItem("tokenMessage",JSON.stringify(tokenMessage));
                 $yyim_iogin.hide();
@@ -77,6 +78,7 @@ import { $yyim_iogin, $yyim_box } from './jqelements';
 const tokenLogin = (value) =>{
     $yyim_iogin.hide();
     $yyim_box.show();
-    YYIMChat.login(value);
+    userLogin(value.username,value.password)
+    //YYIMChat.login(value);
 }
 export {userLogin,tokenLogin}

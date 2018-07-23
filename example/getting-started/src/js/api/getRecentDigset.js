@@ -2,6 +2,7 @@
 import {
     renderRecentDigset
 } from '../render/renderRecentDigset';
+import { saveChatVcardMessage,saveGroupVcardMessage } from '../common/common';
 
 //获取最近联系人
 export default () => {
@@ -103,7 +104,7 @@ export default () => {
                                             lastMessage: e.lastMessage,
                                             lastContactTime: e.lastContactTime
                                         });
-                                    
+                                        saveChatVcardMessage(res);
                                     digestChatNum++;
                                     if (digestChatNum + digestGroupchatNum + pubaccountNum == result.list.length) {
                                         //把最近联系人列表保存到本地
@@ -143,6 +144,8 @@ export default () => {
                                     lastMessage: e.lastMessage,
                                     lastContactTime: e.lastContactTime
                                 });
+                                //缓存群信息到本地
+                                saveGroupVcardMessage(data);
                                 if (digestChatNum + digestGroupchatNum + pubaccountNum == result.list.length) {
                                     //把最近联系人列表保存到本地
                                     localStorage.setItem('recentdigset', JSON.stringify(recentDigset));

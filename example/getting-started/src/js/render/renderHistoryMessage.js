@@ -167,6 +167,26 @@ export default (msg,wherefrom) => {
                                 });
                                     //这种是手机端别的账号往web发消息
                                 //获取发送的人员头像和姓名
+                                let chatVardMessage = JSON.parse(localStorage.getItem('chatVardMessage')||'{}') ;
+                                if(chatVardMessage[msg.from]){
+                                    historychats.unshift({
+                                        data: msg.data,
+                                        dateline: msg.dateline,
+                                        from: msg.from,
+                                        id: msg.id,
+                                        sessionVersion: msg.sessionVersion,
+                                        to: msg.to,
+                                        type: msg.type,
+                                        photo: chatVardMessage[msg.from].photo || '',
+                                        nickname: chatVardMessage[msg.from].nickname || chatVardMessage[msg.from].id,
+                                    });
+                                     //修改后保存
+                                     localStorage.setItem('historychats', JSON.stringify(historychats));
+                                     let chatsStr = '';
+                                     historychats  = historychats.reverse();
+                                     renderHistoryMessageFinanl(historychats);
+                                     return;
+                                }else{
                                     YYIMChat.getVCard({
                                         id: msg.from,
                                         success: function (res) {
@@ -211,6 +231,8 @@ export default (msg,wherefrom) => {
                                             console.log(err);
                                         }
                                     });
+                                }
+                                    
                             }
                             //historychats  = historychats.reverse();
                         // renderHistoryMessageFinanl(historychats);
@@ -229,52 +251,71 @@ export default (msg,wherefrom) => {
                                 }
                             });
                             //获取发送的人员头像和姓名
-                            YYIMChat.getVCard({
-                                id: msg.from,
-                                success: function (res) {
-                                    //整理最近联系人列表到一个新数组
-                                    historychats.unshift({
-                                        data: msg.data,
-                                        dateline: msg.dateline,
-                                        from: msg.from,
-                                        id: msg.id,
-                                        sessionVersion: msg.sessionVersion,
-                                        to: msg.to,
-                                        type: msg.type,
-                                        photo: res.photo || '',
-                                        nickname: res.nickname || res.id,
-                                    });
-                                    
-                                    //修改后保存
-                                    localStorage.setItem('historychats', JSON.stringify(historychats));
-                                    let chatsStr = '';
-                                    historychats  = historychats.reverse();
-                                    renderHistoryMessageFinanl(historychats);
-                                    return;
-                                },
-                                error: function (err) {
-                                    //把聊天记录缓存到本地
-                                    historychats.unshift({
-                                        data: msg.data,
-                                        dateline: msg.dateline,
-                                        from: msg.from,
-                                        id: msg.id,
-                                        sessionVersion: msg.sessionVersion,
-                                        to: msg.to,
-                                        type: msg.type,
-                                        photo: msg.photo || '',
-                                        nickname: msg.from || res.id,
-                                    });
-                                    
-                                    //修改后保存
-                                    localStorage.setItem('historychats', JSON.stringify(historychats));
-                                    historychats  = historychats.reverse();
-                                    renderHistoryMessageFinanl(historychats);
-                                    console.log(err);
-                                }
-                            });
-                
-                            
+                            let chatVardMessage = JSON.parse(localStorage.getItem('chatVardMessage')||'{}') ;
+                            if(chatVardMessage[msg.from]){
+                                historychats.unshift({
+                                    data: msg.data,
+                                    dateline: msg.dateline,
+                                    from: msg.from,
+                                    id: msg.id,
+                                    sessionVersion: msg.sessionVersion,
+                                    to: msg.to,
+                                    type: msg.type,
+                                    photo: chatVardMessage[msg.from].photo || '',
+                                    nickname: chatVardMessage[msg.from].nickname || chatVardMessage[msg.from].id,
+                                });
+                                 //修改后保存
+                                 localStorage.setItem('historychats', JSON.stringify(historychats));
+                                 let chatsStr = '';
+                                 historychats  = historychats.reverse();
+                                 renderHistoryMessageFinanl(historychats);
+                                 return;
+                            }else{
+                                YYIMChat.getVCard({
+                                    id: msg.from,
+                                    success: function (res) {
+                                        //整理最近联系人列表到一个新数组
+                                        historychats.unshift({
+                                            data: msg.data,
+                                            dateline: msg.dateline,
+                                            from: msg.from,
+                                            id: msg.id,
+                                            sessionVersion: msg.sessionVersion,
+                                            to: msg.to,
+                                            type: msg.type,
+                                            photo: res.photo || '',
+                                            nickname: res.nickname || res.id,
+                                        });
+                                        
+                                        //修改后保存
+                                        localStorage.setItem('historychats', JSON.stringify(historychats));
+                                        let chatsStr = '';
+                                        historychats  = historychats.reverse();
+                                        renderHistoryMessageFinanl(historychats);
+                                        return;
+                                    },
+                                    error: function (err) {
+                                        //把聊天记录缓存到本地
+                                        historychats.unshift({
+                                            data: msg.data,
+                                            dateline: msg.dateline,
+                                            from: msg.from,
+                                            id: msg.id,
+                                            sessionVersion: msg.sessionVersion,
+                                            to: msg.to,
+                                            type: msg.type,
+                                            photo: msg.photo || '',
+                                            nickname: msg.from || res.id,
+                                        });
+                                        
+                                        //修改后保存
+                                        localStorage.setItem('historychats', JSON.stringify(historychats));
+                                        historychats  = historychats.reverse();
+                                        renderHistoryMessageFinanl(historychats);
+                                        console.log(err);
+                                    }
+                                });
+                            }    
                         }
                     }else{
                         //不在当前窗口只渲染摘要
@@ -337,50 +378,72 @@ export default (msg,wherefrom) => {
                     historychats  = historychats.reverse();
                     renderHistoryMessageFinanl(historychats);
                 }else{
-                    YYIMChat.getVCard({
-                        id: sendFromId,
-                        success: function (res) {
-                            //整理最近联系人列表到一个新数组
-                            historychats.unshift({
-                                data: msg.data,
-                                dateline: msg.dateline,
-                                from: msg.from,
-                                id: msg.id,
-                                sessionVersion: msg.sessionVersion,
-                                to: msg.to,
-                                type: msg.type,
-                                photo: res.photo || '',
-                                nickname: res.nickname || res.id,
-                            });
-                            
-                            //修改后保存
-                            localStorage.setItem('historychats', JSON.stringify(historychats));
-                            let chatsStr = '';
-                            historychats  = historychats.reverse();
-                            renderHistoryMessageFinanl(historychats);
-                            return;
-                        },
-                        error: function (err) {
-                            //把聊天记录缓存到本地
-                            historychats.unshift({
-                                data: msg.data,
-                                dateline: msg.dateline,
-                                from: msg.from,
-                                id: msg.id,
-                                sessionVersion: msg.sessionVersion,
-                                to: msg.to,
-                                type: msg.type,
-                                photo: msg.photo || '',
-                                nickname: msg.from || res.id,
-                            });
-                            
-                            //修改后保存
-                            localStorage.setItem('historychats', JSON.stringify(historychats));
-                            historychats  = historychats.reverse();
-                            renderHistoryMessageFinanl(historychats);
-                            console.log(err);
-                        }
-                    });
+                    let chatVardMessage = JSON.parse(localStorage.getItem('chatVardMessage')||'{}') ;
+                        if(chatVardMessage[sendFromId]){
+                                    historychats.unshift({
+                                        data: msg.data,
+                                        dateline: msg.dateline,
+                                        from: sendFromId,
+                                        id: msg.id,
+                                        sessionVersion: msg.sessionVersion,
+                                        to: msg.to,
+                                        type: msg.type,
+                                        photo: chatVardMessage[sendFromId].photo || '',
+                                        nickname: chatVardMessage[sendFromId].nickname || chatVardMessage[sendFromId].id,
+                                    });
+                                     //修改后保存
+                                     localStorage.setItem('historychats', JSON.stringify(historychats));
+                                     let chatsStr = '';
+                                     historychats  = historychats.reverse();
+                                     renderHistoryMessageFinanl(historychats);
+                                     return;
+                           }else{
+                                YYIMChat.getVCard({
+                                    id: sendFromId,
+                                    success: function (res) {
+                                        //整理最近联系人列表到一个新数组
+                                        historychats.unshift({
+                                            data: msg.data,
+                                            dateline: msg.dateline,
+                                            from: msg.from,
+                                            id: msg.id,
+                                            sessionVersion: msg.sessionVersion,
+                                            to: msg.to,
+                                            type: msg.type,
+                                            photo: res.photo || '',
+                                            nickname: res.nickname || res.id,
+                                        });
+                                        
+                                        //修改后保存
+                                        localStorage.setItem('historychats', JSON.stringify(historychats));
+                                        let chatsStr = '';
+                                        historychats  = historychats.reverse();
+                                        renderHistoryMessageFinanl(historychats);
+                                        return;
+                                    },
+                                    error: function (err) {
+                                        //把聊天记录缓存到本地
+                                        historychats.unshift({
+                                            data: msg.data,
+                                            dateline: msg.dateline,
+                                            from: msg.from,
+                                            id: msg.id,
+                                            sessionVersion: msg.sessionVersion,
+                                            to: msg.to,
+                                            type: msg.type,
+                                            photo: msg.photo || '',
+                                            nickname: msg.from || res.id,
+                                        });
+                                        
+                                        //修改后保存
+                                        localStorage.setItem('historychats', JSON.stringify(historychats));
+                                        historychats  = historychats.reverse();
+                                        renderHistoryMessageFinanl(historychats);
+                                        console.log(err);
+                                    }
+                                });
+                           }
+                  
                 }
                 
             }else{
