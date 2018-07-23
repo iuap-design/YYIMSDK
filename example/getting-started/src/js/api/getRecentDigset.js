@@ -34,6 +34,21 @@ export default () => {
                         i--;
                     }
                 }
+                YYIMChat.getChatGroups({
+                    startDate: 0,
+                    success: function (res) {
+                        console.log(res);
+                       if(res.roomItems.length>0){
+                            for(var i=0;i<res.roomItems.length;i++){
+                                saveGroupVcardMessage(res.roomItems[i]);
+                            }
+                       }
+                    },
+                    error: function (err) {
+                       
+                        console.log(err);
+                    }
+                });
                 result.list.forEach(function (e, i) {
                     // //显示公众号
                     // if(e.type == 'pubaccount'){
@@ -90,7 +105,17 @@ export default () => {
                             });
                             digestChatNum++;
                         }else{
-                            YYIMChat.getVCard({
+                            // YYIMChat.getBatchVCards({
+                            //     id: "['18810622145','18703623028']",
+                            //     success: function (res) {
+                            //          console.log(res);
+                            //     },
+                            //     error: function (err) {
+                                    
+                            //         console.log(err);
+                            //     }
+                            // });
+                            YYIMChat.getBatchVCards({
                                 id: e.id,
                                 success: function (res) {
                                         //整理最近联系人列表到一个新数组
@@ -128,40 +153,100 @@ export default () => {
                         //通过id获取个人信息
                        
                     } else if (e.type == 'groupchat') {
-                        YYIMChat.getChatGroupInfo({
-                            id: e.id,
-                            membersLimit: 40,
-                            success: function (data) {
-                                console.log(data);
-                                digestGroupchatNum++;
-                                recentDigset.push({
-                                    id: data.id,
-                                    readedVersion: e.readedVersion,
-                                    sessionVersion: e.sessionVersion,
-                                    type: e.type,
-                                    photo: data.photo || '',
-                                    nickname: data.nickname || data.name || data.id,
-                                    lastMessage: e.lastMessage,
-                                    lastContactTime: e.lastContactTime
-                                });
-                                //缓存群信息到本地
-                                saveGroupVcardMessage(data);
-                                if (digestChatNum + digestGroupchatNum + pubaccountNum == result.list.length) {
-                                    //把最近联系人列表保存到本地
-                                    localStorage.setItem('recentdigset', JSON.stringify(recentDigset));
-                                    renderRecentDigset(recentDigset);
-                                }
-                            },
-                            error: function (err) {
-                                digestGroupchatNum++;
-                                if (digestChatNum + digestGroupchatNum + pubaccountNum == result.list.length) {
-                                    //把最近联系人列表保存到本地
-                                    localStorage.setItem('recentdigset', JSON.stringify(recentDigset));
-                                    renderRecentDigset(recentDigset);
-                                }
-                                console.log(err);
+                     let groupVardMessage = JSON.parse(localStorage.getItem('groupVardMessage')||'{}') ;
+                     if(groupVardMessage){
+                        if(groupVardMessage[e.id]){
+                            digestGroupchatNum++;
+                            recentDigset.push({
+                                id: e.id,
+                                readedVersion: e.readedVersion,
+                                sessionVersion: e.sessionVersion,
+                                type: e.type,
+                                photo: groupVardMessage[e.id].photo || '',
+                                nickname: groupVardMessage[e.id].nickname || groupVardMessage[e.id].name || groupVardMessage[e.id].id,
+                                lastMessage: e.lastMessage,
+                                lastContactTime: e.lastContactTime
+                            });
+                            //缓存群信息到本地
+                           // saveGroupVcardMessage(data);
+                            if (digestChatNum + digestGroupchatNum + pubaccountNum == result.list.length) {
+                                //把最近联系人列表保存到本地
+                                localStorage.setItem('recentdigset', JSON.stringify(recentDigset));
+                                renderRecentDigset(recentDigset);
                             }
-                        });
+                        }else{
+                                  YYIMChat.getChatGroupInfo({
+                                        id: e.id,
+                                        membersLimit: 40,
+                                        success: function (data) {
+                                            console.log(data);
+                                            digestGroupchatNum++;
+                                            recentDigset.push({
+                                                id: data.id,
+                                                readedVersion: e.readedVersion,
+                                                sessionVersion: e.sessionVersion,
+                                                type: e.type,
+                                                photo: data.photo || '',
+                                                nickname: data.nickname || data.name || data.id,
+                                                lastMessage: e.lastMessage,
+                                                lastContactTime: e.lastContactTime
+                                            });
+                                            //缓存群信息到本地
+                                            saveGroupVcardMessage(data);
+                                            if (digestChatNum + digestGroupchatNum + pubaccountNum == result.list.length) {
+                                                //把最近联系人列表保存到本地
+                                                localStorage.setItem('recentdigset', JSON.stringify(recentDigset));
+                                                renderRecentDigset(recentDigset);
+                                            }
+                                        },
+                                        error: function (err) {
+                                            digestGroupchatNum++;
+                                            if (digestChatNum + digestGroupchatNum + pubaccountNum == result.list.length) {
+                                                //把最近联系人列表保存到本地
+                                                localStorage.setItem('recentdigset', JSON.stringify(recentDigset));
+                                                renderRecentDigset(recentDigset);
+                                            }
+                                            console.log(err);
+                                        }
+                                    });
+                            
+                        }
+                     }
+                       
+                        // YYIMChat.getChatGroupInfo({
+                        //     id: e.id,
+                        //     membersLimit: 40,
+                        //     success: function (data) {
+                        //         console.log(data);
+                        //         digestGroupchatNum++;
+                        //         recentDigset.push({
+                        //             id: data.id,
+                        //             readedVersion: e.readedVersion,
+                        //             sessionVersion: e.sessionVersion,
+                        //             type: e.type,
+                        //             photo: data.photo || '',
+                        //             nickname: data.nickname || data.name || data.id,
+                        //             lastMessage: e.lastMessage,
+                        //             lastContactTime: e.lastContactTime
+                        //         });
+                        //         //缓存群信息到本地
+                        //         saveGroupVcardMessage(data);
+                        //         if (digestChatNum + digestGroupchatNum + pubaccountNum == result.list.length) {
+                        //             //把最近联系人列表保存到本地
+                        //             localStorage.setItem('recentdigset', JSON.stringify(recentDigset));
+                        //             renderRecentDigset(recentDigset);
+                        //         }
+                        //     },
+                        //     error: function (err) {
+                        //         digestGroupchatNum++;
+                        //         if (digestChatNum + digestGroupchatNum + pubaccountNum == result.list.length) {
+                        //             //把最近联系人列表保存到本地
+                        //             localStorage.setItem('recentdigset', JSON.stringify(recentDigset));
+                        //             renderRecentDigset(recentDigset);
+                        //         }
+                        //         console.log(err);
+                        //     }
+                        // });
                     }
 
                 });
