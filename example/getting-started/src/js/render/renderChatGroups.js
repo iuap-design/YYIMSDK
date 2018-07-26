@@ -9,7 +9,7 @@ export default (groups) => {
     groups.forEach(function(group){
         groupStr += `<li data-id="${group.id}" data-nickname="${group.name}" data-photo="${group.photo || ''}" data-type="groupchat">
                     <div class="avatar">
-                        <img src="${YYIMChat.getFileUrl(group.photo) || './imgs/avatar.jpg'}" alt=""><span>${group.name || '群组'}</span>
+                        <img src="${YYIMChat.getFileUrl(group.photo) || './imgs/group.png'}" alt=""><span>${group.name || '群组'}</span>
                     </div>
                 </li>`;
     });

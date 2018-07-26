@@ -197,7 +197,7 @@ $hmyfriend.on('click','li',function(){
     //删除保存的聊天历史
     localStorage.removeItem('historychats');
     //获取历史聊天信息
-    getHistoryMessage( "19", $(this).attr('data-id'), $(this).attr('data-type'));
+    getHistoryMessage( "19", $(this).attr('data-id'), $(this).attr('data-type'),"digestClick");
     //处理摘要显示
     let nowDigest = JSON.parse(localStorage.getItem('recentdigset')||"[]");
     let hasHistory = false;
@@ -208,10 +208,10 @@ $hmyfriend.on('click','li',function(){
     if(nowDigest&&nowDigest.length>0){
         for(var i=0;i<nowDigest.length;i++){
             if((nowDigest[i].id == chatId)&&(nowDigest[i].type == chatType)){
-                nowDigest.unshift(nowDigest[i]);
-                i++;
+                //nowDigest.unshift(nowDigest[i]);
+               // i++;
                 nowDigest.splice(i,1); 
-                hasHistory = true;
+                //hasHistory = true;
                 break;   
             }
         }
@@ -246,7 +246,7 @@ $hmygrouplist.on('click','li',function(){
     // //删除保存的聊天历史
      localStorage.removeItem('historychats');
      //获取历史聊天信息
-     getHistoryMessage( "19", $(this).attr('data-id'), $(this).attr('data-type'));
+     getHistoryMessage( "19", $(this).attr('data-id'), $(this).attr('data-type'),"digestClick");
     // //处理摘要显示
      let nowDigest = JSON.parse(localStorage.getItem('recentdigset')||"[]");
      let hasHistory = false;
@@ -257,10 +257,10 @@ $hmygrouplist.on('click','li',function(){
     if(nowDigest.length>0){
         for(var i=0;i<nowDigest.length;i++){
             if((nowDigest[i].id == chatId)){
-                nowDigest.unshift(nowDigest[i]);
-                i++;
+              //  nowDigest.unshift(nowDigest[i]);
+               // i++;
                 nowDigest.splice(i,1); 
-                hasHistory = true;
+              //  hasHistory = true;
                 break;   
             }
         }

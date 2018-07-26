@@ -32,7 +32,7 @@ export default (historychats) => {
             //文本消息
             let photoMsgContent = '';
             if(chat.photo){
-                photoMsgContent = ` <img src=${chat.photo=="mobile"?"../imgs/assistant_mobile.png":YYIMChat.getFileUrl(chat.photo)} alt="">`
+                photoMsgContent = ` <img src=${chat.photo=="mobile"?"./imgs/assistant_mobile.png":YYIMChat.getFileUrl(chat.photo)} alt="">`
             }else{
                 photoMsgContent = `<div class="history-noPhoto" style="background:${getColor(chatfrom)}">${getNameLastTwo(chatfrom) }</div>`
             }
